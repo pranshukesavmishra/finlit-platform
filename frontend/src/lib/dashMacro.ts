@@ -1,11 +1,10 @@
 // The six "prices and rates" tiles of the dashboard's Market today block, worked out from /api/macro. A tile with no number carries the reason instead; nothing is estimated.
 import type { Macro, Pt } from "./macro";
 import { MINUS, nf } from "./format";
+import { dayMonth, monthName } from "./dashboard";
 
 export type RateTile = { key: string; name: string; value: string | null; note: string; tone?: "up" | "down" };
 const last = (m: Macro | undefined, key: string): Pt | null => { const p = m?.series?.[key]?.points; return p && p.length ? p[p.length - 1] : null; };
-const monthName = (iso: string) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
-const dayMonth = (iso: string) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 const signed = (v: number, d = 1) => (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d);
 
 export function rateTiles(m: Macro | undefined): RateTile[] {

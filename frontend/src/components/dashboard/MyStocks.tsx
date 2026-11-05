@@ -6,7 +6,7 @@ import { apiGet, useQuotesFor, type Financials } from "../../lib/api";
 import { useAlerts } from "../../lib/alerts";
 import { quoteMap, BAND_LABEL } from "../../lib/globalSearch";
 import { MINUS, nf } from "../../lib/format";
-import { quarterEndLabel, yoyOf } from "../../lib/dashboard";
+import { dayMonth, quarterEndLabel, yoyOf } from "../../lib/dashboard";
 import { Card, Rows, tone } from "./parts";
 
 export type Followed = { symbol: string; name: string | null };
@@ -26,7 +26,7 @@ export function MyStocks({ followed, loading }: { followed: Followed[]; loading:
   const { alerts } = useAlerts();
   const latestEnd = fins.map((f) => f.data?.quarterly?.pl?.periodEnds?.slice(-1)[0]).filter(Boolean).sort().pop();
   const priced = [...qm.values()].map((q) => q.date).filter(Boolean).sort().pop();
-  const when = priced ? new Date(priced + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }) : null;
+  const when = priced ? dayMonth(priced) : null;
   const sub = followed.length ? `${followed.length > MAX ? `${MAX} of ${followed.length}` : followed.length} followed${when ? ` · prices of ${when}` : ""}${latestEnd ? ` · latest quarter ${quarterEndLabel(latestEnd)}` : ""}` : undefined;
   return (
     <Card id="mystocks" title="Your stocks today" sub={sub} right={<Link className="dsh-link" to="/watchlist"><span className="long">Open watchlist</span><span className="short">Watchlist</span> →</Link>}>
@@ -45,7 +45,7 @@ export function MyStocks({ followed, loading }: { followed: Followed[]; loading:
             return (
               <div className="dsh-st-r" role="row" key={f.symbol}>
                 <div className="nm" role="cell"><Link to={`/stocks/${f.symbol}`}>{/^\d+$/.test(f.symbol) && f.name ? f.name : f.symbol}</Link><small>{f.name || ""}</small></div>
-                <div className="px r" role="cell">{quotes.isLoading ? <i className="skeleton sk-n" /> : q?.price != null ? "₹" + nf(q.price) : <span title="No traded price held yet">—</span>}</div>
+                <div className="dsh-pr r" role="cell">{quotes.isLoading ? <i className="skeleton sk-n" /> : q?.price != null ? "₹" + nf(q.price) : <span title="No traded price held yet">—</span>}</div>
                 <div className={"ch r " + tone(q?.chg)} role="cell">{quotes.isLoading ? <i className="skeleton sk-n" /> : pct(q?.chg, 2)}</div>
                 <div className="dsh-st-x"><div className="sc" role="cell">{quotes.isLoading ? <i className="skeleton sk-p" /> : <Pill score={q?.score ?? null} band={q?.band ?? null} />}</div>
                 <div className={"yy r " + tone(rev?.pct)} role="cell" title={reasonRev}><b className="lbl">Revenue </b>{fin.isLoading ? <i className="skeleton sk-n" /> : pct(rev?.pct)}</div>

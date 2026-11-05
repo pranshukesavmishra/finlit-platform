@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { useIndices } from "../../lib/indices";
 import { useMacro } from "../../lib/macro";
 import { rateTiles } from "../../lib/dashMacro";
-import { pickIndices } from "../../lib/dashboard";
+import { dayMonth, monthYear, pickIndices } from "../../lib/dashboard";
 import { MINUS, dateIN, nf } from "../../lib/format";
 import { niceTicks } from "../../lib/etf";
 import { RANGES, lastN, useLevels } from "../../lib/markets";
@@ -37,7 +37,7 @@ function IndexChart({ items }: { items: { code: string; close: number | null; ch
   const path = rows.map((r, i) => `${i ? "L" : "M"}${X(i).toFixed(1)} ${Y(r.c).toFixed(1)}`).join("");
   const color = up ? "var(--d-up)" : "var(--d-down)", cur = hv == null ? null : rows[hv], prev = hv != null && hv > 0 ? rows[hv - 1] : null;
   const span = (+new Date(rows[rows.length - 1].d) - +new Date(rows[0].d)) / 864e5;
-  const label = (d: string) => dateIN(d, span > 400 ? { month: "short", year: "2-digit" } : { day: "numeric", month: "short" });
+  const label = (d: string) => (span > 400 ? monthYear(d).replace(/ 20(\d\d)$/, " $1") : dayMonth(d));
   const xs = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * (rows.length - 1)));
   const chg = (a: number, b: number) => (a / b - 1) * 100;
   const day = live?.changePct ?? chg(last, v[v.length - 2] ?? v[0]);
@@ -55,7 +55,7 @@ function IndexChart({ items }: { items: { code: string; close: number | null; ch
           <path d={`${path}L${X(rows.length - 1)} ${H - B}L${X(0)} ${H - B}Z`} fill="url(#dshfill)" /><path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
           {cur && hv != null && <g className="hv"><line x1={X(hv)} x2={X(hv)} y1={T} y2={H - B} /><circle cx={X(hv)} cy={Y(cur.c)} r="5" fill={color} /></g>}
         </svg>
-        {cur && hv != null && <div className="dsh-tip" style={{ left: `${Math.min(86, Math.max(14, (X(hv) / W) * 100))}%` }} role="status"><b>{dateIN(cur.d, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</b><span>Close {nf(cur.c)}</span>{prev && <span className={tone(chg(cur.c, prev.c))}>Day {sgn(chg(cur.c, prev.c))}</span>}</div>}
+        {cur && hv != null && <div className="dsh-tip" style={{ left: `${Math.min(86, Math.max(14, (X(hv) / W) * 100))}%` }} role="status"><b>{`${dayMonth(cur.d, true)}`}</b><span>Close {nf(cur.c)}</span>{prev && <span className={tone(chg(cur.c, prev.c))}>Day {sgn(chg(cur.c, prev.c))}</span>}</div>}
       </div>
     </div>
   );

@@ -102,7 +102,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const qc = useQueryClient();
   const today = todayIST();
 
-  const idx = useSearchIndex(true);
+  const idx = useSearchIndex(open);   // the 118 KB name list is fetched when search opens, not on every page load
   const quotes = useSearchQuotes(open);
   // The quotes feed is the first choice; for a company it lacks, the screener's own row (price, day change, score) fills in so no row is empty.
   const uni = useUniverse(open);

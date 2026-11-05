@@ -16,8 +16,17 @@ export function firstName(name?: string | null, email?: string | null): string {
   return cap(e);
 }
 export const greetingWord = (hour: number) => (hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+/** "Sep 2026" or "4 Nov" from a YYYY-MM-DD date, always with the three-letter month ("Sept" is never used). */
+export const monthYear = (iso: string) => `${MONTHS[+iso.slice(5, 7) - 1]} ${iso.slice(0, 4)}`;
+export const dayMonth = (iso: string, year = false) => `${+iso.slice(8, 10)} ${MONTHS[+iso.slice(5, 7) - 1]}${year ? " " + iso.slice(0, 4) : ""}`;
+export const monthName = (iso: string) => MONTHS_LONG[+iso.slice(5, 7) - 1];
 /** "Wednesday, 4 November" in Indian time. */
-export const longDay = (d: Date = new Date()) => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kolkata" });
+export const longDay = (d: Date = new Date()) => {
+  const iso = d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  return `${d.toLocaleDateString("en-GB", { weekday: "long", timeZone: "Asia/Kolkata" })}, ${+iso.slice(8, 10)} ${monthName(iso)}`;
+};
 export const istHour = (d: Date = new Date()) => +d.toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }) % 24;
 export const istToday = (d: Date = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
@@ -62,7 +71,7 @@ export function yoyOf(values: (number | null)[] | undefined, ends: string[] | un
   return { pct: ((a - b) / b) * 100, reason: null };
 }
 /** "Sep 2026" from a quarter-end date. */
-export const quarterEndLabel = (iso: string | undefined) => (iso ? new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }) : "");
+export const quarterEndLabel = (iso: string | undefined) => (iso ? monthYear(iso) : "");
 
 // ---------------------------------------------------------------------------------------------------------------- results today
 const quarterIn = (s: string) => { const m = /\bQ([1-4])\s*FY\s*'?(\d{2,4})\b/i.exec(s); return m ? `Q${m[1]} FY${m[2].slice(-2)}` : null; };
@@ -146,7 +155,7 @@ export function shortDay(iso: string, today: string): string {
   if (diff === 0) return "Today";
   if (diff === -1) return "Yesterday";
   if (diff === 1) return "Tomorrow";
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: iso.slice(0, 4) === today.slice(0, 4) ? undefined : "numeric", timeZone: "UTC" });
+  return dayMonth(iso, iso.slice(0, 4) !== today.slice(0, 4));
 }
 
 // ---------------------------------------------------------------------------------------------------------------- IPOs

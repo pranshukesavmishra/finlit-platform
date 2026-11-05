@@ -160,7 +160,8 @@
 .dsh-hide-phone { display: block; }
 @media (max-width: 759px) {
   .dsh { gap: 16px; padding-top: 16px; padding-bottom: 104px; }
-  .dsh h1 { font-size: 28px; } .dsh-card { padding: 16px; } .dsh-card h2 { font-size: 18px; }
+  .dsh h1 { font-size: 28px !important; line-height: 1.15 !important; } .dsh-card { padding: 16px; } .dsh .dsh-card h2, .dsh-drawer h2 { font-size: 18px !important; }   /* !important: the site-wide phone heading rule in luxe.css is !important too */
+  .dsh-st .nm a { display: flex; align-items: center; min-height: 44px; } .dsh-mv, .dsh-sl { min-height: 44px; align-items: center; }
   .dsh-head { align-items: flex-start; } .dsh-actions { width: 100%; } .dsh-btn, .dsh-chip { height: 44px; } .dsh-ib { width: 44px; height: 44px; }
   .dsh-seg button, .dsh-chips > button, .dsh-menu > button { height: 44px; padding: 0 14px; }
   .dsh-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--d-tile); border: 1px solid var(--d-line2); }
@@ -174,7 +175,7 @@
   .dsh-bk .long { display: none; } .dsh-bk .short { display: inline; }
   .dsh-st-h { display: none; }
   .dsh-st-r { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nm px" "nm ch" "x x"; gap: 2px 12px; padding: 14px 0; }
-  .dsh-st-r .nm { grid-area: nm; } .dsh-st-r .px { grid-area: px; font-size: 18px; font-weight: 600; } .dsh-st-r .ch { grid-area: ch; }
+  .dsh-st-r .nm { grid-area: nm; } .dsh-st-r .dsh-pr { grid-area: px; font-size: 18px; font-weight: 600; } .dsh-st-r .ch { grid-area: ch; }
   .dsh-st-x { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; grid-area: x; margin-top: 8px; }
   .dsh-st-r .yy { padding: 3px 10px; border-radius: 999px; background: var(--d-tile); font-size: 13px; text-align: left; } .dsh-st .lbl { display: inline; color: var(--d-mut2); }
   .dsh-st-r .al a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; }

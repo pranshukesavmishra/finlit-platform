@@ -3,7 +3,7 @@
  *  Signed-in members get the list from the server; the last companies opened in this browser are remembered too (for visitors as well). */
 import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, prefetchStock, useSearchIndex, type ApiError } from "./api";
+import { apiGet, prefetchStock, type ApiError } from "./api";
 import { useAuth } from "./auth";
 
 export type MyCompany = { symbol: string; name: string | null; ready: boolean; followed: boolean; lastOpened: string | null };
@@ -29,13 +29,13 @@ export function useMyCompanies() {
  *  (an unprepared one would start a build nobody is waiting for). */
 export function useWarmMyCompanies() {
   const qc = useQueryClient();
-  const { symbols } = useMyCompanies();
-  const idx = useSearchIndex(symbols.length > 0);
+  const { companies } = useMyCompanies();
+  // "ready" comes with the member's own company list, so the 118 KB search list is not fetched just to warm reports.
+  const key = companies.filter((c) => c.ready).map((c) => c.symbol).slice(0, 8).join(",");
   useEffect(() => {
-    const ready = new Set((idx.data?.rows || []).filter((r) => r[3]).map((r) => r[0]));
-    const todo = symbols.filter((s) => ready.has(s) && !qc.getQueryData(["stock", s, ""])).slice(0, 8);
+    const todo = key.split(",").filter((s) => s && !qc.getQueryData(["stock", s, ""]));
     if (!todo.length) return;
     const timers = todo.map((s, i) => window.setTimeout(() => prefetchStock(qc, s), 1500 + i * 700));
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [symbols.join(","), idx.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 }
