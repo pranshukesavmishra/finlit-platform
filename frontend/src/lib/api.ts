@@ -222,3 +222,11 @@ export function scoreChange(points: ScorePoint[] | undefined): { delta: number; 
   const old = [...points].reverse().find((p) => p.overall != null && day(last.day) - day(p.day) >= 80 * DAY) ?? points.find((p) => p.overall != null && day(last.day) - day(p.day) >= 7 * DAY);
   return old && old.overall != null ? { delta: last.overall - old.overall, since: old.day } : null;
 }
+
+/** Price, day change and score of just these companies (the dashboard follows a handful, not the 5,000 of the search list). Private: varies by plan. */
+export const useQuotesFor = (symbols: string[]) => {
+  const key = [...new Set(symbols)].sort().join(",");
+  return useQuery<import("./globalSearch").Quotes, ApiError>({
+    queryKey: ["search-quotes", "for", key], queryFn: () => apiGet(`/api/search/quotes?symbols=${encodeURIComponent(key)}`), enabled: !!key, staleTime: 30_000, refetchInterval: 60_000, retry: 1,
+  });
+};

@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { TILE_COLOURS, contrast, dedupeFilings, filingLine, filingTag, firstName, greetingWord, moveBlock, readTab, resultLines, shortDay, shorten, tileColour, tileLabel, titleCase, writeTab, yoyOf } from "./dashboard";
+import { TILE_COLOURS, contrast, pickIndices, scopeStocks, dedupeFilings, filingLine, filingTag, firstName, greetingWord, moveBlock, readTab, resultLines, shortDay, shorten, tileColour, tileLabel, titleCase, writeTab, yoyOf } from "./dashboard";
 import { WIDGETS, normaliseLayout } from "./prefs";
 import type { FeedItem } from "./feed";
+import type { IndexRow } from "./indices";
+import type { Row } from "./screener";
 
 const item = (o: Partial<FeedItem>): FeedItem => ({ id: 1, kind: "result", title: "", symbol: "LUPIN", company: "Lupin Ltd", source: "Exchange filing", link: null, date: "2026-11-04", category: null, period: null, summary: null, auto: true, ...o } as FeedItem);
 
@@ -128,4 +130,28 @@ describe("customise layout", () => {
     expect(moveBlock(l, 0, 0)).toEqual(l); expect(moveBlock(l, 0, -1)).toEqual(l); expect(moveBlock(l, 9, 0)).toEqual(l);
   });
   it("gives every block a phone tab", () => { expect(new Set(WIDGETS.map((w) => w.tab))).toEqual(new Set(["stocks", "market", "news"])); });
+});
+
+
+const ix = (name: string, close: number | null = 100) => ({ code: name, name, close } as unknown as IndexRow);
+const row = (symbol: string, change: number, cap = 1000, price = 10) => ({ symbol, name: symbol, change_pct: change, market_cap: cap, price } as unknown as Row);
+
+describe("market blocks", () => {
+  it("picks the seven index cards in order, whatever the case of the feed's names", () => {
+    const got = pickIndices([ix("NIFTY BANK"), ix("India VIX"), ix("Nifty  50"), ix("Sensex"), ix("Nifty Midcap 100"), ix("NIFTY SMALLCAP 100"), ix("Nifty IT"), ix("Nifty Auto")]);
+    expect(got.map((g) => g.label)).toEqual(["Nifty 50", "Sensex", "Nifty Bank", "Nifty Midcap 100", "Nifty Smallcap 100", "Nifty IT", "India VIX"]);
+    expect(got.every((g) => g.row)).toBe(true);
+    expect(pickIndices([ix("Sensex", null)])[1].row).toBeNull();
+  });
+  it("draws gainers from the Nifty 50 list, not from all stocks", () => {
+    const rows = [row("TCS", -3), row("SMALLCO", 20, 50), row("ITC", 2.3)];
+    const n50 = scopeStocks("n50", rows, { NIFTY50: Array.from({ length: 25 }, (_, i) => (i === 0 ? "TCS" : i === 1 ? "ITC" : "X" + i)) });
+    expect(n50.stocks.map((r) => r.symbol)).toEqual(["TCS", "ITC"]); expect(n50.note).toBeNull();
+    expect(scopeStocks("all", rows, undefined).stocks.map((r) => r.symbol)).toEqual(["TCS", "ITC"]);       // under 100 crore left out
+  });
+  it("says so when a member list is not loaded, never silently widening Nifty 500", () => {
+    const rows = [row("A", 1, 500), row("B", -1, 900)];
+    const n50 = scopeStocks("n50", rows, {}); expect(n50.note).toMatch(/Nifty 50 list is not loaded/); expect(n50.stocks[0].symbol).toBe("B");
+    expect(scopeStocks("n500", rows, {})).toEqual({ stocks: [], note: "The exchange's Nifty 500 list is not loaded yet." });
+  });
 });

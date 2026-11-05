@@ -17,6 +17,8 @@ export type Macro = {
   rates: { rates: Record<string, number>; fx: Record<string, number>; fxAsOf: string | null; seenOn: string } | null;
   reserves: { reservesAsOf: string; link: string; reserves: Record<string, { inr: number; usd: number; weekUsd: number; fyUsd: number; yearUsd: number }> } | null;
   decisions: { date: string; rate: number; bp: number; url: string }[];
+  /** Brent crude from the EIA (US$ a barrel) and how it stands against its 4-quarter average; `reason` says why a number is missing (e.g. "Brent: source key not set"). */
+  brent?: { status: string; value?: number; date?: string; avg4q?: number | null; vsAvgPct?: number | null; avgFrom?: string; avgTo?: string; reason?: string; note?: string };
   coverage: { key: string; label: string; source: string; from: string; latest: string; observations: number; ageDays: number }[];
   runs: Record<string, { status: string; at: string }>; issues: string[]; sources: { name: string; url: string; covers: string }[]; disclaimer: string;
 };

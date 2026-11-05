@@ -1,0 +1,11 @@
+/* "Ask FinLit AI" in the header bar (it replaced the floating button that covered charts and lists). 40px tall; an icon-only 44px button on phones. Sizes: 14px. */
+.top .ai-top { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--action-primary); background: var(--action-primary); color: var(--action-on-primary); font: 600 14px/1 var(--font-sans, Inter, sans-serif); cursor: pointer; white-space: nowrap; }
+.top .ai-top:hover { background: var(--action-primary-hover); }
+.top .ai-top svg { width: 16px; height: 16px; flex: none; }
+@media (max-width: 759px) { .top .ai-top { width: 44px; height: 44px; padding: 0; justify-content: center; } .top .ai-top span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; } }
+
+/* The dashboard's questions, folded to one line (summary 16px, count 13px). */
+.pfq-fold > summary { display: flex; align-items: baseline; gap: 12px; min-height: 44px; padding: 10px 0; cursor: pointer; list-style: none; font-size: 16px; }
+.pfq-fold > summary::-webkit-details-marker { display: none; }
+.pfq-fold > summary::before { content: "▸"; color: var(--text-muted); } .pfq-fold[open] > summary::before { content: "▾"; }
+.pfq-fold > summary small { font-size: 13px; color: var(--text-muted); }

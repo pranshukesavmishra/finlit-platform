@@ -1,300 +1,109 @@
+// The dashboard: a greeting row (date, market state, followed stocks, Setup chip, Customise), then the blocks in the member's order. Every block can be moved, hidden or resized in Customise;
+// on a phone the blocks sit under three tabs (My stocks, Market, News) and the last tab is remembered. Descriptive only, information only.
 import { useEffect, useMemo, useState } from "react";
-import { titleOf, subOf, codeNote } from "../lib/companyLabel";
-import { Link, Navigate, useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
-import { apiGet, type ApiError, type Financials } from "../lib/api";
-import { STATUS_TEXT, run, type DcfInputs } from "../lib/dcf";
-import { direction, inr, istTime, signedPct, useCommodities } from "../lib/commodities";
+import { Navigate, useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
-import { RANK, TIER, useUI, type Plan } from "../lib/ui";
-import { PALETTES, PALETTE_IDS } from "../lib/palettes";
-import { WIDGETS, prefs, usePrefs, type WidgetPref } from "../lib/prefs";
-import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
-import { useSavedScreens } from "../lib/screens";
+import { RANK, useUI } from "../lib/ui";
+import { DASH_TABS, WIDGETS, prefs, usePrefs, type DashTab } from "../lib/prefs";
+import { useUniverse, type Row } from "../lib/screener";
 import { useWatchlist, watch } from "../lib/watchlist";
+import { useMyCompanies } from "../lib/mycompanies";
+import { useIndices } from "../lib/indices";
 import { DEMO } from "../lib/demo";
-import { signals } from "./Watchlist";
-import { MiniBars } from "../charts/MiniBars";
-import { Icon } from "../lib/icons";
-import { MINUS, cr, nf } from "../lib/format";
 import { useDocTitle } from "../lib/title";
-import { dayLabel, useFeed, who } from "../lib/feed";
-import { encodeState, toBody, useScreen, type PState } from "../lib/proscreen";
-import { useIpos } from "../lib/ipo";
-import { useAlerts } from "../lib/alerts";
-import { MarketsBlock } from "../components/markets/MarketsBlock";
-import { ChartHelp } from "../components/ChartHelp";
-
-const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; };
-const sgn = (v: number | null | undefined, d = 1) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(v, d) + "%");
-const tone = (v: number | null | undefined) => (v == null || v === 0 ? "" : v > 0 ? "up" : "down");
-
-function Empty({ icon, title, text, to, cta }: { icon: string; title: string; text: string; to: string; cta: string }) {
-  return <div className="dw-empty"><span className="dw-ei"><Icon name={icon} /></span><b>{title}</b><p>{text}</p><Link className="btn" to={to}>{cta}</Link></div>;
-}
-
-/* ---------------- widgets ---------------- */
-const HELP: Record<string, string> = { results: "dash-results", movers: "dash-movers", second: "dash-second", buckets: "dash-buckets" };
-
-function Movers({ items }: { items: Row[] }) {
-  const top = [...items].filter((r) => r.change_pct != null).sort((a, b) => Math.abs(b.change_pct as number) - Math.abs(a.change_pct as number)).slice(0, 7);
-  if (!items.length) return <Empty icon="wallet" title="No stocks yet" text="Add stocks to a watchlist to see how they moved today." to="/watchlist" cta="Open watchlist" />;
-  const max = Math.max(...top.map((r) => Math.abs(r.change_pct as number)), 1);
-  return (
-    <ul className="dv">{top.map((r) => (
-      <li key={r.symbol}><Link to={`/stocks/${r.symbol}`}><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}</Link>
-        <span className="dvbar" aria-hidden="true"><i className={tone(r.change_pct)} style={{ width: `${(Math.abs(r.change_pct as number) / max) * 50}%`, [(r.change_pct as number) >= 0 ? "left" : "right"]: "50%" }} /></span>
-        <span className={"dvv " + tone(r.change_pct)}>{sgn(r.change_pct)}</span></li>))}</ul>
-  );
-}
-
-function ResultCard({ symbol, name }: { symbol: string; name: string | null }) {
-  const { data, isError } = useQuery({ queryKey: ["stock", symbol, "/financials"], queryFn: () => apiGet<Financials>(`/api/stocks/${symbol}/financials`), staleTime: 60_000, retry: false });
-  const q = data?.quarterly.pl;
-  if (isError || (data && (!q || q.periods.length < 2))) return null;
-  if (!q) return <div className="rc"><div className="skeleton" style={{ height: 120 }} /></div>;
-  const n = q.periods.length, last = n - 1, yoy = n >= 5 ? n - 5 : -1;
-  const ch = (a?: number | null, b?: number | null) => (a == null || b == null || !b ? null : ((a - b) / Math.abs(b)) * 100);
-  const rev = q.rows.revenue as (number | null)[], np = q.rows.net_profit as (number | null)[];
-  const line = (label: string, v: (number | null)[]) => (
-    <div className="rc-r"><span>{label}</span><b>{v[last] == null ? "—" : (v[last]! < 0 ? MINUS : "") + "₹" + cr(Math.abs(v[last] as number))} Cr</b>
-      <span className={"qd " + tone(ch(v[last], yoy >= 0 ? v[yoy] : null))}>{sgn(ch(v[last], yoy >= 0 ? v[yoy] : null))} <small>YoY</small></span>
-      <span className={"qd " + tone(ch(v[last], v[last - 1]))}>{sgn(ch(v[last], v[last - 1]))} <small>QoQ</small></span></div>
-  );
-  return (
-    <Link className="rc" to={`/stocks/${symbol}#quarter`}>
-      <div className="rc-h"><b>{symbol}</b><small>{name} · {q.periods[last]}</small></div>
-      {line("Revenue", rev)}{line("Net profit", np)}
-      <MiniBars labels={q.periods.slice(-6)} series={[{ key: "np", label: "Net profit", values: np.slice(-6), color: "var(--gold)" }]} fmt={(v) => cr(v)} height={86} w={260} highlight={5} />
-    </Link>
-  );
-}
-function Results({ symbols, names }: { symbols: string[]; names: Map<string, string | null> }) {
-  if (!symbols.length) return <><Empty icon="notes" title="Pick stocks to follow" text="Your watchlist's newest quarterly results appear here, compared with last quarter and last year." to="/watchlist" cta="Build a watchlist" /><p className="rcs-all"><Link to="/results/quarter">See all quarter results <Icon name="arrow" /></Link></p></>;
-  return <><div className="rcs">{symbols.slice(0, 4).map((s) => <ResultCard key={s} symbol={s} name={names.get(s) ?? null} />)}</div><p className="rcs-all"><Link to="/results/quarter">See all quarter results <Icon name="arrow" /></Link></p></>;
-}
-
-function SecondLook({ items, meta }: { items: Row[]; meta: Record<string, { target?: number }> }) {
-  const flagged = items.map((r) => ({ r, s: signals(r, meta[r.symbol]?.target) })).filter((x) => x.s.length).slice(0, 5);
-  if (!items.length) return <Empty icon="quality" title="Nothing to review yet" text="Add stocks to your watchlist and FinLit flags the ones that need a second look." to="/watchlist" cta="Open watchlist" />;
-  if (!flagged.length) return <p className="muted dw-ok"><Icon name="check" /> Nothing in your watchlist needs attention right now.</p>;
-  return <ul className="sl">{flagged.map(({ r, s }) => <li key={r.symbol}><Link to={`/stocks/${r.symbol}`}><b title={codeNote(r)}>{titleOf(r)}</b>{r.band && <span className={"band-dot " + r.band}>{BAND_LABEL[r.band]}</span>}</Link><span>{s[0]}</span></li>)}</ul>;
-}
-
-/** How many companies a saved screen matches today, asked of the screener itself (the browser's company list does not carry the screener's 170 filters). */
-function ScreenCount({ state }: { state: PState & { sort?: string; dir?: "asc" | "desc" } }) {
-  const q = useScreen(toBody(state, { key: state.sort || "market_cap", dir: state.dir || "desc" } as never, [], "", 0, 1), true);
-  return <span className="muted">{q.data ? `${nf(q.data.total, 0)} match` : q.isError ? "—" : "…"}</span>;
-}
-
-function Screens() {
-  const saved = useSavedScreens();
-  if (!saved.length) return <Empty icon="table" title="No saved screens" text="Save a set of filters in the screener and track how many companies match." to="/screener" cta="Open screener" />;
-  return <ul className="sv">{saved.slice(0, 6).map((s) => {
-    const st = s.state as unknown as PState & { sort?: string; dir?: "asc" | "desc" };
-    const pro = !!st && typeof st === "object" && !!st.ranges;   // screens saved by the full screener; older ones from the simple screener are opened empty
-    return <li key={s.name}><Link to={pro ? `/screener?s=${encodeState(st, st.sort || "market_cap", st.dir || "desc")}` : "/screener"}><b>{s.name}</b>{pro ? <ScreenCount state={st} /> : <span className="muted">Open</span>}</Link></li>;
-  })}</ul>;
-}
-
-function Buckets({ items }: { items: Row[] }) {
-  const order = ["strong", "healthy", "mixed", "watch"] as const;
-  const colour: Record<string, string> = { strong: "var(--v-strong)", healthy: "var(--v-healthy)", mixed: "var(--v-mixed)", watch: "var(--v-weak)" };
-  const counts = order.map((b) => ({ b, n: items.filter((r) => r.band === b).length }));
-  const total = counts.reduce((a, c) => a + c.n, 0);
-  if (!total) return <Empty icon="layers" title="No scored stocks" text="Add stocks to a watchlist to see them grouped by FinLit band." to="/watchlist" cta="Open watchlist" />;
-  return (
-    <div><div className="breadth big" role="img" aria-label="Watchlist by band">{counts.filter((c) => c.n).map((c) => <i key={c.b} style={{ flex: c.n, background: colour[c.b] }} />)}</div>
-      <ul className="bandk">{counts.map((c) => <li key={c.b}><i style={{ background: colour[c.b] }} /><span>{BAND_LABEL[c.b]}</span><b>{c.n}</b></li>)}</ul></div>
-  );
-}
-
-/** "Market" (every company) or "Mine" (the stocks in the member's watchlists) for the dates and news widgets. The market view is the default; the choice is remembered in this browser. */
-type Scope = "market" | "mine";
-const SCOPE_KEY = "finlit-dash-scope:";
-function useScope(id: string, hasStocks: boolean): [Scope, (s: Scope) => void] {
-  const [scope, set] = useState<Scope>(() => { try { return localStorage.getItem(SCOPE_KEY + id) === "mine" ? "mine" : "market"; } catch { return "market"; } });
-  const choose = (s: Scope) => { set(s); try { localStorage.setItem(SCOPE_KEY + id, s); } catch { /* private mode */ } };
-  return [hasStocks ? scope : "market", choose];
-}
-function ScopeToggle({ id, scope, onChange, hasStocks, label }: { id: string; scope: Scope; onChange: (s: Scope) => void; hasStocks: boolean; label: string }) {
-  return (
-    <span className="seg dw-scope" role="group" aria-label={`${label}: whose companies`}>
-      <button type="button" aria-pressed={scope === "market"} onClick={() => onChange("market")}>Market</button>
-      <button type="button" aria-pressed={scope === "mine"} disabled={!hasStocks} title={hasStocks ? "Only the stocks in your watchlists" : "Add stocks to a watchlist to use this"} onClick={() => onChange("mine")} data-widget={id}>My stocks</button>
-    </span>
-  );
-}
-
-function Dates({ symbols }: { symbols: string[] }) {
-  const { data } = useFeed("result", { symbols, limit: 100, upcoming: true });
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  const next = (data || []).filter((i) => i.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
-  if (!next.length) return <Empty icon="calendar" title="No dates yet" text={symbols.length ? "None of your stocks has announced a results date yet." : "No company has announced a results date yet."} to="/results" cta="Open results calendar" />;
-  return <ul className="sl">{next.map((x) => <li key={x.id}><Link to={x.symbol ? `/stocks/${x.symbol}` : "/results"}><b>{who(x)}</b><span className="chip">{dayLabel(x.date)}</span></Link><span>{x.period || x.category}</span></li>)}</ul>;
-}
-function NewsW({ symbols }: { symbols: string[] }) {
-  const { data } = useFeed("news", { symbols, limit: 6 });
-  if (!(data || []).length) return <Empty icon="notes" title="No announcements yet" text={symbols.length ? "Nothing new for your stocks." : "No new exchange announcements yet."} to="/news" cta="Open news" />;
-  return <ul className="sl">{data!.map((x) => <li key={x.id}><Link to="/news"><b>{x.symbol || "Market"}</b><span className="muted">{dayLabel(x.date)}</span></Link><span>{x.title}</span></li>)}</ul>;
-}
-function IposW() {
-  const { data } = useIpos();
-  const live = (data || []).filter((i) => i.status === "open" || i.status === "upcoming").sort((a, b) => a.openDate.localeCompare(b.openDate)).slice(0, 5);
-  if (!live.length) return <Empty icon="calendar" title="No open IPOs" text="Nothing is open or announced right now." to="/ipo" cta="Open IPO calendar" />;
-  return <ul className="sl">{live.map((i) => <li key={i.id}><Link to="/ipo"><b>{i.name}</b><span className={"chip " + (i.status === "open" ? "up" : "")}>{i.status === "open" ? "Open now" : "Opens " + dayLabel(i.openDate)}</span></Link><span>{i.priceHigh ? `Price band up to ₹${i.priceHigh}` : ""}{i.lotSize ? ` · lot ${i.lotSize}` : ""}</span></li>)}</ul>;
-}
-
-function Learn() {
-  const [t, setT] = useState<{ term: string; topic: string; meaning: string; id: string } | null>(null);
-  useEffect(() => { import("../lib/glossary").then((g) => setT(g.termOfTheDay())); }, []);
-  if (!t) return <div className="learn" />;
-  return <div className="learn"><span className="chip gold">{t.topic}</span><h4>{t.term}</h4><p>{t.meaning}</p><Link to={"/glossary#" + t.id}>Open the glossary <Icon name="arrow" /></Link></div>;
-}
-
-/* ---------------- page ---------------- */
-function Locked({ tier, label }: { tier: Plan; label: string }) {
-  const { upgrade } = useUI();
-  return <div className="dw-lock"><span className="dw-ei"><Icon name="lock" /></span><b>{label}</b><p>Part of the {TIER[tier].n} plan.</p><button className="btn" onClick={() => upgrade(tier, `${label} is part of ${TIER[tier].n}.`)}>Unlock with {TIER[tier].n}</button></div>;
-}
-
-
-/** First-visit checklist: shows what to try next and ticks itself off as the member does each thing. */
-function GettingStarted({ followed, palette, plan }: { followed: number; palette: string; plan: string }) {
-  const { alerts } = useAlerts();
-  const [gone, setGone] = useState(() => { try { return localStorage.getItem("finlit-welcome-off") === "1"; } catch { return false; } });
-  const [seen, setSeen] = useState(() => { try { return localStorage.getItem("finlit-welcome-report") === "1"; } catch { return false; } });
-  const mark = () => { setSeen(true); try { localStorage.setItem("finlit-welcome-report", "1"); } catch { /* private mode */ } };
-  const steps: { done: boolean; t: string; d: string; to: string; cta: string; onClick?: () => void }[] = [
-    { done: true, t: "Create your account", d: "You are in. Your plan, lists and colours now follow you across devices.", to: "/account", cta: "Review account" },
-    { done: seen, t: "Open a company report", d: "Every listed stock has one: statements, ratios, peers, ownership and price.", to: "/research", cta: "Find a company", onClick: mark },
-    { done: followed > 0, t: "Follow a stock", d: plan === "basic" ? "Watchlists are part of Silver. Unlock them any time." : "Add stocks to a watchlist to see them here every day.", to: plan === "basic" ? "/plans" : "/watchlist", cta: plan === "basic" ? "See Silver" : "Open watchlist" },
-    { done: alerts.length > 0, t: "Set your first alert", d: "Be told when a price, RSI, score, result or filing crosses your line.", to: "/alerts", cta: "Create an alert" },
-    { done: palette !== "gold", t: "Make it yours", d: "Pick a colour palette and choose the dashboard widgets you want.", to: "/account/appearance", cta: "Open appearance" },
-  ];
-  const n = steps.filter((x) => x.done).length;
-  if (gone || n === steps.length) return null;
-  return (
-    <section className="card onb" aria-label="Getting started">
-      <div className="onb-h"><div><h2>Get started with FinLit</h2><p className="muted">{n} of {steps.length} done. A few minutes to get the most from your account.</p></div>
-        <button className="alx-link" onClick={() => { setGone(true); try { localStorage.setItem("finlit-welcome-off", "1"); } catch { /* private mode */ } }}>Hide</button></div>
-      <div className="onb-bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={n}><i style={{ width: `${(n / steps.length) * 100}%` }} /></div>
-      <ol className="onb-l">{steps.map((x) => (
-        <li key={x.t} className={x.done ? "is-done" : ""}><span className="onb-c" aria-hidden="true">{x.done ? <Icon name="check" /> : null}</span><div><b>{x.t}</b><span>{x.d}</span></div>{!x.done && <Link className="btn" to={x.to} onClick={x.onClick}>{x.cta}</Link>}</li>
-      ))}</ol>
-    </section>
-  );
-}
-
-function CommoditiesW() {
-  const q = useCommodities();
-  const rows = (q.data?.items ?? []).filter((i) => ["gold", "silver", "crude"].includes(i.code) && i.mcx?.price);
-  if (q.isError || (q.data && !rows.length)) return <Empty icon="activity" title="Gold and silver today" text="MCX gold, silver and crude oil with the day change, and the international price beside them." to="/commodities" cta="Open commodity prices" />;
-  if (!q.data) return <div className="skeleton" style={{ height: 120 }} />;
-  return <><ul className="sl">{rows.map((i) => { const m = i.mcx!; const d = direction(m.change?.pct);
-    return <li key={i.code}><Link to="/commodities"><b>{i.name}</b>{m.change ? <span className={"chip " + (d === "up" ? "up" : d === "down" ? "down" : "gold")}>{signedPct(m.change.pct)}</span> : null}</Link>
-      <span>{inr(m.price!.value)} {m.price!.unit.replace(/^₹\s*/, "")} · {m.contract}{m.asOf ? ` · ${m.state === "closed" ? "last trade" : "trade at"} ${istTime(m.asOf)} IST` : ""}</span></li>; })}</ul>
-    <p className="rcs-all"><Link to="/commodities">Open commodity prices <Icon name="arrow" /></Link></p></>;
-}
-
-type SavedDcf = { name: string; symbol: string | null; updatedAt: string; inputs: DcfInputs };
-function DcfW() {
-  const q = useQuery<{ scenarios: SavedDcf[] }, ApiError>({ queryKey: ["dcf-scenarios"], queryFn: () => apiGet("/api/dcf/scenarios"), retry: false, enabled: !DEMO });
-  const list = (q.data?.scenarios ?? []).slice(0, 5);
-  if (DEMO || q.isError || (q.data && !list.length)) return <Empty icon="rupee" title="Value a company" text="Work out the intrinsic value per share, the margin-of-safety price and what today's price implies." to="/dcf" cta="Open the DCF calculator" />;
-  if (!q.data) return <div className="skeleton" style={{ height: 120 }} />;
-  return <><ul className="sl">{list.map((s) => { const o = run(s.inputs), r = o.result;
-    return <li key={s.name}><Link to={dcfLink(s)}><b>{s.name}</b>{r && r.equity > 0 ? <span className={"chip " + (r.status === "buy" ? "up" : r.status === "overvalued" ? "down" : "gold")}>{STATUS_TEXT[r.status].label}</span> : null}</Link>
-      <span>{r && r.equity > 0 ? `Value ₹${nf(r.iv, 2)} · buy below ₹${nf(r.buyPrice, 2)} · price ₹${nf(s.inputs.price, 2)} when saved` : "Inputs need a fix"}</span></li>; })}</ul>
-    <p className="rcs-all"><Link to="/dcf">Open the DCF calculator <Icon name="arrow" /></Link></p></>;
-}
-const dcfLink = (s: SavedDcf) => {
-  const i = s.inputs, sp = new URLSearchParams({ fcf: String(i.fcf0), r: String(i.r), g1: String(i.g1), g2: String(i.g2), gt: String(i.gT), mc: String(i.marketCap), p: String(i.price), nd: String(i.netDebt), mos: String(i.mos) });
-  if (i.shares != null) sp.set("sh", String(i.shares));
-  if (i.midYear) sp.set("mid", "1");
-  if (i.tvMethod === "exit") { sp.set("tv", "exit"); if (i.exitMultiple != null) sp.set("xm", String(i.exitMultiple)); }
-  if (s.symbol) sp.set("sym", s.symbol);
-  return "/dcf?" + sp.toString();
-};
+import { firstName, greetingWord, istHour, longDay, readTab, writeTab } from "../lib/dashboard";
+import { Card, useIsPhone } from "../components/dashboard/parts";
+import { MyStocks, type Followed } from "../components/dashboard/MyStocks";
+import { MarketToday } from "../components/dashboard/MarketToday";
+import { Snapshot, Sectors } from "../components/dashboard/Snapshot";
+import { Flows } from "../components/dashboard/Flows";
+import { Stress } from "../components/dashboard/Stress";
+import { IndexHeatmap } from "../components/dashboard/Heatmap";
+import { AlertsScreens, Filings, Ipos, Learn, ResultsToday } from "../components/dashboard/NewsBlocks";
+import { Buckets, CommoditiesW, DcfW, Locked, Movers, Results, SecondLook } from "../components/dashboard/Legacy";
+import { SetupChip, useSetup } from "../components/dashboard/Setup";
+import { Customise } from "../components/dashboard/Customise";
+import "../styles/dashboard.css";
 
 export function Dashboard() {
-  useDocTitle("Dashboard", "Your FinLit dashboard: watchlist moves, latest results, saved screens and signals, arranged your way.");
+  useDocTitle("Dashboard", "Your FinLit dashboard: your stocks today, the market, results and filings, arranged your way.");
   const { user, ready } = useAuth();
   const { plan } = useUI();
   const p = usePrefs();
   const wl = useWatchlist();
-  const { data } = useUniverse();
+  const mine = useMyCompanies();
+  const uni = useUniverse();
+  const idx = useIndices();
+  const phone = useIsPhone();
   const [params, setParams] = useSearchParams();
   const [edit, setEdit] = useState(params.get("edit") === "1");
-  const rows = data?.rows || [];
+  const [tab, setTab] = useState<DashTab>(() => readTab(user?.id));
+  const rows: Row[] = uni.data?.rows ?? [];
   const bySym = useMemo(() => new Map(rows.map((r) => [r.symbol, r])), [rows]);
+  const followed = useMemo<Followed[]>(() => {
+    const out: Followed[] = [], seen = new Set<string>();
+    for (const c of mine.companies.filter((c) => c.followed)) if (!seen.has(c.symbol)) { seen.add(c.symbol); out.push({ symbol: c.symbol, name: c.name ?? bySym.get(c.symbol)?.name ?? null }); }
+    for (const s of wl.lists.flatMap((l) => l.symbols)) if (!seen.has(s)) { seen.add(s); out.push({ symbol: s, name: bySym.get(s)?.name ?? null }); }
+    return out;
+  }, [mine.companies, wl, bySym]);
+  const items = followed.map((f) => bySym.get(f.symbol)).filter((r): r is Row => !!r);
+  const sectors = useMemo(() => new Map(rows.map((r) => [r.symbol, r.sector])), [rows]);
   const names = useMemo(() => new Map(rows.map((r) => [r.symbol, r.name])), [rows]);
-  const followed = useMemo(() => [...new Set(wl.lists.flatMap((l) => l.symbols))], [wl]);
-  const items = followed.map((s) => bySym.get(s)).filter((r): r is Row => !!r);
-  const [dScope, setDScope] = useScope("dates", followed.length > 0), [nScope, setNScope] = useScope("news", followed.length > 0);
+  const symbols = useMemo(() => followed.map((f) => f.symbol), [followed]);
+  const setup = useSetup(followed.length, p.palette, plan);
+  // In the demo there is no server: the first nine largest companies stand in for a watchlist.
   useEffect(() => { if (DEMO && !wl.seeded && rows.length) watch.seed([...rows].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0)).slice(0, 9).map((r) => r.symbol)); }, [rows, wl.seeded]);
   if (!ready) return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "40px auto" }} /></div>;
   if (!user) return <Navigate to="/login?next=%2Fdashboard" replace />;
 
-  const move = (i: number, d: -1 | 1) => { const a = [...p.dashboard]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; prefs.set({ dashboard: a }); };
-  const patch = (id: string, v: Partial<WidgetPref>) => prefs.set({ dashboard: p.dashboard.map((w) => (w.id === id ? { ...w, ...v } : w)) });
-  const shown = p.dashboard.filter((w) => w.on);
-  const meta = WIDGETS.reduce<Record<string, (typeof WIDGETS)[number]>>((m, w) => ({ ...m, [w.id]: w }), {});
+  const meta = Object.fromEntries(WIDGETS.map((w) => [w.id, w]));
+  const loadingFollowed = !followed.length && mine.isLoading;
+  const loadingRows = uni.isLoading;
+  const shown = p.dashboard.filter((w) => w.on && (!phone || meta[w.id].tab === tab));
   const body = (id: string) => {
     const w = meta[id];
-    if (RANK[plan] < RANK[w.min]) return <Locked tier={w.min} label={w.label} />;
+    if (RANK[plan] < RANK[w.min]) return <Card id={id} title={w.label}><Locked tier={w.min} label={w.label} /></Card>;
+    const legacy = (el: React.ReactNode) => <Card id={id} title={w.label}>{el}</Card>;
     switch (id) {
-      case "movers": return <Movers items={items} />;
-      case "dates": return <Dates symbols={dScope === "mine" ? followed : []} />;
-      case "news": return <NewsW symbols={nScope === "mine" ? followed : []} />;
-      case "ipos": return <IposW />;
-      case "results": return <Results symbols={followed.length ? followed : ["RELIANCE"]} names={names} />;
-      case "second": return <SecondLook items={items} meta={wl.meta} />;
-      case "screens": return <Screens />;
-      case "buckets": return <Buckets items={items} />;
-      case "dcf": return <DcfW />;
-      case "commodities": return <CommoditiesW />;
-      default: return <Learn />;
+      case "mystocks": return <MyStocks followed={followed} loading={loadingFollowed} />;
+      case "market": return <MarketToday />;
+      case "snapshot": return <Snapshot rows={rows} loading={loadingRows} />;
+      case "sectors": return <Sectors rows={rows} loading={loadingRows} />;
+      case "flows": return <Flows />;
+      case "stress": return <Stress followed={followed} loading={loadingFollowed} sectors={sectors} />;
+      case "heatmap": return <IndexHeatmap rows={rows} loading={loadingRows} />;
+      case "resultstoday": return <ResultsToday symbols={symbols} />;
+      case "filings": return <Filings symbols={symbols} />;
+      case "ipos": return <Ipos />;
+      case "alerts": return <AlertsScreens />;
+      case "learn": return <Learn />;
+      case "results": return legacy(<Results symbols={symbols.length ? symbols : ["RELIANCE"]} names={names} />);
+      case "movers": return legacy(<Movers items={items} />);
+      case "second": return legacy(<SecondLook items={items} meta={wl.meta} />);
+      case "buckets": return legacy(<Buckets items={items} />);
+      case "dcf": return legacy(<DcfW />);
+      case "commodities": return legacy(<CommoditiesW />);
+      default: return null;
     }
   };
+  const pickTab = (t: DashTab) => { setTab(t); writeTab(user.id, t); };
+  const name = firstName(user.name, user.email);
+  const state = idx.data ? (idx.data.marketOpen ? "Market open" : "Market closed") : null;
+  const sub = [longDay(), state, followed.length ? `You follow ${followed.length} stock${followed.length === 1 ? "" : "s"}` : loadingFollowed ? null : "You follow no stocks yet"].filter(Boolean).join(" · ");
   return (
-    <div className="wrap dash">
-      <header className="dash-h">
-        <div><div className="eyebrow">Dashboard</div><h1>{greeting()}{user.name ? `, ${user.name.split(" ")[0]}` : ""}</h1>
-          <p className="muted">{followed.length ? `Following ${followed.length} stock${followed.length === 1 ? "" : "s"}.` : "Start by adding stocks to a watchlist."} <span className={"tier " + plan}>{TIER[plan].n}</span></p></div>
-        <div className="dash-a">
-          <div className="pal-dots" role="radiogroup" aria-label="Colour palette">{PALETTE_IDS.map((id) => <button key={id} role="radio" aria-checked={p.palette === id} title={PALETTES[id].label} aria-label={PALETTES[id].label} className={p.palette === id ? "on" : ""} onClick={() => prefs.set({ palette: id })} style={{ background: `linear-gradient(135deg, ${PALETTES[id].swatch[0]} 50%, ${PALETTES[id].swatch[2]} 50%)` }} />)}</div>
-          <button className={"btn" + (edit ? " on" : "")} aria-pressed={edit} onClick={() => { setEdit(!edit); if (params.has("edit")) setParams({}, { replace: true }); }}><Icon name="spark" />{edit ? "Done" : "Customise"}</button>
-        </div>
+    <div className="wrap dsh" data-tab={tab}>
+      <header className="dsh-head">
+        <div><div className="dsh-kicker">Dashboard</div><h1>{greetingWord(istHour())}{name ? `, ${name}` : ""}</h1><p className="dsh-meta">{sub}</p></div>
+        <div className="dsh-actions"><SetupChip steps={setup.steps} n={setup.n} />
+          <button type="button" className="dsh-btn" aria-pressed={edit} onClick={() => { setEdit(!edit); if (params.has("edit")) setParams({}, { replace: true }); }}>{edit ? "Done" : "Customise"}</button></div>
       </header>
-      <MarketsBlock rows={rows} />
-      <GettingStarted followed={followed.length} palette={p.palette} plan={plan} />
-      {edit && (
-        <section className="card dash-edit" aria-label="Customise your dashboard">
-          <h2>Make it yours</h2>
-          <p className="muted">Switch widgets on or off, make them half or full width, and move them up or down. Changes save as you go and follow your account.</p>
-          <ul>{p.dashboard.map((w, i) => { const m = meta[w.id]; return (
-            <li key={w.id}>
-              <label className="sw"><input type="checkbox" checked={w.on} onChange={(e) => patch(w.id, { on: e.target.checked })} /><span aria-hidden="true" /><b>{m.label}</b></label>
-              <small>{m.blurb}{RANK[plan] < RANK[m.min] ? ` · ${TIER[m.min].n}` : ""}</small>
-              <span className="seg" role="group" aria-label={`${m.label} width`}>{(["half", "full"] as const).map((s) => <button key={s} aria-pressed={w.size === s} onClick={() => patch(w.id, { size: s })}>{s === "half" ? "Half" : "Full"}</button>)}</span>
-              <span className="mv"><button aria-label={`Move ${m.label} up`} disabled={i === 0} onClick={() => move(i, -1)}>↑</button><button aria-label={`Move ${m.label} down`} disabled={i === p.dashboard.length - 1} onClick={() => move(i, 1)}>↓</button></span>
-            </li>); })}</ul>
-          <div className="row"><Link className="btn" to="/account/appearance">More appearance options</Link><button className="btn" onClick={() => prefs.set({ dashboard: [] })}>Reset layout</button></div>
-        </section>
-      )}
-      <div className="dgrid">
-        {shown.map((w) => (
-          <section key={w.id} className={"card dw " + (w.size === "full" ? "full" : "half")} aria-labelledby={`w-${w.id}`}>
-            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", commodities: "activity", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{w.id === "news" ? (nScope === "mine" ? "News for my stocks" : "Latest market news") : w.id === "dates" ? (dScope === "mine" ? "Results dates for my stocks" : "Results dates coming up") : meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
-              {w.id === "dates" && RANK[plan] >= RANK[meta[w.id].min] && <ScopeToggle id="dates" scope={dScope} onChange={setDScope} hasStocks={followed.length > 0} label="Results dates" />}
-              {w.id === "news" && RANK[plan] >= RANK[meta[w.id].min] && <ScopeToggle id="news" scope={nScope} onChange={setNScope} hasStocks={followed.length > 0} label="News" />}
-              {RANK[plan] < RANK[meta[w.id].min] && <span className={"tier " + meta[w.id].min}>{TIER[meta[w.id].min].n}</span>}</div>
-            {body(w.id)}
-          </section>))}
-        {!shown.length && <Empty icon="spark" title="Your dashboard is empty" text="Turn some widgets on with Customise." to="/dashboard?edit=1" cta="Customise" />}
+      <div className="dsh-tabs" role="tablist" aria-label="Dashboard sections">{DASH_TABS.map((t) => <button key={t.id} type="button" role="tab" id={`dsh-tab-${t.id}`} aria-selected={tab === t.id} aria-controls="dsh-grid" onClick={() => pickTab(t.id)}>{t.label}</button>)}</div>
+      {edit && <Customise layout={p.dashboard} plan={plan} onChange={(dashboard) => prefs.set({ dashboard })} onReset={() => prefs.set({ dashboard: [] })} onDone={() => setEdit(false)} />}
+      <div className="dsh-grid" id="dsh-grid" role={phone ? "tabpanel" : undefined} aria-labelledby={phone ? `dsh-tab-${tab}` : undefined}>
+        {shown.map((w) => <div key={w.id} className={"dsh-cell " + w.size} data-block={w.id}>{body(w.id)}</div>)}
+        {!shown.length && <Card id="empty" title="Nothing to show here"><p className="dsh-note">{phone ? "Every block on this tab is switched off." : "Every block is switched off."} <button type="button" className="dsh-link" onClick={() => setEdit(true)}>Open Customise</button> to turn some on.</p></Card>}
       </div>
-      <p className="faint dash-f">Research for information only, not investment advice.</p>
+      <p className="dsh-fine">Describes the company's financial health from its filings and prices; not a recommendation. Information only, not investment advice.</p>
     </div>
   );
 }

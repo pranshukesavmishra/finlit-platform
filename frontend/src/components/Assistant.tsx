@@ -7,6 +7,8 @@ import { askAssistant } from "../lib/siteApi";
 import { Icon } from "../lib/icons";
 import { useEnquiry } from "./Enquiry";
 
+/** Fired by the header button; the assistant panel listens for it. */
+export const OPEN_AI = "finlit:open-ai";
 type Msg = { role: "user" | "assistant"; content: string };
 
 /** FinLit AI: guided menus first (instant, no cost), free-text chat via the site backend (Gemini) second. */
@@ -25,6 +27,7 @@ export function Assistant({ sector }: { sector?: string | null } = {}) {
   const enquire = useEnquiry();
   const loc = useLocation();
 
+  useEffect(() => { const o = () => setOpen(true); addEventListener(OPEN_AI, o); return () => removeEventListener(OPEN_AI, o); }, []);   // the "Ask FinLit AI" button in the header bar
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs, node, open, busy]);
   useEffect(() => {   // Esc closes the panel (a dialog must)
     if (!open) return;
@@ -66,7 +69,6 @@ export function Assistant({ sector }: { sector?: string | null } = {}) {
 
   return (
     <>
-      <button className={"ai-fab" + (open ? " hide" : "")} onClick={() => setOpen(true)} aria-label="Open FinLit AI assistant"><Icon name="spark" /><span>Ask FinLit AI</span></button>
       {open && (
         <section className="ai" role="dialog" aria-label="FinLit AI assistant">
           <header><div><b>FinLit AI</b><span>Guided help and market concepts</span></div><button onClick={() => setOpen(false)} aria-label="Close">×</button></header>

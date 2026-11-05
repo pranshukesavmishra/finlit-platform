@@ -10,7 +10,7 @@ import { SearchPalette } from "./SearchPalette";
 import { useWarmMyCompanies } from "../lib/mycompanies";
 import { AlertToasts, NotificationBell } from "./Notifications";
 import { SystemControl } from "./SystemControl";
-import { Assistant } from "./Assistant";
+import { Assistant, OPEN_AI } from "./Assistant";
 import { PageFaqs } from "./PageFaqs";
 import { EnquiryProvider, useEnquiry } from "./Enquiry";
 import { InfoProvider } from "./Info";
@@ -18,6 +18,7 @@ import { DEMO } from "../lib/demo";
 import { useAuth } from "../lib/auth";
 import { MORE, PRICING, SECTIONS, isHere, sectionHere, type NavSection } from "../lib/nav";
 import { versionLine } from "../lib/version";
+import "../styles/ai-top.css";
 
 /** One header dropdown, built from lib/nav.ts. */
 function Menu({ m, open, setOpen, path }: { m: NavSection; open: boolean; setOpen: (v: string | null) => void; path: string }) {
@@ -46,6 +47,8 @@ function Header({ onSearch }: { onSearch: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
   const loc = useLocation();
   const onStock = loc.pathname.startsWith("/stocks/");
+  const onDash = loc.pathname === "/dashboard";
+  const onAuth = /^\/(login|forgot-password|reset-password|verify-email)(\/|$)/.test(loc.pathname);   // the sign-in pages carry no assistant
   useEffect(() => { setMenu(false); setOpen(null); setAcct(false); }, [loc.pathname]);
   useEffect(() => { const o = () => setMenu((m) => !m); addEventListener(OPEN_MENU, o); return () => removeEventListener(OPEN_MENU, o); }, []);
   return (
@@ -58,6 +61,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
           <Menu m={MORE} open={open === MORE.id} setOpen={setOpen} path={loc.pathname} />
         </nav>
         <div className="grow" />
+        {!onAuth && <button type="button" className="ai-top" onClick={() => dispatchEvent(new Event(OPEN_AI))} aria-label="Ask FinLit AI" aria-haspopup="dialog"><Icon name="spark" /><span>Ask FinLit AI</span></button>}
         <button className="search" onClick={onSearch} aria-label="Search stocks" aria-haspopup="dialog">
           <Icon name="search" /><span className="t">Search for a company</span>
         </button>
@@ -93,7 +97,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
         ) : ready || DEMO ? (
           <><Link className="btn hide-sm signin-ghost" to="/login">Sign in</Link><Link className="btn primary hide-sm signin" to={DEMO ? "/login" : "/login?mode=signup"}>{DEMO ? "Sign in" : "Create account"}</Link></>
         ) : <span className="signin-ph" aria-hidden="true" />}
-        {user ? <Link className="btn primary mob-only mob-cta" to="/dashboard">Dashboard</Link> : (ready || DEMO) ? <Link className="btn primary mob-only mob-cta" to="/login">Sign in</Link> : null}
+        {user ? (onDash ? null : <Link className="btn primary mob-only mob-cta" to="/dashboard">Dashboard</Link>) : (ready || DEMO) ? <Link className="btn primary mob-only mob-cta" to="/login">Sign in</Link> : null}
         <button className="icon-btn burger" aria-label="Menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
       </div>
       {menu && (
@@ -179,6 +183,7 @@ export function Layout() {
     document.addEventListener("pointermove", mv, { passive: true });
     return () => document.removeEventListener("pointermove", mv);
   }, []);
+  useEffect(() => { const o = () => setSearch(true); addEventListener("finlit:open-search", o); return () => removeEventListener("finlit:open-search", o); }, []);   // the dashboard's "Find a stock" box
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       const typing = /input|textarea|select/i.test((document.activeElement as HTMLElement | null)?.tagName || "");

@@ -2,6 +2,9 @@
 // figures, the phone tab memory and the Customise moves. Descriptive only; a figure that cannot be worked out is null and the page says why.
 import type { FeedItem } from "./feed";
 import type { DashTab, WidgetPref } from "./prefs";
+import type { IndexRow } from "./indices";
+import type { Row } from "./screener";
+import { MAX_MOVE, largest } from "./markets";
 
 // ---------------------------------------------------------------------------------------------------------------- greeting
 const cap = (s: string) => (s ? s[0].toLocaleUpperCase("en-IN") + s.slice(1) : s);
@@ -173,4 +176,29 @@ export function moveBlock(list: readonly WidgetPref[], from: number, to: number)
   const [x] = a.splice(from, 1);
   a.splice(to, 0, x);
   return a;
+}
+
+// ---------------------------------------------------------------------------------------------------------------- market blocks
+
+/** The seven index cards, in order, named in one case. `re` finds the row in /api/indices by its name. */
+export const INDEX_TILES: { label: string; re: RegExp }[] = [
+  { label: "Nifty 50", re: /^nifty 50$/i }, { label: "Sensex", re: /^(bse )?sensex$/i }, { label: "Nifty Bank", re: /^nifty bank$/i }, { label: "Nifty Midcap 100", re: /^nifty midcap 100$/i },
+  { label: "Nifty Smallcap 100", re: /^nifty smallcap 100$/i }, { label: "Nifty IT", re: /^nifty it$/i }, { label: "India VIX", re: /^(india )?vix$/i },
+];
+export type IndexCard = { label: string; row: IndexRow | null };
+export function pickIndices(items: readonly IndexRow[]): IndexCard[] {
+  return INDEX_TILES.map((t) => ({ label: t.label, row: items.find((r) => t.re.test(r.name.replace(/\s+/g, " ").trim()) && r.close != null) ?? null }));
+}
+
+export type Scope = "n50" | "n500" | "all";
+const traded = (r: Row) => r.price != null && r.price > 0 && r.change_pct != null;
+/** The stocks the gainers and decliners are drawn from. Nifty 50 and Nifty 500 use the exchange's member lists; when a list is not loaded, Nifty 500 says so (empty) and Nifty 50 falls
+ *  back to the 50 largest companies, with a note. "All stocks" leaves out companies under 100 crore and moves past 40%. */
+export function scopeStocks(scope: Scope, rows: readonly Row[], members: Record<string, string[]> | undefined): { stocks: Row[]; note: string | null } {
+  const by = () => new Map(rows.map((r) => [r.symbol, r]));
+  if (scope === "all") return { stocks: rows.filter((r) => traded(r) && (r.market_cap ?? 0) >= 100 && Math.abs(r.change_pct as number) <= MAX_MOVE), note: null };
+  const list = members?.[scope === "n50" ? "NIFTY50" : "NIFTY500"];
+  if (list && list.length >= (scope === "n50" ? 20 : 100)) { const m = by(); return { stocks: list.map((s) => m.get(s)).filter((r): r is Row => !!r && traded(r)), note: null }; }
+  if (scope === "n50") return { stocks: largest(rows, 50), note: "The exchange's Nifty 50 list is not loaded yet, so this shows the 50 largest companies by market value." };
+  return { stocks: [], note: "The exchange's Nifty 500 list is not loaded yet." };
 }

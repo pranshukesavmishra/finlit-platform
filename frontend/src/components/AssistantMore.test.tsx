@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 // The company page assistant: the five quick chips stay, and "More questions" opens the founder's 40 questions in 12 groups.
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { Assistant } from "./Assistant";
+import { Assistant, OPEN_AI } from "./Assistant";
 import { bankGroups } from "../lib/questionBank";
 
 const ask = vi.fn(async (q: string, _h?: unknown) => ({ response: "answer to " + q }));
@@ -14,7 +14,7 @@ afterEach(() => { cleanup(); ask.mockClear(); });
 
 const open = (path = "/stocks/reliance", sector?: string) => {
   const r = render(<MemoryRouter initialEntries={[path]}><Assistant sector={sector} /></MemoryRouter>);
-  fireEvent.click(screen.getByLabelText("Open FinLit AI assistant"));
+  act(() => { dispatchEvent(new Event(OPEN_AI)); });   // the "Ask FinLit AI" button in the header bar fires this
   return r;
 };
 

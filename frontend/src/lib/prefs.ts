@@ -16,7 +16,7 @@ export const DASH_TABS: { id: DashTab; label: string }[] = [{ id: "stocks", labe
  *  default layout (the Gold & silver card needs a licensed price source; the DCF promo is already in the menu; the quarter-results cards are now part of "Your stocks today").
  *  Ids are lower-case letters and digits: the server stores them as written. */
 export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" | "silver" | "gold"; size: WidgetSize; tab: DashTab; off?: boolean }[] = [
-  { id: "mystocks", label: "Your stocks today", blurb: "Price, today's move, FinLit score, latest results and alert for each stock you follow.", min: "basic", size: "full", tab: "stocks" },
+  { id: "mystocks", label: "Your stocks today", blurb: "Price, today's move, FinLit IQ, latest results and alert for each stock you follow.", min: "basic", size: "full", tab: "stocks" },
   { id: "market", label: "Market today", blurb: "Index levels, the Nifty 50 / Sensex chart, and the prices and rates that move company profits.", min: "basic", size: "full", tab: "market" },
   { id: "snapshot", label: "Market snapshot", blurb: "How many stocks rose and fell, and the biggest movers of Nifty 50, Nifty 500 or all stocks.", min: "basic", size: "half", tab: "market" },
   { id: "sectors", label: "Sectors today", blurb: "Every sector's move today, ranked.", min: "basic", size: "half", tab: "market" },
@@ -30,8 +30,8 @@ export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" |
   { id: "learn", label: "Term of the day", blurb: "One plain-words finance term, every day.", min: "basic", size: "third", tab: "news" },
   { id: "results", label: "Latest quarter results", blurb: "Newest quarter for your stocks: year-on-year and quarter-on-quarter, with a chart.", min: "basic", size: "full", tab: "stocks", off: true },
   { id: "movers", label: "Watchlist movers", blurb: "Biggest moves among the stocks you follow.", min: "silver", size: "half", tab: "stocks", off: true },
-  { id: "second", label: "Worth a second look", blurb: "Strong FinLit scores trading below their usual valuation.", min: "silver", size: "half", tab: "stocks", off: true },
-  { id: "buckets", label: "Watchlist by band", blurb: "How your watchlist splits across FinLit score bands.", min: "gold", size: "half", tab: "stocks", off: true },
+  { id: "second", label: "Worth a second look", blurb: "Strong FinLit IQs trading below their usual valuation.", min: "silver", size: "half", tab: "stocks", off: true },
+  { id: "buckets", label: "Watchlist by band", blurb: "How your watchlist splits across FinLit IQ bands.", min: "gold", size: "half", tab: "stocks", off: true },
   { id: "dcf", label: "DCF calculator", blurb: "Your saved DCF scenarios: intrinsic value, margin-of-safety price and status.", min: "gold", size: "half", tab: "stocks", off: true },
   { id: "commodities", label: "Gold & silver today", blurb: "MCX gold, silver and crude oil with the day change. Off until a licensed price source is connected.", min: "basic", size: "half", tab: "market", off: true },
 ];

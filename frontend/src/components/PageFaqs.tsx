@@ -66,8 +66,7 @@ export function PageFaqs() {
   if (!faq) return null;
   // first question open on a wide screen, all closed on a phone
   const wide = typeof matchMedia === "function" && matchMedia("(min-width: 721px)").matches;
-  return (
-    <section className="pfq pm-noprint pzr-noprint" id="faq" aria-labelledby="pfq-h" key={faq.id}>
+  const inner = (
       <div className="pfq-in">
         <header className="pfq-h">
           <div>
@@ -76,9 +75,19 @@ export function PageFaqs() {
           </div>
           <FaqPlan plan={faq.plan} />
         </header>
-        <FaqAccordion faq={faq} openFirst={wide} />
+        <FaqAccordion faq={faq} openFirst={wide && pathname !== "/dashboard"} />
         <footer className="pfq-f"><span>Information only, not investment advice.</span><Link to="/faq">All FAQs</Link></footer>
       </div>
+  );
+  // The dashboard keeps its questions folded away: one line with the question count, opened on request (or by a #faq link).
+  if (pathname === "/dashboard") return (
+    <section className="pfq pm-noprint pzr-noprint" id="faq" aria-label="Questions about this page" key={faq.id}>
+      <details className="pfq-fold" open={hash === "#faq"}><summary><b>Questions about this page</b> <small>{faq.items.length} questions</small></summary>{inner}</details>
+    </section>
+  );
+  return (
+    <section className="pfq pm-noprint pzr-noprint" id="faq" aria-labelledby="pfq-h" key={faq.id}>
+      {inner}
     </section>
   );
 }
