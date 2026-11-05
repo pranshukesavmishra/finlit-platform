@@ -101,3 +101,23 @@ button.fgx-kpi { cursor: pointer; } button.fgx-kpi:hover { border-color: var(--g
 .sx-ready { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 14px; background: var(--s1); }
 .sx-ready span { flex: 1; } .sx-ready:hover, .sx-ready:focus-visible { border-color: var(--gold); }
 .sx-ready.is-locked { width: 100%; text-align: left; font: inherit; font-size: 14px; cursor: pointer; background: var(--s1); } .sx-ready.is-locked svg:first-child { color: var(--faint); }
+
+/* FinLit IQ Score panel (components/screener/IqScoreFilter.tsx): one row per pillar, chips under the name, Min - Max under the chips */
+.fgx-gi { display: grid; place-items: center; width: 26px; height: 26px; flex: none; color: var(--muted); } .fgx-gi .ico { width: 18px; height: 18px; }
+.iq-rows { display: grid; gap: 10px; }
+.iq-row { display: grid; gap: 8px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--s1); min-width: 0; }
+.iq-row.is-on { border-color: var(--border-strong); }
+.iq-head { display: flex; align-items: center; gap: 10px; min-height: 32px; cursor: pointer; min-width: 0; }
+.iq-head input { accent-color: var(--gold); width: 17px; height: 17px; flex: none; margin: 0; }
+.iq-ico { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--s3); color: var(--text); } .iq-ico .ico { width: 15px; height: 15px; }
+.iq-name { font: 600 14.5px/1.25 var(--sans); min-width: 0; overflow-wrap: anywhere; }
+.iq-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 38px; }
+.iq-chip { min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--muted); font: 600 12.5px var(--mono); cursor: pointer; }
+.iq-chip:hover { border-color: var(--text); color: var(--text); }
+.iq-chip:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+:root:root .iq-chip.is-on { background: var(--mint); border-color: var(--mint); color: var(--on-mint); }
+.iq-mm { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding-left: 38px; }
+.iq-mm label { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--muted); font-size: 12.5px; }
+.iq-mm input { width: 100%; min-width: 0; height: 36px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s2); color: var(--text); font: 14px var(--mono); }
+.iq-mm input:disabled { opacity: .55; cursor: not-allowed; } .iq-mm input[aria-invalid="true"] { border-color: var(--loss); } .iq-mm input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.iq-err { padding-left: 38px; }

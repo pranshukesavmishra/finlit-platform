@@ -10,3 +10,11 @@ describe("query builder layout", () => {
     expect(rules).toBeLessThan(box);
   });
 });
+
+describe("rules box state", () => {
+  it("starts closed on every visit and is not remembered", () => {
+    const src = readFileSync(new URL("./QueryBuilder.tsx", import.meta.url), "utf8");
+    expect(src).toContain("[rulesOpen, setRulesOpen] = useState(false)");
+    expect(src).not.toMatch(/localStorage[^\n]*rules/i);
+  });
+});

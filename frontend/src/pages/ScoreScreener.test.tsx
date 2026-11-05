@@ -85,8 +85,8 @@ describe("Basic score screener page", () => {
     vi.useFakeTimers();
     try {
       open();
-      const tech = () => within(screen.getByRole("group", { name: "Quality score, exact range" }));
-      fireEvent.click(tech().getByRole("checkbox", { name: "Quality score" }));
+      const tech = () => within(screen.getByRole("group", { name: "Quality Score" }));
+      fireEvent.click(tech().getByRole("checkbox", { name: "Quality Score" }));
       fireEvent.change(tech().getByLabelText("Min"), { target: { value: "7" } });
       fireEvent.change(tech().getByLabelText("Min"), { target: { value: "78" } });
       act(() => { vi.advanceTimersByTime(300); });
@@ -110,8 +110,8 @@ describe("Basic score screener page", () => {
     expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("14");
     fireEvent.click(screen.getByRole("checkbox", { name: /^Large cap/ }));      // Large caps: the 100 largest, here all 22 are Large
     await waitFor(() => expect(loc()).toContain("cap=Large"));
-    fireEvent.click(within(screen.getByRole("group", { name: "Growth & Profitability score" })).getByRole("button", { name: "78 and above (Strong)" }));
-    await waitFor(() => expect(loc()).toContain("f=high"));
+    fireEvent.click(within(screen.getByRole("group", { name: "Quality Score" })).getByRole("button", { name: "Quality Score 78 and above" }));
+    await waitFor(() => expect(loc()).toContain("qual=high"));
     expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);
     expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("0"); expect(count("IT")).toBe("0"); expect(count("Pharma")).toBe("1");
     fireEvent.click(within(screen.getByLabelText("Active filters")).getByRole("button", { name: "Clear all" }));
@@ -122,7 +122,7 @@ describe("Basic score screener page", () => {
   });
 
   it("filters that match nothing show zeros above, and an empty state with removable chips", async () => {
-    open("?sector=Banks&f=low");
+    open("?sector=Banks&qual=low");
     expect(symbols()).toEqual([]);
     const kpi = (l: string) => within(screen.getByLabelText("Summary")).getByText(l).previousSibling?.textContent;
     expect(kpi("Companies found")).toBe("0"); expect(kpi("Sectors")).toBe("0");
@@ -134,27 +134,53 @@ describe("Basic score screener page", () => {
 
   it("score bands and min-max are exact, and missing scores never pass", () => {
     open();
-    const fund = screen.getByRole("group", { name: "Growth & Profitability score" }), tech = screen.getByRole("group", { name: "Technical score" });
-    fireEvent.click(within(fund).getByRole("button", { name: "78 and above (Strong)" }));
-    fireEvent.submit(fund.closest("form")!);
-    expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);                        // 78 is in, 77 (EEE) is out, GGG has no Fundamental
-    fireEvent.click(within(tech).getByRole("button", { name: "45 to 77 (Mixed, Healthy)" }));
-    fireEvent.submit(fund.closest("form")!);
-    expect(symbols()).toEqual(["HHH"]);                                      // Technical 77 is in, 78 is out
-    fireEvent.click(within(screen.getByRole("group", { name: "Quality score, exact range" })).getByRole("checkbox", { name: "Quality score" }));   // ticking enables Min and Max
-    fireEvent.change(within(screen.getByRole("group", { name: "Quality score, exact range" })).getByLabelText("Min"), { target: { value: "78" } });
+    const quality = screen.getByRole("group", { name: "Quality Score" }), growth = screen.getByRole("group", { name: "Growth Score" });
+    fireEvent.click(within(quality).getByRole("button", { name: "Quality Score 78 and above" }));
+    fireEvent.submit(quality.closest("form")!);
+    expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);                        // 78 is in, 77 (EEE) is out, GGG has no score
+    fireEvent.click(within(growth).getByRole("button", { name: "Growth Score under 45" }));
+    fireEvent.submit(quality.closest("form")!);
+    expect(symbols()).toEqual([]);                                           // both pillars must pass
+    fireEvent.click(within(growth).getByRole("button", { name: "Growth Score under 45" }));
+    fireEvent.click(within(growth).getByRole("button", { name: "Growth Score 78 and above" }));
+    fireEvent.submit(quality.closest("form")!);
+    expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);
+    fireEvent.click(within(screen.getByRole("group", { name: "Quality Score" })).getByRole("checkbox", { name: "Quality Score" }));   // ticking enables Min and Max
+    fireEvent.change(within(screen.getByRole("group", { name: "Quality Score" })).getByLabelText("Min"), { target: { value: "78" } });
     expect(screen.getByRole("button", { name: "Apply filters" }).hasAttribute("disabled")).toBe(false);
-    fireEvent.change(within(screen.getByRole("group", { name: "Quality score, exact range" })).getByLabelText("Max"), { target: { value: "50" } });
+    fireEvent.change(within(screen.getByRole("group", { name: "Quality Score" })).getByLabelText("Max"), { target: { value: "50" } });
     expect(screen.getByRole("alert").textContent).toMatch(/minimum is above the maximum/);
     expect(screen.getByRole("button", { name: "Apply filters" }).hasAttribute("disabled")).toBe(true);
-    fireEvent.submit(fund.closest("form")!);
-    expect(loc()).toBe("/score-screener?f=high&t=mid");                      // an invalid range is not applied
+    fireEvent.submit(quality.closest("form")!);
+    expect(loc()).toBe("/score-screener?qual=high&g=high");                      // an invalid range is not applied
+  });
+
+  it("one panel, FinLit IQ Score: four pillar rows with band chips and Min - Max, and no Score bands section", () => {
+    open();
+    expect(screen.getByRole("button", { name: /FinLit IQ Score/ })).toBeTruthy();
+    expect(screen.getByText("Filter stocks using our multi-pillar statistical scoring model.")).toBeTruthy();
+    expect(screen.queryByText("Score bands")).toBeNull();
+    expect(screen.queryByText("Growth & Profitability score by pillar")).toBeNull();
+    expect(screen.queryByRole("group", { name: "Technical score" })).toBeNull();
+    for (const n of ["Quality Score", "Growth Score", "Profitability Score", "Balance Sheet Score"]) {
+      const row = within(screen.getByRole("group", { name: n }));
+      expect(row.getAllByRole("button").map((b) => b.textContent)).toEqual(["< 45", "45 - 77", ">= 78"]);
+      expect(row.getByLabelText("Min")).toBeTruthy(); expect(row.getByLabelText("Max")).toBeTruthy();
+    }
+  });
+  it("the Quality band is written as ?qual= so it never collides with the toolbar search ?q=, and an old ?q=high link still reads", () => {
+    open("?q=high");
+    expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);
+    expect((screen.getByLabelText("Search company name, sector or keyword") as HTMLInputElement).value).toBe("");
+    cleanup();
+    open("?qual=mid&q=AAA");
+    expect(symbols()).toEqual([]);                                           // AAA is 90, not 45 to 77: the search and the band are separate
   });
 
   it("a removed chip, and Clear all, update the table and address at once", () => {
-    open("?sector=IT&sector=Auto&f=mid");
+    open("?sector=IT&sector=Auto&qual=mid");
     expect(symbols()).toEqual(["CCC", "EEE"]);                                // IT or Auto, Fundamental 45 to 77: 50 and 77 (DDD is 44)
-    fireEvent.click(screen.getByRole("button", { name: "Remove filter Growth & Profitability: 45–77" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove filter Quality: 45–77" }));
     expect(symbols()).toEqual(["CCC", "DDD", "EEE", "GGG"]);
     expect(loc()).toBe("/score-screener?sector=IT&sector=Auto");
     fireEvent.click(screen.getByRole("button", { name: "Remove filter IT" }));
@@ -342,7 +368,7 @@ describe("Basic score screener: no Prism", () => {
   it("Silver sees the scores, Basic sees the locked state as before", () => {
     st.plan = "silver"; open();
     expect(screen.queryByText(/Score filters are part of Silver/)).toBeNull();
-    expect(screen.getByRole("group", { name: "Growth & Profitability score" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Quality Score" })).toBeTruthy();
   });
   it("moves an old link that carries Prism filters to the advanced page with the same parameters", () => {
     open("?zmin=60&pl=strong&rated=1&sector=IT");
@@ -385,15 +411,15 @@ describe("Basic score screener: no Prism", () => {
 
   it("a Min - Max row is disabled until its box is ticked, unticking clears it, and the value reaches the address", () => {
     open();
-    const g = screen.getByRole("group", { name: "Quality score, exact range" });
+    const g = screen.getByRole("group", { name: "Quality Score" });
     const min = within(g).getByLabelText("Min") as HTMLInputElement;
     expect(min.disabled).toBe(true);
-    fireEvent.click(within(g).getByRole("checkbox", { name: "Quality score" }));
+    fireEvent.click(within(g).getByRole("checkbox", { name: "Quality Score" }));
     expect(min.disabled).toBe(false);
     fireEvent.change(min, { target: { value: "70" } });
     fireEvent.submit(g.closest("form")!);
     expect(loc()).toBe("/score-screener?qmin=70");
-    fireEvent.click(within(g).getByRole("checkbox", { name: "Quality score" }));
+    fireEvent.click(within(g).getByRole("checkbox", { name: "Quality Score" }));
     expect(min.value).toBe("");
     expect(min.disabled).toBe(true);
   });

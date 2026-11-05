@@ -150,3 +150,14 @@
   .qr-t thead { display: none; } .qr-t, .qr-t tbody, .qr-t tr, .qr-t th, .qr-t td { display: block; } .qr-t tr { border-bottom: 1px solid var(--border); padding: 6px 0; } .qr-t th, .qr-t td { border: 0; padding: 3px 12px; } .qr-t tbody th { white-space: normal; }
   .qr-dd, .qr-exs { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* "Rules for writing a query": its own collapsible box above the editor, closed until opened */
+.qr-box { display: grid; gap: 10px; margin-bottom: 16px; min-width: 0; }
+.qr-bar { margin: 0; font: inherit; }
+.qr-bar button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 18px; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--pop-bg, #1C1F25); color: #F6F5F2; cursor: pointer; text-align: left; font: inherit; }
+.qr-bar button:hover { border-color: var(--gold); }
+.qr-bar button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.qr-ico { display: grid; place-items: center; flex: none; color: #F6F5F2; } .qr-ico .ico { width: 22px; height: 22px; }
+.qr-title { flex: 1; min-width: 0; font: 400 20px/1.25 var(--serif); overflow-wrap: anywhere; }
+.qr-chev { flex: none; transition: transform .2s; transform: rotate(180deg); } .is-open > .qr-bar .qr-chev { transform: none; }
+@media (prefers-reduced-motion: reduce) { .qr-chev { transition: none; } }

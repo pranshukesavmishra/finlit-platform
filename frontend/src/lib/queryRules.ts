@@ -20,13 +20,3 @@ export function ruleFor(p: Pick<Problem, "code" | "text">): ErrorRule | null {
 
 /** The repair to offer as the main button: only when there is exactly one, so it is never a guess between several. */
 export const onlyFix = (p: Pick<Problem, "fixes">): Fix | null => (p.fixes.length === 1 ? p.fixes[0] : null);
-
-// ------------------------------------------------------------------------------------------------------------------------------ panel state
-export const RULES_KEY = "finlit-qb-rules";
-/** Open on the first visit; afterwards as the person left it. */
-export function readRulesOpen(): boolean {
-  try { return localStorage.getItem(RULES_KEY) !== "closed"; } catch { return true; }
-}
-export function keepRulesOpen(open: boolean): void {
-  try { localStorage.setItem(RULES_KEY, open ? "open" : "closed"); } catch { /* private mode: the panel still works, it is just not remembered */ }
-}

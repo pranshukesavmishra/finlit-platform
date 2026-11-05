@@ -88,3 +88,17 @@
   :root:root .top { background: var(--bg); }
   :root:root :is(.scrim, .gs-scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim, .gx-backdrop) { background: var(--ov-backdrop); }
 }
+
+/* ---- crisp dialogs: centre with auto margins, never with translate(-50%) ----
+   A translate(-50%, -50%) puts the dialog on a half pixel whenever its width or height is odd, and an animation that ends on a transform
+   (fill-mode "both") keeps the dialog on its own composited layer, so the browser resamples the text and it looks soft. Layout-centred boxes
+   stay on whole pixels; the entrance only moves up (translateY) and drops the transform when it ends. */
+:root:root :is(.alx-modal, .modal) { left: 0; right: 0; top: 0; bottom: 0; margin: auto; height: fit-content; transform: none; }
+:root:root .ec-dlg { left: 0; right: 0; top: 0; bottom: 0; margin: auto; transform: none; }
+:root:root :is(.palette, .gs, .plf-note) { left: 0; right: 0; margin-inline: auto; transform: none; will-change: auto; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root:root .plf-note { animation: ov-drop .5s cubic-bezier(.2, .9, .3, 1) 1 backwards; }
+:root:root .palette { animation: ov-rise .18s ease-out backwards; }
+:root:root .gs { animation: ov-rise .2s cubic-bezier(.2, .9, .3, 1) backwards; }
+@keyframes ov-drop { from { opacity: 0; transform: translateY(-40px); } }
+@keyframes ov-rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { :root:root :is(.plf-note, .palette, .gs) { animation: none; } }

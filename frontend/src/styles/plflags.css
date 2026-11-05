@@ -6,7 +6,7 @@
 tr[data-flag-row] > td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent); transition: background .4s; }
 
-.plf-note { position: fixed; z-index: 60; top: 112px; left: 50%; width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 140px); overflow: auto; transform: translateX(-50%); padding: 16px; border-radius: 20px; background: var(--s2, var(--s1)); backdrop-filter: blur(14px); color: var(--text); border: 1px solid var(--border-strong); box-shadow: 0 18px 48px rgba(0, 0, 0, .38); animation: plf-drop .6s cubic-bezier(.2, .9, .3, 1) 1 both; }
+.plf-note { position: fixed; z-index: 60; top: 112px; left: 0; right: 0; margin-inline: auto; width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 140px); overflow: auto; padding: 16px; border-radius: 20px; background: var(--s2, var(--s1)); color: var(--text); border: 1px solid var(--border-strong); box-shadow: 0 18px 48px rgba(0, 0, 0, .38); animation: plf-drop .5s cubic-bezier(.2, .9, .3, 1) 1 backwards; }
 .plf-note h3 { margin: 0; font-size: 17px; line-height: 1.3; } .plf-note h4 { margin: 16px 0 8px; font-size: 14px; }
 .plf-top { display: flex; align-items: center; gap: 12px; }
 .plf-ico { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); }
@@ -22,7 +22,7 @@ td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent
 .plf-in { margin-top: 12px; padding: 14px; border-radius: 14px; background: var(--s1); border: 1px solid var(--border); }
 .plf-vs { margin: 4px 0 12px; color: var(--muted); font-size: 13px; }
 .plf-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.plf-tile { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--s2); animation: plf-pop .45s ease-out both; }
+.plf-tile { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--s2); animation: plf-pop .45s ease-out backwards; }
 .plf-tile:nth-child(2) { animation-delay: .1s; }
 .plf-tile span { font-size: 13px; color: var(--muted); } .plf-tile b { font: 700 28px/1.15 var(--mono); letter-spacing: -.01em; }
 .plf-tile em { display: inline-flex; align-items: center; gap: 5px; font-style: normal; font-size: 13px; }
@@ -33,7 +33,7 @@ td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent
 .plf-pane p { margin: 0; } .plf-pane ul { margin: 0; padding-left: 18px; } .plf-pane li { margin: 3px 0; }
 .plf-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .plf-f { margin: 12px 0 0; font-size: 12px; color: var(--muted); }
-@keyframes plf-drop { from { opacity: 0; transform: translate(-50%, -48px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes plf-drop { from { opacity: 0; transform: translateY(-40px); } }
 @keyframes plf-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes plf-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .plf-note, .plf-tile, .plf-pane { animation: none; } }

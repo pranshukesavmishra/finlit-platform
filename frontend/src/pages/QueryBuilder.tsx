@@ -19,7 +19,7 @@ import {
   type Basket, type Completion, type Problem, type Ratio, type Reading, type RunBad, type RunBody, type RunOk, type Validation,
 } from "../lib/query";
 import { QueryRules } from "../components/QueryRules";
-import { keepRulesOpen, onlyFix, readRulesOpen, ruleFor } from "../lib/queryRules";
+import { onlyFix, ruleFor } from "../lib/queryRules";
 import { saveFile } from "../stock/derive";
 import { useDocTitle } from "../lib/title";
 import { TIER, useUI, type Plan } from "../lib/ui";
@@ -138,7 +138,7 @@ export function QueryBuilder() {
   const [page, setPage] = useState(0), [running, setRunning] = useState(false);
   const [res, setRes] = useState<RunOk | null>(null), [bad, setBad] = useState<RunBad | null>(null), [ranText, setRanText] = useState(""), [runErr, setRunErr] = useState("");
   const [caret, setCaret] = useState(0), [hi, setHi] = useState(0), [force, setForce] = useState(false), [closed, setClosed] = useState(false);
-  const [rulesOpen, setRulesOpen] = useState(readRulesOpen), [hot, setHot] = useState("");
+  const [rulesOpen, setRulesOpen] = useState(false), [hot, setHot] = useState("");
   const [drawer, setDrawer] = useState(false), [seed, setSeed] = useState(""), [helper, setHelper] = useState(false), [colMenu, setColMenu] = useState(false);
   const [saveName, setSaveName] = useState(""), [saveNote, setSaveNote] = useState(""), [saveErr, setSaveErr] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null), mirrorRef = useRef<HTMLDivElement>(null), seq = useRef(0), loadedFor = useRef<string | null>(null);
@@ -208,7 +208,7 @@ export function QueryBuilder() {
   // ---- fixes and jumping to a problem
   const useFix = (f: { start: number; end: number; text: string }) => { const r = applyFix(text, f); edit(r.text, r.caret); };
   const jump = (p: Problem) => { const t = taRef.current; if (!t) return; t.focus(); t.setSelectionRange(p.start, Math.max(p.end, p.start)); setCaret(p.start); };
-  const toggleRules = (on = !rulesOpen) => { setRulesOpen(on); keepRulesOpen(on); };
+  const toggleRules = () => setRulesOpen((o) => !o);
   const openAll = (q = "") => { setSeed(q); setDrawer(true); };
   const insertName = (r: Ratio) => { const t = taRef.current; const s = t?.selectionStart ?? text.length, e = t?.selectionEnd ?? text.length; const next = text.slice(0, s) + r.label + text.slice(e); edit(next, s + r.label.length); };
   const addLine = (cond: string, joiner: "AND" | "OR" = "AND") => { const r = addCondition(text, cond, joiner); edit(r.text, r.caret); };
@@ -279,14 +279,14 @@ export function QueryBuilder() {
         description={<>Type a rule, get the companies: <code className="qb-inl">Market cap &gt; 500 AND P/E &lt; 15</code>. We check every word as you type, show how we read it, and list the listed companies that match all of it.</>} />
       <div className="wrap qb">
         {/* the rules sit above the box they explain, so they are read before writing (they used to open below it) */}
-        {rulesOpen && <QueryRules onInsert={(q) => { loadExample(q); requestAnimationFrame(() => taRef.current?.focus()); }} onClose={() => toggleRules(false)} />}
+        <QueryRules open={rulesOpen} onToggle={toggleRules} onInsert={(q) => { loadExample(q); requestAnimationFrame(() => taRef.current?.focus()); }} />
         <section className="card qb-ed" aria-label="Your query">
           <div className="qb-bar">
             <label htmlFor="qb-text" className="qb-lab">Your query</label>
             <div className="qb-bar-b">
               <button className={"btn" + (helper ? " on" : "")} aria-expanded={helper} aria-controls="qb-helper" onClick={() => setHelper(!helper)}>Add a condition</button>
               <button className="btn" onClick={() => openAll()}><Icon name="table" />Show all ratios</button>
-              <button className={"btn" + (rulesOpen ? " on" : "")} aria-expanded={rulesOpen} aria-controls="qb-rules" onClick={() => toggleRules()}><Icon name="book" />Rules</button>
+              <button className={"btn" + (rulesOpen ? " on" : "")} aria-expanded={rulesOpen} aria-controls="qb-rules" onClick={toggleRules}><Icon name="book" />Rules</button>
             </div>
           </div>
 
@@ -305,7 +305,7 @@ export function QueryBuilder() {
             {opts.map((o, i) => <li key={o.label} role="option" aria-selected={i === hi}><button className={i === hi ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onClick={() => accept(o)}><b>{o.label}</b><small>{o.sub}</small>{o.locked && <span className="qb-lk"><Icon name="lock" />{TIER[o.locked].n}</span>}</button></li>)}
             <li className="qb-hint" aria-hidden="true"><small>↑ ↓ to choose, Enter or Tab to add, Esc to close</small></li>
           </ul>}
-          {!opts.length && <p className="qb-tip" id="qb-rule-hint">{text.trim() === "" ? <>Tip: start typing a ratio name (like <i>roe</i> or <i>market cap</i>) and we suggest the rest. </> : null}Each line is one condition: a ratio, a comparison and a value, like <code className="qb-inl">ROE &gt; 15</code>. Lines are joined with AND; use OR inside brackets. <button className="lnk" onClick={() => { toggleRules(true); requestAnimationFrame(() => document.getElementById("qb-rules")?.scrollIntoView({ block: "nearest", behavior: "smooth" })); }}>All the rules</button></p>}
+          {!opts.length && <p className="qb-tip" id="qb-rule-hint">{text.trim() === "" ? <>Tip: start typing a ratio name (like <i>roe</i> or <i>market cap</i>) and we suggest the rest. </> : null}Each line is one condition: a ratio, a comparison and a value, like <code className="qb-inl">ROE &gt; 15</code>. Lines are joined with AND; use OR inside brackets. <button className="lnk" onClick={() => { setRulesOpen(true); requestAnimationFrame(() => document.getElementById("qb-rules")?.scrollIntoView({ block: "nearest", behavior: "smooth" })); }}>All the rules</button></p>}
 
           <div id="qb-problems">
             {problems.length > 0 && <ul className="qb-probs" aria-label="Problems with the query">
