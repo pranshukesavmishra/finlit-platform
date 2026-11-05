@@ -277,6 +277,11 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
             sla=Sla("hours", 48), resumable=True, catchup=False, max_attempts=3,
             gate=Gate("GEMINI_API_KEY", "Earnings-call summaries are off: GEMINI_API_KEY is empty (docs/EARNINGS-CALLS.md)", kind="set"),
             what="earnings-call summaries: finds the latest transcripts of the largest companies, reads their text and answers ten fixed questions with the language model, quote by quote (bounded per run, free tier)"),
+        Job("company-brief", ("refresh-company-brief",), cls="bulk", priority=46, max_runtime_min=60, weight_mb=300, stall_min=40, windows=(W("NIGHT", 20), W("MORNING", 14)),
+            sla=Sla("hours", 72), resumable=True, catchup=False, max_attempts=3,
+            what="company brief (the About section): reads the annual report and the latest filings of followed and largest companies, asks the language model to write what the company does, "
+                 "the group, the businesses and the money mix with a citation for every line, checks each citation against its PDF page and stores a DRAFT for a person to review (only companies "
+                 "with new filings; bounded per night; no key = recorded as not configured, nothing written; docs/COMPANY-BRIEF.md)"),
         Job("ownership-insights", ("refresh-ownership", "--max-minutes", "20", "--limit", "120", "--concurrency", "3"), priority=47, max_runtime_min=30, weight_mb=120, stall_min=20,
             windows=(W("NIGHT", 20), W("MORNING", 14)), interval_min=180, sla=Sla("hours", 36), resumable=True, catchup=True, prerequisites=("ingest",), owns=("ownership",),
             what="ownership insights of every company: a row from the stored shareholding, then the premium filing details (shareholders, pledge, share count, lock-in, named holders) for companies that lack them, 3 at a time, 120 a run (docs/OWNERSHIP.md)"),

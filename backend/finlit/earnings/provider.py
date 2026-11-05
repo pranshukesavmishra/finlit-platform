@@ -49,9 +49,10 @@ class GeminiProvider:
     name = "gemini"
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
-    def __init__(self, api_key: str, model: str, transport: Optional[httpx.AsyncBaseTransport] = None, timeout: float = 180.0):
-        self.api_key, self.model = (api_key or "").strip(), model
-        self._client = httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=15.0), transport=transport, headers={"User-Agent": "FinLit-earnings/1.0 (+https://finlitventures.com)"})
+    def __init__(self, api_key: str, model: str, transport: Optional[httpx.AsyncBaseTransport] = None, timeout: float = 180.0, max_output_tokens: int = 8192,
+                 user_agent: str = "FinLit-earnings/1.0 (+https://finlitventures.com)"):
+        self.api_key, self.model, self.max_output_tokens = (api_key or "").strip(), model, max_output_tokens
+        self._client = httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=15.0), transport=transport, headers={"User-Agent": user_agent})
 
     @property
     def configured(self) -> bool:
@@ -61,7 +62,7 @@ class GeminiProvider:
         if not self.api_key:
             raise NotConfigured("GEMINI_API_KEY is empty")
         body = {"systemInstruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}],
-                "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json", "maxOutputTokens": 8192}}
+                "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json", "maxOutputTokens": self.max_output_tokens}}
         try:
             r = await self._client.post(f"{self.BASE}/{self.model}:generateContent", json=body, headers={"x-goog-api-key": self.api_key})
         except httpx.TransportError as exc:
