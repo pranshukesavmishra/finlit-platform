@@ -8,6 +8,8 @@ import { LeadChip } from "./Leadership";
 import { LockedBlock, StateChip } from "../components/sectors/Parts";
 import { useLeadership, pts as ptsFrac } from "../lib/leadership";
 import type { Summary, Technical } from "../lib/api";
+import { CornerBadge, RankMove } from "../components/rotation/Parts";
+import { ptsWord, weeksText } from "../lib/rotation";
 import { count, failureText, fullDate, ordinal, pct, signedPct, useStockSector, type StockSector } from "../lib/sectors";
 import "../styles/sectors.css";
 
@@ -21,7 +23,8 @@ export function oneLine(symbol: string, s: StockSector): string | null {
   if (!g) return null;
   const inside = s.rank_6m != null && s.quarter ? `${symbol} is in the ${QUARTER_WORD[s.quarter] ?? s.quarter_name?.toLowerCase()} of ${g.name} stocks over 6 months (${signedPct(s.return_6m_pct, 1)})` : `${symbol} has no 6-month ranking inside ${g.name} today`;
   const mk = s.market?.above_200d;
-  return `${inside}, and the industry as a whole is in ${an(g.state)} ${g.state}${mk == null ? "" : ` while the Nifty 50 is ${mk ? "above" : "below"} its 200-day average`}.`;
+  const rot = s.rotation?.corner_name ? `, ${s.rotation.corner_name} against other industries` : "";
+  return `${inside}, and the industry as a whole is in ${an(g.state)} ${g.state}${rot}${mk == null ? "" : ` while the Nifty 50 is ${mk ? "above" : "below"} its 200-day exponential average`}.`;
 }
 const bottomWord = (code: number | null | undefined) => (code === 1 ? "Yes, and it is above its 20-day average" : code === 2 ? "Yes" : code === 3 ? "No" : null);
 
@@ -43,6 +46,17 @@ function Cards({ symbol, name, s, tech, score, jump }: { symbol: string; name: s
               <div><small>Stocks counted</small><b>{count(g.stocks_counted)} of {count(g.stocks_listed)}</b></div>
               <div><small>Nifty 50 vs 200-day avg</small><b className={s.market?.pct_vs_200d != null && s.market.pct_vs_200d < 0 ? "sx-low" : ""}>{signedPct(s.market?.pct_vs_200d ?? null, 1)}</b></div>
             </div>
+            {s.rotation?.corner ? (
+              <div className="rt-sline" data-testid="stock-rotation">
+                <p className="rt-sline-h"><b>Against other industries:</b> <CornerBadge corner={s.rotation.corner} name={s.rotation.corner_name} /></p>
+                <div className="sx-mini2 three">
+                  <div><small>Rotation rank</small><b>{s.rotation.rank ?? "—"} of {s.rotation.ranked ?? "—"} <RankMove v={s.rotation.rank_change_1w} /></b></div>
+                  <div><small>6M vs average</small><b>{ptsWord(s.rotation.strength_pts)}</b></div>
+                  <div><small>1M vs average</small><b>{ptsWord(s.rotation.change_pts)}</b></div>
+                </div>
+                <p className="m">{s.rotation.weeks_in_corner === 1 ? "New this week" : `${weeksText(s.rotation.weeks_in_corner)} in this corner`}{s.rotation.this_week_reading_name ? `; this week reads ${s.rotation.this_week_reading_name}` : ""}. Past returns, not a forecast.</p>
+              </div>
+            ) : s.rotation === null ? <p className="m rt-note">No rotation reading: this industry has fewer than 8 counted stocks, or the rotation files are not in this data set yet.</p> : null}
             <Link className="more" to={`/sectors/${g.slug}`}>Open the {g.name} page</Link>
           </> : <p>Industry not yet classified. NSE has not given this stock an industry, so there is no industry reading to show. It is picked up at a later run once NSE lists it.</p>}
         </article>

@@ -144,11 +144,11 @@ export const filterCounts = (rows: GroupRow[]): Record<FilterKey, number | null>
 
 /** The order the board arrives in: fresh thrusts first, then Washout, then Fading ("Neutral" and "Confirmed" between). */
 const STATE_ORDER: Record<string, number> = { thrust_cap: 0, thrust_c: 1, confirmed: 2, washout: 3, fading: 4, neutral: 5 };
-export type SortKey = "name" | "state" | "above_9" | "above_20" | "above_50" | "index" | "higher_low" | "thrust" | "flags" | "counted";
-export const SORT_LABEL: Record<SortKey, string> = { name: "Industry", state: "State", above_9: "9-day", above_20: "20-day", above_50: "50-day", index: "Index vs 52-week high", higher_low: "Higher-low share", thrust: "Last thrust", flags: "Leader flags", counted: "Stocks counted" };
+export type SortKey = "name" | "state" | "above_9" | "above_20" | "above_50" | "index" | "higher_low" | "thrust" | "flags" | "counted" | "rotation";
+export const SORT_LABEL: Record<SortKey, string> = { name: "Industry", state: "State", above_9: "9-day", above_20: "20-day", above_50: "50-day", index: "Index vs 52-week high", higher_low: "Higher-low share", thrust: "Last thrust", flags: "Leader flags", counted: "Stocks counted", rotation: "Rotation rank" };
 const num = (r: GroupRow, k: SortKey): number | string | null =>
   k === "name" ? r.name.toLowerCase() : k === "state" ? STATE_ORDER[r.state_code] ?? 9 : k === "above_9" ? r.breadth.above_9 : k === "above_20" ? r.breadth.above_20 : k === "above_50" ? r.breadth.above_50
-  : k === "index" ? r.index_vs_52w_high : k === "higher_low" ? r.higher_low_share : k === "thrust" ? (r.last_thrust ? r.last_thrust.sessions_ago : null) : k === "flags" ? r.leader_flags : r.stocks_counted;
+  : k === "index" ? r.index_vs_52w_high : k === "higher_low" ? r.higher_low_share : k === "thrust" ? (r.last_thrust ? r.last_thrust.sessions_ago : null) : k === "flags" ? r.leader_flags : k === "rotation" ? r.rotation?.rank ?? null : r.stocks_counted;
 /** Sort a copy of the rows; missing values always go last, whichever way it sorts, and ties keep the board's own order. */
 export function sortRows(rows: GroupRow[], key: SortKey | null, dir: "asc" | "desc"): GroupRow[] {
   const idx = new Map(rows.map((r, i) => [r.slug, i]));

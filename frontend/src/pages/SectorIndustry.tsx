@@ -4,6 +4,8 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router";
 import { HScroll } from "../components/HScroll";
+import { RotationCard } from "../components/rotation/RotationCard";
+import { SectorTabs } from "../components/rotation/Parts";
 import { BreadthChart } from "../components/sectors/BreadthChart";
 import { Blank, LockedBlock, SectorFooter, StateChip } from "../components/sectors/Parts";
 import { useDocTitle } from "../lib/title";
@@ -208,6 +210,7 @@ export function SectorIndustryPage() {
   const notCountedN = p?.not_counted?.length;
   return (
     <div className="wrap sx" data-testid="sector-industry">
+      <SectorTabs active="pulse" />
       <p className="sx-back"><Link to="/sectors">Sector Pulse</Link> / {p?.name ?? slug}</p>
       {q.isLoading && <div className="sx-skel" role="status" aria-label="Loading the industry" />}
       {q.isError && <Blank title={q.error?.status === 404 ? "No such industry" : "This industry is not available right now"} reason={failureText(q.error)}><Link className="btn" to="/sectors">Back to Sector Pulse</Link></Blank>}
@@ -217,6 +220,7 @@ export function SectorIndustryPage() {
           <p className="sx-meta">{p.kind === "sector" ? `NSE sector group of ${p.industries.length} small industries (${p.industries.join(", ")}) in the ${p.sector} sector` : `NSE industry in the ${p.sector} sector`} · {countedText(p)}{notCountedN != null ? `, ${notCountedN} not counted` : `, ${Math.max(0, p.stocks_listed - p.stocks_counted)} listed stocks not counted`} · data as of {fullDate(p.date)}</p>
           <MarketStrip m={p.market} />
           <Happening p={p} />
+          <RotationCard slug={p.slug} groupName={p.name} kindLine={`${p.name} · ${p.kind === "sector" ? `sector group of ${p.industries.length} small NSE industries` : "NSE industry"} · ${countedText(p)}`} />
           <ChartCard p={p} />
           <Numbers p={p} />
           <StudyBox p={p} />
