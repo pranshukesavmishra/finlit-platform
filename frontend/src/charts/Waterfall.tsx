@@ -18,16 +18,16 @@ export function Waterfall({ bars, ariaLabel, height = 250 }: { bars: WfBar[]; ar
   return (
     <div className="mb dp-chart" ref={wrap} onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={ariaLabel}>
-        {ticks.map((t) => <g key={t}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.4 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="10" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{(t < 0 ? MINUS : "") + nf(t, 0)}</text></g>)}
+        {ticks.map((t) => <g key={t}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.4 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{(t < 0 ? MINUS : "") + nf(t, 0)}</text></g>)}
         {bars.map((b, i) => {
           const g = geo[i], y1 = Y(Math.max(g.from, g.to)), y2 = Y(Math.min(g.from, g.to)), fill = b.kind === "total" ? "var(--info)" : b.value >= 0 ? "var(--gain)" : "var(--loss)";
           return (
             <g key={b.key} opacity={hv == null || hv === i ? 1 : 0.5}>
               {i > 0 && <line x1={X(i - 1) + bw / 2} x2={X(i) - bw / 2} y1={Y(geo[i - 1].to)} y2={Y(geo[i - 1].to)} stroke="var(--border-strong)" strokeDasharray="2 3" />}
               <rect x={X(i) - bw / 2} y={y1} width={bw} height={Math.max(2, y2 - y1)} rx={3} fill={fill} />
-              <text x={X(i)} y={Math.max(11, y1 - 5)} textAnchor="middle" fontSize="10.5" fontWeight={600} fill="var(--text)" fontFamily="IBM Plex Mono, monospace">{text(b)}</text>
-              <text x={X(i)} y={H - 22} textAnchor="middle" fontSize="10" fill="var(--muted)">{(tight && b.narrow ? b.narrow : b.label)[0]}</text>
-              <text x={X(i)} y={H - 10} textAnchor="middle" fontSize="10" fill="var(--muted)">{(tight && b.narrow ? b.narrow : b.label)[1]}</text>
+              <text x={X(i)} y={Math.max(11, y1 - 5)} textAnchor="middle" fontSize="11" fontWeight={600} fill="var(--text)" fontFamily="IBM Plex Mono, monospace">{text(b)}</text>
+              <text x={X(i)} y={H - 22} textAnchor="middle" fontSize="11" fill="var(--muted)">{(tight && b.narrow ? b.narrow : b.label)[0]}</text>
+              <text x={X(i)} y={H - 10} textAnchor="middle" fontSize="11" fill="var(--muted)">{(tight && b.narrow ? b.narrow : b.label)[1]}</text>
               <rect x={X(i) - step / 2} y={pt - 14} width={step} height={H - pt + 14} fill="transparent" tabIndex={0} style={{ outline: "none" }} onMouseEnter={() => setHv(i)} onFocus={() => setHv(i)} onBlur={() => setHv(null)} aria-label={`${b.label.join(" ")}: ${b.kind === "total" ? text(b) : `${b.value > 0 ? "up " : b.value < 0 ? "down " : ""}${nf(b.value, 1)} percentage points`}`} />
             </g>
           );

@@ -24,7 +24,7 @@ export function Contact() {
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="contact" /><div className="eyebrow">Contact</div><h1>Write to us.</h1><p>Tell us what you need, in a line or in a paragraph. A person on the team reads every message and we usually reply within one working day.</p></div></section>
       <section className="sec" style={{ paddingTop: 16 }}><div className="wrap two">
         <div className="card">
-          {m.isSuccess ? <div className="done"><div className="done-ic"><Icon name="check" /></div><h3 style={{ font: "400 26px var(--serif)" }}>Message sent</h3><p className="muted">Thanks. We have it, and we usually reply within one working day.</p></div> : (
+          {m.isSuccess ? <div className="done"><div className="done-ic"><Icon name="check" /></div><h3 style={{ font: "400 24px var(--serif)" }}>Message sent</h3><p className="muted">Thanks. We have it, and we usually reply within one working day.</p></div> : (
             <form className="form" onSubmit={submit} noValidate>
               <div className="fgrid"><label>Name<input value={f.name} maxLength={120} onChange={(e) => setF({ ...f, name: e.target.value })} autoComplete="name" required /></label><label>Email<input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" required /></label>
                 <label>Mobile (optional)<input type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} autoComplete="tel" /></label><label>Subject (optional)<input value={f.subject} maxLength={200} onChange={(e) => setF({ ...f, subject: e.target.value })} /></label></div>
@@ -33,7 +33,7 @@ export function Contact() {
               <button className="btn primary lg" disabled={m.isPending}>{m.isPending ? "Sending…" : "Send message"}</button>
             </form>)}
         </div>
-        <div><div className="feat" style={{ "--ac": "var(--gold)" } as React.CSSProperties}><h3>Prefer email?</h3><p style={{ margin: "10px 0" }}><a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a></p><p><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">FinLit on LinkedIn</a></p><p className="faint" style={{ fontSize: 13, marginTop: 14 }}>We cannot give personal advice on what to buy or sell, so please do not send account numbers or passwords.</p><p className="faint" style={{ fontSize: 12.5, marginTop: 14 }}>{COMPANY.disclaimer}</p></div></div>
+        <div><div className="feat" style={{ "--ac": "var(--gold)" } as React.CSSProperties}><h3>Prefer email?</h3><p style={{ margin: "10px 0" }}><a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a></p><p><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">FinLit on LinkedIn</a></p><p className="faint" style={{ fontSize: 13, marginTop: 14 }}>We cannot give personal advice on what to buy or sell, so please do not send account numbers or passwords.</p><p className="faint" style={{ fontSize: 13, marginTop: 14 }}>{COMPANY.disclaimer}</p></div></div>
       </div></section>
     </>
   );

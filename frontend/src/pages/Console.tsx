@@ -184,14 +184,14 @@ function Health() {
       <p className="muted">Last load: {h.lastLoad ? stamp(h.lastLoad) : "never"} · last 24 hours: {Object.entries(h.runs24h).map(([k, v]) => `${v} ${k}`).join(", ") || "no runs"}.</p>
       {h.universe === 0 && <div className="formerr">The company list is empty. Run <code>python -m finlit.worker refresh-universe</code>, then <code>probe</code> and <code>ingest-all</code>.</div>}
       {h.coverage && <div style={{ marginTop: 14 }}>
-        <h3 style={{ margin: "0 0 6px", font: "600 15px var(--sans)" }}>What the provider sent against what the reports show</h3>
+        <h3 style={{ margin: "0 0 6px", font: "600 16px var(--sans)" }}>What the provider sent against what the reports show</h3>
         <p className="muted">{Object.entries(h.coverage.byState).map(([k, v]) => `${v} ${k}`).join(" · ") || "No company checked yet"}. "Provider sent it, report lacks it" must always be zero: any line below is a fault to fix, not a data gap.</p>
         {h.coverage.mismatches.length > 0 ? <div className="formerr" role="alert"><b>{h.coverage.mismatches.length} companies where the provider sent data the report lacks:</b> {h.coverage.mismatches.map((m) => `${m.symbol} (${m.lines.join("; ")})`).join(" · ")}</div> : <p className="pos">None: every figure the provider sent is shown.</p>}
         {h.coverage.providerEmpty.length > 0 && <p className="muted">The provider sent nothing for: {h.coverage.providerEmpty.map((c) => `${c.symbol}${c.name ? " " + c.name : ""}`).join(", ")}.</p>}
       </div>}
       <div style={{ marginTop: 14 }}>
         {h.resultsLight && <p className="muted" data-testid="results-light"><b>Quarter results, last {h.resultsLight.days} days:</b> {h.resultsLight.declared} declared · {h.resultsLight.filled} with figures ({h.resultsLight.fromFullReport} from the full report, {h.resultsLight.fromLightRow} from the light path) · {h.resultsLight.awaitingProvider} waiting for the data provider · {h.resultsLight.awaitingOurs} waiting for us.</p>}
-        <h3 style={{ margin: "0 0 6px", font: "600 15px var(--sans)" }}>Data integrity {h.integrity && <span className={h.integrity.level === "green" ? "pos" : "neg"}>{h.integrity.level === "green" ? "● green" : h.integrity.level === "amber" ? "● amber" : "● red"}</span>}</h3>
+        <h3 style={{ margin: "0 0 6px", font: "600 16px var(--sans)" }}>Data integrity {h.integrity && <span className={h.integrity.level === "green" ? "pos" : "neg"}>{h.integrity.level === "green" ? "● green" : h.integrity.level === "amber" ? "● amber" : "● red"}</span>}</h3>
         {!h.integrity ? <p className="muted">The nightly audit has not run yet. It samples up to 40 companies a night and checks prices, latest quarter, profit and loss sums, declared results and risk figures.</p> : (
           <>
             <p className="muted">Last audit {stamp(h.integrity.at)}, {h.integrity.sampled} companies sampled.</p>

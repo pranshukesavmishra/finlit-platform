@@ -268,7 +268,7 @@ export function GraphStudio() {
     const g = cv.getContext("2d")!; g.fillStyle = colors.surface; g.fillRect(0, 0, cv.width, cv.height); g.font = "12px system-ui, sans-serif"; g.fillStyle = colors.muted; g.fillText("FinLit Graph Studio · information only, not investment advice", 14, 22);
     for (let n = 0; n < cells.length; n++) {
       const x0 = (n % cols) * cw, y0 = Math.floor(n / cols) * ch + 36, svg = cells[n].querySelector<SVGSVGElement>(".gx-body svg");
-      g.fillStyle = colors.text; g.font = "600 15px system-ui, sans-serif"; g.fillText((cells[n].querySelector("h3")?.textContent ?? "").slice(0, 70), x0 + 14, y0 + 20);
+      g.fillStyle = colors.text; g.font = "600 16px system-ui, sans-serif"; g.fillText((cells[n].querySelector("h3")?.textContent ?? "").slice(0, 70), x0 + 14, y0 + 20);
       let lx = x0 + 14; g.font = "12px system-ui, sans-serif"; cells[n].querySelectorAll<HTMLElement>(".gx-chip").forEach((chip) => { const dot = chip.querySelector("i")?.style.background ?? "#888", t = (chip.childNodes[1]?.textContent ?? "").trim(); g.fillStyle = dot; g.fillRect(lx, y0 + 34, 14, 3); g.fillStyle = colors.text; g.fillText(t, lx + 20, y0 + 40); lx += 28 + g.measureText(t).width; });
       if (!svg) continue;
       const s = svg.cloneNode(true) as SVGSVGElement; s.setAttribute("xmlns", "http://www.w3.org/2000/svg"); s.setAttribute("font-family", "system-ui, sans-serif");

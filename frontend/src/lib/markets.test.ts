@@ -73,6 +73,9 @@ describe("moves", () => {
     const rgb = (c: number) => /rgb\((\d+), (\d+), (\d+)\)/.exec(moveColour(c))!.slice(1).map(Number);
     expect(rgb(1)[1]).toBeGreaterThan(rgb(1)[0]); expect(rgb(-1)[0]).toBeGreaterThan(rgb(-1)[1]);          // green for a rise, red for a fall
     expect(moveColour(0)).toBe(FLAT_TILE); expect(moveColour(null)).toBe(FLAT_TILE);
+    const lum = (c: number[]) => { const [r, g, b] = c.map((v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    for (const m of [-2, -1, -0.1, 0.1, 1, 2]) expect(1.05 / (lum(rgb(m)) + 0.05)).toBeGreaterThanOrEqual(4.5);   // white label text passes 4.5:1 on every stop
+    expect(1.05 / (lum([107, 100, 85]) + 0.05)).toBeGreaterThanOrEqual(4.5);                                   // and on the flat tile (#6B6455)
     expect(rgb(2)[1]).toBeLessThan(rgb(0.2)[1]); expect(moveColour(10)).toBe(moveColour(2));                // deeper with size, saturating at 2%
   });
 });
@@ -107,11 +110,13 @@ describe("heat map tile labels", () => {
     expect(tileMode(80, 10)).toBe("none");
     expect(tileMode(66, 44, 70)).toBe("medium"); // a sector tile asks for a wider box before it shows the logo layout
   });
-  it("the font shrinks to fit the word, never below 8.5px and never above the limit", () => {
-    expect(labelFont("RIL", 200, 13.5)).toBe(13.5);
-    expect(labelFont("ULTRACEMCO", 70, 13.5)).toBeLessThan(13.5);
-    expect(labelFont("ULTRACEMCO", 70, 13.5)).toBeGreaterThanOrEqual(8.5);
-    expect(labelFont("MOTHERSON", 20, 10.5)).toBe(8.5);
-    expect(labelFont("", 40, 10.5)).toBeGreaterThan(8);
+  it("the font steps down the type scale to fit the word, and never goes below 11px (the label is hidden instead)", () => {
+    expect(labelFont("RIL", 200, 14)).toBe(14);
+    expect(labelFont("ULTRACEMCO", 90, 14)).toBe(13);
+    expect(labelFont("ULTRACEMCO", 70, 14)).toBe(0);               // 10 letters need 11px x 6.8 = 68px of text width, the tile has 62
+    expect([11, 12, 13, 14]).toContain(labelFont("HDFCBANK", 90, 14));
+    expect(labelFont("MOTHERSON", 20, 11)).toBe(0);                  // does not fit at 11px: no label, the hover card names it
+    expect(labelFont("RIL", 200, 12)).toBe(12);                      // never above the limit
+    expect(labelFont("", 40, 11)).toBe(11);
   });
 });

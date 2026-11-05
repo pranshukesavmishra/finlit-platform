@@ -89,7 +89,7 @@ function Numbers({ p }: { p: IndustryPage }) {
   const flags = p.leader_flags;
   return (
     <section className="sx-sec" aria-labelledby="sx-nums">
-      <h2 id="sx-nums" style={{ margin: "0 0 4px", font: "600 22px/1.3 var(--sans)" }}>The numbers behind the state</h2>
+      <h2 id="sx-nums" style={{ margin: "0 0 4px", font: "600 20px/1.3 var(--sans)" }}>The numbers behind the state</h2>
       <div className="sx-cards6">
         <div className="sx-kc"><small>Breadth today</small><span className="v">{pct(p.breadth.above_9)} · {pct(p.breadth.above_20)} · {pct(p.breadth.above_50)}</span>
           <p>Share of the {n} counted stocks above their 9, 20 and 50-day averages.{step != null && <> With {n} stocks, one move shifts a reading by about {step.toFixed(step >= 10 ? 0 : 1)} points.</>}</p></div>
@@ -140,7 +140,7 @@ function RankedTable({ p }: { p: IndustryPage }) {
   const peerLocked = !!locked.peer_label;
   return (
     <section className="sx-sec sx-ranked" aria-labelledby="sx-ranked">
-      <h2 id="sx-ranked" style={{ margin: "0 0 4px", font: "600 22px/1.3 var(--sans)" }}>The {p.stocks_counted} counted stocks, ranked by 6-month return</h2>
+      <h2 id="sx-ranked" style={{ margin: "0 0 4px", font: "600 20px/1.3 var(--sans)" }}>The {p.stocks_counted} counted stocks, ranked by 6-month return</h2>
       <p className="sx-sub" style={{ marginBottom: 12 }}>How each stock has behaved inside its industry.</p>
       {rows == null ? (
         <LockedBlock plan={locked.stocks ?? "silver"} title="The ranked stock table is part of the Silver plan">Open to everyone: the state, the breadth chart and the numbers above. Silver adds each counted stock's 6-month return and quarter in the industry, whether it bottomed before the industry, its leader flag and its size.</LockedBlock>

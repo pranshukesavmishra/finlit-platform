@@ -1,7 +1,7 @@
 /* Profit and revenue outlook (pages/Outlook.tsx). Site tokens only, so light and dark follow. */
 .ol { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding-bottom: 40px; }
 .ol .gate, .ol .gate > div { min-width: 0; }
-.ol h2 { font: 600 19px/1.3 var(--sans); margin: 0 0 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ol h2 { font: 600 18px/1.3 var(--sans); margin: 0 0 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .ol .card { padding: 20px 22px; }
 .ol-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 0 12px; background: var(--s1); }
 .ol-search input { border: 0; background: none; padding: 12px 0; width: 100%; font: inherit; color: var(--text); outline: none; }
@@ -10,7 +10,7 @@
 .ol-hits a { display: flex; justify-content: space-between; gap: 12px; padding: 10px; border-radius: 8px; color: var(--text); text-decoration: none; }
 .ol-hits a:hover, .ol-hits a:focus-visible { background: var(--s2); }
 .ol-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-.ol-tabs button { font: 600 15px var(--sans); padding: 11px 16px; border: 0; background: none; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.ol-tabs button { font: 600 16px var(--sans); padding: 11px 16px; border: 0; background: none; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; }
 .ol-tabs button.on { color: var(--text); border-bottom-color: var(--gold); }
 .ol-tabs button:focus-visible, .ol-mode button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .ol-panel { display: grid; gap: 16px; }
@@ -25,7 +25,7 @@
 .ol-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--border); padding-top: 10px; flex-wrap: wrap; }
 .ol-out { display: grid; gap: 18px; transition: opacity .15s; }
 .ol-out.is-busy { opacity: .6; }
-.ol-note { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--gold-soft); font-size: 13.5px; }
+.ol-note { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--gold-soft); font-size: var(--fs-14); }
 .ol-empty { padding: 12px 14px; border-radius: 10px; background: var(--s2); margin: 0; }
 .ol-disc { font-size: 13px; color: var(--muted); margin: 0; }
 .ol-skel { display: flex; gap: 22px; align-items: center; padding: 20px; border: 1px solid var(--border); border-radius: 14px; }
@@ -49,7 +49,7 @@
 .ol-ctl { display: grid; gap: 14px; }
 .ol-ctl-row { display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap; }
 .ol-ctl-l { font: 600 13px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; min-width: 92px; }
-.ol-mode button small { display: block; font: 400 11.5px var(--sans); opacity: .8; }
+.ol-mode button small { display: block; font: 400 12px var(--sans); opacity: .8; }
 .ol-mode:has(small) button { padding: 7px 16px; border-radius: 14px; }
 .ol-how summary { cursor: pointer; font-weight: 600; color: var(--gold); }
 .ol-how summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
@@ -58,7 +58,7 @@
 .ol-chartcard { min-width: 0; transition: opacity .15s; } .ol-chartcard.is-busy { opacity: .65; }
 .ol-chart { position: relative; min-width: 0; }
 .ol-chart-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
-.ol-chart-top h3 { font: 700 15px var(--sans); margin: 0; }
+.ol-chart-top h3 { font: 700 16px var(--sans); margin: 0; }
 .ol-chart-acts { display: flex; gap: 14px; }
 .ol-link { all: unset; cursor: pointer; font-size: 13px; color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
 .ol-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
@@ -66,18 +66,18 @@
 .ol-plot:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .ol-plot svg { display: block; max-width: 100%; }
 .ol-ax { font-size: 11px; font-family: var(--sans); } .ol-ax.mono { font-family: var(--mono); }
-.ol-tip { position: absolute; transform: translateX(-50%); min-width: 190px; max-width: 240px; display: grid; gap: 3px; padding: 10px 12px; border-radius: 10px; background: var(--s1); border: 1px solid var(--border-strong); box-shadow: 0 8px 24px rgba(0,0,0,.28); pointer-events: none; font-size: 12.5px; z-index: 2; }
-.ol-tip b { font-size: 13.5px; } .ol-tip em { font: 700 16px var(--mono); font-style: normal; } .ol-tip small { color: var(--muted); font-size: 12px; }
+.ol-tip { position: absolute; transform: translateX(-50%); min-width: 190px; max-width: 240px; display: grid; gap: 3px; padding: 10px 12px; border-radius: 10px; background: var(--s1); border: 1px solid var(--border-strong); box-shadow: 0 8px 24px rgba(0,0,0,.28); pointer-events: none; font-size: var(--fs-13); z-index: 2; }
+.ol-tip b { font-size: var(--fs-14); } .ol-tip em { font: 700 16px var(--mono); font-style: normal; } .ol-tip small { color: var(--muted); font-size: 12px; }
 .ol-tip-kind { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--muted); }
 .ol-tip-kind i { width: 14px; height: 0; border-top: 3px solid currentColor; } .ol-tip-kind.estimate i { border-top-style: dashed; }
 .ol-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
 .ol-legend li { display: inline-flex; align-items: center; gap: 8px; }
-.ol-chart-note { margin: 8px 0 0; font-size: 12.5px; }
+.ol-chart-note { margin: 8px 0 0; font-size: var(--fs-13); }
 .ol-ctable { overflow-x: auto; margin-top: 10px; -webkit-overflow-scrolling: touch; }
-.ol-ctable table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ol-ctable table { width: 100%; border-collapse: collapse; font-size: var(--fs-14); }
 .ol-ctable caption { text-align: left; color: var(--muted); padding-bottom: 6px; }
 .ol-ctable th, .ol-ctable td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; font-weight: 500; font-variant-numeric: tabular-nums; vertical-align: top; }
-.ol-ctable thead th { color: var(--faint); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.ol-ctable thead th { color: var(--faint); font-size: var(--fs-12); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
 .ol-ctable .num { text-align: right; white-space: nowrap; }
 .ol-ctable tbody th { font-weight: 600; } .ol-ctable th small, .ol-ctable td small { display: block; font-weight: 400; font-size: 12px; white-space: normal; max-width: 36ch; }
 .ol-ctable td small { margin-left: auto; text-align: right; }
@@ -85,7 +85,7 @@
 .ol-ctable tfoot th, .ol-ctable tfoot td { border-top: 2px solid var(--border-strong); border-bottom: 0; font-weight: 700; }
 .ol-build { margin-top: 6px; }
 @media (max-width: 960px) { .ol-charts { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 640px) { .ol-ctl-l { min-width: 0; width: 100%; } .ol-mode button { padding: 7px 10px; font-size: 13.5px; } .ol-ctable th, .ol-ctable td { padding: 7px 6px; font-size: 13px; } .ol-tip { min-width: 170px; } }
+@media (max-width: 640px) { .ol-ctl-l { min-width: 0; width: 100%; } .ol-mode button { padding: 7px 10px; font-size: var(--fs-14); } .ol-ctable th, .ol-ctable td { padding: 7px 6px; font-size: 13px; } .ol-tip { min-width: 170px; } }
 @media (prefers-reduced-motion: reduce) { .ol-chartcard { transition: none; } }
 .ol-ctable th { background: none; }
-@media (max-width: 640px) { .ol-build th[scope=row] { min-width: 0; width: 42%; } .ol-ctable tbody th small { max-width: 20ch; } .ol-ctable .num { padding-left: 4px; padding-right: 4px; } .ol-ctable thead th { font-size: 10.5px; letter-spacing: .02em; white-space: normal; } }
+@media (max-width: 640px) { .ol-build th[scope=row] { min-width: 0; width: 42%; } .ol-ctable tbody th small { max-width: 20ch; } .ol-ctable .num { padding-left: 4px; padding-right: 4px; } .ol-ctable thead th { font-size: var(--fs-11); letter-spacing: .02em; white-space: normal; } }

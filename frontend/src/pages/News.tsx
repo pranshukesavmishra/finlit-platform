@@ -35,7 +35,7 @@ export function NewsPage() {
         <section key={day} className="feed-g"><h2>{dayLabel(day)}</h2>
           <div className="card feed-card"><ul className="feed-n">{items.map((i) => (
             <li key={i.id}>{i.symbol ? <Link className="feed-sym" to={`/stocks/${i.symbol}`}>{i.symbol}</Link> : <span className="feed-sym alt">Market</span>}
-              <div><p>{i.link ? <a href={i.link} target="_blank" rel="noopener noreferrer">{i.title}</a> : i.title}</p><small>{[i.category, i.company && i.symbol ? i.company : null, i.source].filter(Boolean).join(" · ")}</small>{i.summary && <p className="muted" style={{ margin: "4px 0 0", fontSize: 13.5 }}>{i.summary}</p>}</div></li>))}</ul></div></section>))}
+              <div><p>{i.link ? <a href={i.link} target="_blank" rel="noopener noreferrer">{i.title}</a> : i.title}</p><small>{[i.category, i.company && i.symbol ? i.company : null, i.source].filter(Boolean).join(" · ")}</small>{i.summary && <p className="muted" style={{ margin: "4px 0 0", fontSize: 14 }}>{i.summary}</p>}</div></li>))}</ul></div></section>))}
     </div>
   );
 }

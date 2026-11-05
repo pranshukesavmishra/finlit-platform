@@ -28,8 +28,8 @@ export function Candles({ t, o, h, l, c, v, ema50, ema200, w: W = 1000 }: { t: s
     <div className="mb">
       <Readout><b>{day(t[i])}</b> <span>O {o[i] != null ? nf(o[i] as number) : "—"}</span> <span>H {h[i] != null ? nf(h[i] as number) : "—"}</span> <span>L {l[i] != null ? nf(l[i] as number) : "—"}</span> <span>C {nf(c[i])}</span> <span>Vol {v[i] != null ? nf(v[i] as number, 0) : "—"}</span></Readout>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Candlestick chart with 50 and 200 day averages and volume" onMouseLeave={() => setHv(null)}>
-        {ticks.map((x) => <g key={x}><line x1={pl} x2={W - pr} y1={Y(x)} y2={Y(x)} stroke={GRID} /><text x={pl - 6} y={Y(x) + 3.5} textAnchor="end" fontSize="10" fill={AX} fontFamily="var(--mono)">{nf(x, 0)}</text></g>)}
-        {t.map((d, k) => { if (k % every) return null; return <text key={d} x={X(k)} y={H - 4} textAnchor="middle" fontSize="10" fill={AX}>{new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</text>; })}
+        {ticks.map((x) => <g key={x}><line x1={pl} x2={W - pr} y1={Y(x)} y2={Y(x)} stroke={GRID} /><text x={pl - 6} y={Y(x) + 3.5} textAnchor="end" fontSize="11" fill={AX} fontFamily="var(--mono)">{nf(x, 0)}</text></g>)}
+        {t.map((d, k) => { if (k % every) return null; return <text key={d} x={X(k)} y={H - 4} textAnchor="middle" fontSize="11" fill={AX}>{new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</text>; })}
         {t.map((_, k) => { const up = (c[k] ?? 0) >= (o[k] ?? c[k]), col = up ? "var(--gain)" : "var(--loss)"; const top = Y(Math.max(o[k] ?? c[k], c[k])), bot = Y(Math.min(o[k] ?? c[k], c[k]));
           return <g key={k} opacity={hv == null || hv === k ? 1 : 0.55}>{h[k] != null && l[k] != null && <line x1={X(k)} x2={X(k)} y1={Y(h[k] as number)} y2={Y(l[k] as number)} stroke={col} strokeWidth="1" />}
             <rect x={X(k) - bw / 2} y={top} width={bw} height={Math.max(1, bot - top)} fill={col} />
@@ -62,9 +62,9 @@ export function AreaSeries({ t, v, fmt, color = "var(--k1)", height = 210, floor
       <Readout><b>{day(t[i])}</b> <span>{v[i] != null ? fmt(v[i] as number) : "—"}</span></Readout>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Line chart over time" onMouseLeave={() => setHv(null)}>
         <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity=".42" /><stop offset="1" stopColor={color} stopOpacity=".04" /></linearGradient></defs>
-        {ticks.map((x) => <g key={x}><line x1={pl} x2={W - pr} y1={Y(x)} y2={Y(x)} stroke={GRID} /><text x={pl - 6} y={Y(x) + 3.5} textAnchor="end" fontSize="10" fill={AX} fontFamily="var(--mono)">{fmt(x)}</text></g>)}
-        {yearTicks.map(([y, k]) => <text key={y} x={X(k)} y={H - 6} fontSize="10" fill={AX}>{y}</text>)}
-        {refLine && <g><line x1={pl} x2={W - pr} y1={Y(refLine.y)} y2={Y(refLine.y)} stroke="var(--faint)" /><text x={W - pr} y={Y(refLine.y) - 4} textAnchor="end" fontSize="10" fill={AX}>{refLine.label}</text></g>}
+        {ticks.map((x) => <g key={x}><line x1={pl} x2={W - pr} y1={Y(x)} y2={Y(x)} stroke={GRID} /><text x={pl - 6} y={Y(x) + 3.5} textAnchor="end" fontSize="11" fill={AX} fontFamily="var(--mono)">{fmt(x)}</text></g>)}
+        {yearTicks.map(([y, k]) => <text key={y} x={X(k)} y={H - 6} fontSize="11" fill={AX}>{y}</text>)}
+        {refLine && <g><line x1={pl} x2={W - pr} y1={Y(refLine.y)} y2={Y(refLine.y)} stroke="var(--faint)" /><text x={W - pr} y={Y(refLine.y) - 4} textAnchor="end" fontSize="11" fill={AX}>{refLine.label}</text></g>}
         {fill && <path d={`${d}L${X(n - 1)},${base}L${X(0)},${base}Z`} fill={`url(#${id})`} />}
         <path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
         {t.map((_, k) => <rect key={k} x={X(k) - (W - pl - pr) / n / 2} y={pt} width={(W - pl - pr) / n} height={H - pt - pb} fill="transparent" onMouseEnter={() => setHv(k)} />)}
@@ -85,9 +85,9 @@ export function Histo({ counts, from, binWidth }: { counts: number[]; from: numb
     <div className="mb">
       <Readout>{hv == null ? <span>Each bar is how many sessions ended in that range.</span> : <><b>{label(hv)}</b> <span>{counts[hv]} sessions · {nf((counts[hv] / total) * 100, 1)}%</span></>}</Readout>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Distribution of daily price moves" onMouseLeave={() => setHv(null)}>
-        {[0, 0.5, 1].map((k) => <g key={k}><line x1={pl} x2={W - pr} y1={Y(max * k)} y2={Y(max * k)} stroke={GRID} /><text x={pl - 6} y={Y(max * k) + 3.5} textAnchor="end" fontSize="10" fill={AX} fontFamily="var(--mono)">{Math.round(max * k)}</text></g>)}
+        {[0, 0.5, 1].map((k) => <g key={k}><line x1={pl} x2={W - pr} y1={Y(max * k)} y2={Y(max * k)} stroke={GRID} /><text x={pl - 6} y={Y(max * k) + 3.5} textAnchor="end" fontSize="11" fill={AX} fontFamily="var(--mono)">{Math.round(max * k)}</text></g>)}
         {counts.map((x, i) => { const mid = from + (i + 0.5) * binWidth; return <rect key={i} x={X(i) + 0.5} y={Y(x)} width={Math.max(1, bw - 1)} height={H - pb - Y(x)} fill={mid < 0 ? "var(--loss)" : "var(--gain)"} opacity={hv == null || hv === i ? 0.9 : 0.45} onMouseEnter={() => setHv(i)} />; })}
-        {[-4, -2, 0, 2, 4].map((x) => <g key={x}><line x1={pl + ((x - from) / binWidth) * bw} x2={pl + ((x - from) / binWidth) * bw} y1={H - pb} y2={H - pb + 4} stroke={AX} /><text x={pl + ((x - from) / binWidth) * bw} y={H - 8} textAnchor="middle" fontSize="10" fill={AX}>{x > 0 ? "+" : x < 0 ? MINUS : ""}{Math.abs(x)}%</text></g>)}
+        {[-4, -2, 0, 2, 4].map((x) => <g key={x}><line x1={pl + ((x - from) / binWidth) * bw} x2={pl + ((x - from) / binWidth) * bw} y1={H - pb} y2={H - pb + 4} stroke={AX} /><text x={pl + ((x - from) / binWidth) * bw} y={H - 8} textAnchor="middle" fontSize="11" fill={AX}>{x > 0 ? "+" : x < 0 ? MINUS : ""}{Math.abs(x)}%</text></g>)}
       </svg>
     </div>
   );
@@ -108,13 +108,13 @@ export function Box({ years }: { years: BoxRow[] }) {
     <div className="mb">
       <Readout>{y ? <><b>{y.year}</b> <span>middle half {sgn(y.q1, 2)}% to {sgn(y.q3, 2)}%</span> <span>median {sgn(y.median, 2)}%</span> <span>range {sgn(y.low, 1)}% to {sgn(y.high, 1)}%</span></> : <span>Box: the middle half of the year's daily moves. Line: median. Dots: unusual days.</span>}</Readout>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Daily moves by year" onMouseLeave={() => setHv(null)}>
-        {ticks.map((x) => <g key={x}><line x1={pl} x2={W - pr} y1={Y(x)} y2={Y(x)} stroke={x === 0 ? "var(--border-strong)" : GRID} strokeDasharray={x === 0 ? "" : "3 5"} /><text x={pl - 6} y={Y(x) + 3.5} textAnchor="end" fontSize="10" fill={AX} fontFamily="var(--mono)">{sgn(x, 0)}%</text></g>)}
+        {ticks.map((x) => <g key={x}><line x1={pl} x2={W - pr} y1={Y(x)} y2={Y(x)} stroke={x === 0 ? "var(--border-strong)" : GRID} strokeDasharray={x === 0 ? "" : "3 5"} /><text x={pl - 6} y={Y(x) + 3.5} textAnchor="end" fontSize="11" fill={AX} fontFamily="var(--mono)">{sgn(x, 0)}%</text></g>)}
         {years.map((b, i) => <g key={b.year} opacity={hv == null || hv === i ? 1 : 0.5} onMouseEnter={() => setHv(i)}>
           <line x1={X(i)} x2={X(i)} y1={Y(b.high)} y2={Y(b.low)} stroke="var(--faint)" />
           <rect x={X(i) - bw / 2} y={Y(b.q3)} width={bw} height={Math.max(2, Y(b.q1) - Y(b.q3))} rx="3" fill="color-mix(in srgb, var(--k1) 18%, var(--s1))" stroke="var(--k1)" />
           <line x1={X(i) - bw / 2} x2={X(i) + bw / 2} y1={Y(b.median)} y2={Y(b.median)} stroke="var(--k1)" strokeWidth="2.2" />
           {b.outliers.map((o, k) => <circle key={k} cx={X(i)} cy={Y(o)} r="2.6" fill={o < 0 ? "var(--loss)" : "var(--gain)"} opacity=".8" />)}
-          <text x={X(i)} y={H - 6} textAnchor="middle" fontSize="10.5" fill={AX}>{b.year}</text>
+          <text x={X(i)} y={H - 6} textAnchor="middle" fontSize="11" fill={AX}>{b.year}</text>
           <rect x={X(i) - step / 2} y={pt} width={step} height={H - pt} fill="transparent" /></g>)}
       </svg>
     </div>
@@ -139,8 +139,8 @@ export function Waterfall({ steps, fmt, height = 280, w: W = 1000 }: { steps: St
             {i > 0 && <line x1={X(i - 1) + bw / 2} x2={X(i) - bw / 2} y1={Y(bars[i - 1].end)} y2={Y(bars[i - 1].end)} stroke="var(--border-strong)" />}
             <rect x={X(i) - bw / 2} y={top} width={bw} height={Math.max(2, bot - top)} rx="3" fill={col} />
             <text x={X(i)} y={top - 6} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--text)" fontFamily="var(--mono)">{s.total ? fmt(s.value) : (s.value > 0 ? "+" : "") + fmt(s.value)}</text>
-            <text x={X(i)} y={H - 24} textAnchor="middle" fontSize="10.5" fill={AX}>{s.label.split(" ").slice(0, 2).join(" ")}</text>
-            {s.label.split(" ").length > 2 && <text x={X(i)} y={H - 11} textAnchor="middle" fontSize="10.5" fill={AX}>{s.label.split(" ").slice(2).join(" ")}</text>}
+            <text x={X(i)} y={H - 24} textAnchor="middle" fontSize="11" fill={AX}>{s.label.split(" ").slice(0, 2).join(" ")}</text>
+            {s.label.split(" ").length > 2 && <text x={X(i)} y={H - 11} textAnchor="middle" fontSize="11" fill={AX}>{s.label.split(" ").slice(2).join(" ")}</text>}
             <rect x={X(i) - step / 2} y={pt} width={step} height={H - pt} fill="transparent" /></g>; })}
       </svg>
     </div>
@@ -196,8 +196,8 @@ export function Donut({ parts, center, sub }: { parts: { label: string; value: n
         {parts.length === 1   /* one slice is a full circle: an arc that ends where it starts draws nothing, so a single part is drawn as a ring */
           ? <circle cx={C} cy={C} r={(R + r) / 2} fill="none" stroke={parts[0].color} strokeWidth={R - r} onMouseEnter={() => setHv(0)}><title>{parts[0].label}</title></circle>
           : arcs.map(({ d, p, i }) => <path key={p.label} d={d} fill={p.color} opacity={hv == null || hv === i ? 1 : 0.45} onMouseEnter={() => setHv(i)} tabIndex={0} onFocus={() => setHv(i)} onBlur={() => setHv(null)}><title>{`${p.label}: ${nf((p.value / total) * 100, 1)}%${p.note ? " (" + p.note + ")" : ""}`}</title></path>)}
-        <text x="90" y="88" textAnchor="middle" fontFamily="var(--serif)" fontSize="22" fill="var(--text)">{cur ? nf((cur.value / total) * 100, 1) + "%" : center}</text>
-        <text x="90" y="106" textAnchor="middle" fontSize="10" fill={AX}>{cur ? cur.label : sub}</text>
+        <text x="90" y="88" textAnchor="middle" fontFamily="var(--serif)" fontSize="20" fill="var(--text)">{cur ? nf((cur.value / total) * 100, 1) + "%" : center}</text>
+        <text x="90" y="106" textAnchor="middle" fontSize="11" fill={AX}>{cur ? cur.label : sub}</text>
       </svg>
       <ul className="dn-k">{parts.map((p, i) => <li key={p.label} onMouseEnter={() => setHv(i)} onMouseLeave={() => setHv(null)}><i style={{ background: p.color }} /><span>{p.label}</span><b>{nf((p.value / total) * 100, 1)}%</b></li>)}</ul>
     </div>
@@ -213,8 +213,8 @@ export function Slope({ rows, aLabel, bLabel, fmt }: { rows: { label: string; a:
       <text x={pl} y="14" textAnchor="middle" fontSize="11" fill={AX}>{aLabel}</text><text x={W - pr} y="14" textAnchor="middle" fontSize="11" fill={AX}>{bLabel}</text>
       {rows.map((r) => <g key={r.label}><line x1={pl} x2={W - pr} y1={Y(r.a)} y2={Y(r.b)} stroke={r.color} strokeWidth="2.4" strokeLinecap="round" />
         <circle cx={pl} cy={Y(r.a)} r="4.5" fill={r.color} /><circle cx={W - pr} cy={Y(r.b)} r="4.5" fill={r.color} />
-        <text x={pl - 10} y={Y(r.a) + 4} textAnchor="end" fontSize="11.5" fill="var(--text)">{r.label} <tspan fontFamily="var(--mono)" fill={AX}>{fmt(r.a)}</tspan></text>
-        <text x={W - pr + 10} y={Y(r.b) + 4} fontSize="11.5" fill="var(--text)"><tspan fontFamily="var(--mono)">{fmt(r.b)}</tspan> <tspan fill={r.b >= r.a ? "var(--gain)" : "var(--loss)"} fontFamily="var(--mono)">{r.b >= r.a ? "▲" : "▼"}{nf(Math.abs(r.b - r.a), 1)}</tspan></text></g>)}
+        <text x={pl - 10} y={Y(r.a) + 4} textAnchor="end" fontSize="12" fill="var(--text)">{r.label} <tspan fontFamily="var(--mono)" fill={AX}>{fmt(r.a)}</tspan></text>
+        <text x={W - pr + 10} y={Y(r.b) + 4} fontSize="12" fill="var(--text)"><tspan fontFamily="var(--mono)">{fmt(r.b)}</tspan> <tspan fill={r.b >= r.a ? "var(--gain)" : "var(--loss)"} fontFamily="var(--mono)">{r.b >= r.a ? "▲" : "▼"}{nf(Math.abs(r.b - r.a), 1)}</tspan></text></g>)}
     </svg></div>
   );
 }
@@ -244,9 +244,9 @@ export function StackArea({ periods, series, w: W = 1000 }: { periods: string[];
     <div className="mb">
       <Readout><b>{periods[i]}</b> {series.map((s) => <span key={s.key}><i className="cdot" style={{ background: s.color }} />{s.label} {nf(((s.values[i] ?? 0) / tot[i]) * 100, 1)}%</span>)}</Readout>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Ownership mix over time" onMouseLeave={() => setHv(null)}>
-        {[0, 25, 50, 75, 100].map((p) => <g key={p}><line x1={pl} x2={W - pr} y1={Y(p)} y2={Y(p)} stroke={GRID} /><text x={pl - 6} y={Y(p) + 3.5} textAnchor="end" fontSize="10" fill={AX} fontFamily="var(--mono)">{p}%</text></g>)}
+        {[0, 25, 50, 75, 100].map((p) => <g key={p}><line x1={pl} x2={W - pr} y1={Y(p)} y2={Y(p)} stroke={GRID} /><text x={pl - 6} y={Y(p) + 3.5} textAnchor="end" fontSize="11" fill={AX} fontFamily="var(--mono)">{p}%</text></g>)}
         {areas.map(({ s, d }) => <path key={s.key} d={d} fill={s.color} opacity=".92" />)}
-        {periods.map((p, k) => k % every === 0 ? <text key={p} x={X(k)} y={H - 6} textAnchor="middle" fontSize="10" fill={AX}>{p}</text> : null)}
+        {periods.map((p, k) => k % every === 0 ? <text key={p} x={X(k)} y={H - 6} textAnchor="middle" fontSize="11" fill={AX}>{p}</text> : null)}
         {periods.map((_, k) => <rect key={k} x={X(k) - (W - pl - pr) / n / 2} y={pt} width={(W - pl - pr) / n} height={H - pt - pb} fill="transparent" onMouseEnter={() => setHv(k)} />)}
         {hv != null && <line x1={X(hv)} x2={X(hv)} y1={pt} y2={H - pb} stroke="var(--text)" strokeOpacity=".5" />}
       </svg>
@@ -279,7 +279,7 @@ export function Timeline({ events, w: W = 1000 }: { events: { date: string; labe
       <Readout>{cur ? <><b>{day(cur.date)}</b> <span>{cur.label}</span></> : <span>Hover a marker to read the event.</span>}</Readout>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Corporate action timeline" onMouseLeave={() => setHv(null)}>
         <line x1={pl} x2={W - pr} y1={90} y2={90} stroke="var(--border-strong)" strokeWidth="2" />
-        {years.map((y) => <g key={y}><line x1={X(`${y}-01-01`)} x2={X(`${y}-01-01`)} y1={84} y2={96} stroke={AX} /><text x={Math.max(pl, X(`${y}-01-01`))} y={118} fontSize="10" fill={AX} textAnchor="middle">{y}</text></g>)}
+        {years.map((y) => <g key={y}><line x1={X(`${y}-01-01`)} x2={X(`${y}-01-01`)} y1={84} y2={96} stroke={AX} /><text x={Math.max(pl, X(`${y}-01-01`))} y={118} fontSize="11" fill={AX} textAnchor="middle">{y}</text></g>)}
         {ev.map((e, i) => <circle key={i} cx={X(e.date)} cy={e.kind === "dividend" ? 90 : 66} r={e.kind === "dividend" ? 5 : 7} fill={color[e.kind] || color.other} stroke="var(--s1)" strokeWidth="2" opacity={hv == null || hv === i ? 1 : 0.5} onMouseEnter={() => setHv(i)} />)}
       </svg>
       <div className="clg">{[["dividend", "Dividend"], ["bonus", "Bonus"], ["split", "Split"], ["rights", "Rights"]].filter(([k]) => ev.some((e) => e.kind === k)).map(([k, l]) => <span key={k}><i style={{ background: color[k] }} />{l}</span>)}</div>

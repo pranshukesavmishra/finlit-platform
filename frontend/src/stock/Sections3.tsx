@@ -129,7 +129,7 @@ function ValuationHistory({ r }: { r: Ratios }) {
   const name = { pe: "P/E", pb: "P/B", ps: "P/S" }[k];
   return (
     <div className="vh">
-      <div className="tools"><div><div className="label" style={{ display: "flex", alignItems: "center", gap: 8 }}>Valuation history<ChartHelp id="valuation-history" /></div><p className="faint" style={{ margin: "4px 0 0", fontSize: 12.5 }}>How much investors paid over the years</p></div><div className="seg">{(["pe", "pb", "ps"] as const).map((x) => <button key={x} aria-pressed={k === x} onClick={() => setK(x)}>{x === "pe" ? "P/E" : x === "pb" ? "P/B" : "P/S"}</button>)}</div></div>
+      <div className="tools"><div><div className="label" style={{ display: "flex", alignItems: "center", gap: 8 }}>Valuation history<ChartHelp id="valuation-history" /></div><p className="faint" style={{ margin: "4px 0 0", fontSize: 13 }}>How much investors paid over the years</p></div><div className="seg">{(["pe", "pb", "ps"] as const).map((x) => <button key={x} aria-pressed={k === x} onClick={() => setK(x)}>{x === "pe" ? "P/E" : x === "pb" ? "P/B" : "P/S"}</button>)}</div></div>
       <div className="vh-top">
         <div className="vh-k"><span className="label">{name} in {vh.periods[vh.periods.length - 1]}</span><b>{nf(now, 1)}×</b></div>
         <div className="vh-k"><span className="label">{vh.periods.length}-year average</span><b>{nf(mean, 1)}×</b></div>
@@ -241,11 +241,11 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
                   <line x1={CX} y1={CY} x2={x} y2={y} stroke={c} strokeWidth={on ? 2.4 : 1.2} strokeOpacity={on ? 0.9 : 0.35} strokeDasharray={on ? "" : "4 5"} />
                   <g className="orb-n" tabIndex={0} role="link" aria-label={`Open ${i.name || i.symbol}`} transform={`translate(${x} ${y})`} onMouseEnter={() => { setHv(i.symbol); prefetchStock(qc, i.symbol, 150); }} onMouseLeave={() => setHv(null)} onFocus={() => setHv(i.symbol)} onBlur={() => setHv(null)} onClick={() => go(i.symbol)} onKeyDown={(e) => e.key === "Enter" && go(i.symbol)} style={{ cursor: "pointer" }}>
                     <circle r={r + 8} fill={c} opacity={on ? 0.28 : 0.12} /><circle r={r} fill={`color-mix(in srgb, ${c} 30%, var(--s1))`} stroke={c} strokeWidth={on ? 3 : 2} />
-                    <text textAnchor="middle" dy=".35em" fontSize={r > 28 ? 11 : 9.5} fontWeight="700" fontFamily="IBM Plex Mono, monospace" fill="var(--text)">{i.symbol.length > 7 ? i.symbol.slice(0, 6) + "…" : i.symbol}</text>
+                    <text textAnchor="middle" dy=".35em" fontSize={11} fontWeight="700" fontFamily="IBM Plex Mono, monospace" fill="var(--text)">{i.symbol.length > (r > 28 ? 7 : 5) ? i.symbol.slice(0, r > 28 ? 6 : 4) + "…" : i.symbol}</text>
                   </g>
                 </g>
               ); })}
-            <g transform={`translate(${CX} ${CY})`}><circle r="58" fill="var(--gold)" opacity=".16" /><circle r="46" fill="url(#orbg)" /><text textAnchor="middle" dy="-.15em" fontSize="12" fontWeight="700" fill="#2a1c00" fontFamily="IBM Plex Mono, monospace">{self}</text><text textAnchor="middle" dy="1.5em" fontSize="9.5" fill="#2a1c00" opacity=".75">THIS COMPANY</text></g>
+            <g transform={`translate(${CX} ${CY})`}><circle r="58" fill="var(--gold)" opacity=".16" /><circle r="46" fill="url(#orbg)" /><text textAnchor="middle" dy="-.15em" fontSize="12" fontWeight="700" fill="#2a1c00" fontFamily="IBM Plex Mono, monospace">{self}</text><text textAnchor="middle" dy="1.5em" fontSize="11" fill="#2a1c00" opacity=".75">THIS COMPANY</text></g>
           </svg>
           <p className="orb-cap">{hov ? <><b>{hov.name || hov.symbol}</b> · click to open its report</> : hasData ? "Bubble size shows market value. Hover or click a company." : "Hover or click a company to open its report."}</p>
         </div>
