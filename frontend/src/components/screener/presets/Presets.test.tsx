@@ -242,3 +242,55 @@ describe("redesign: list text, notes, theme figures and the Basic tab", () => {
   });
 });
 
+
+describe("results page by 25 (issue 30.b)", () => {
+  const many = (from: number, n: number) => Array.from({ length: n }, (_, i) => ({ symbol: `S${from + i}`, name: `Stock ${from + i}`, prism: 70, ret1y: 5, mcap: 1000 + i, badges: [] as string[] }));
+  const PAGED = { ...DETAIL, count: 60, shown: 25, pageSize: 25, offset: 0, limit: 25, available: 60, hasMore: true, rows: many(1, 25) };
+  const serve = () => vi.stubGlobal("fetch", vi.fn(async (u: string) => {
+    calls.push(u);
+    if (!/\/presets\/large/.test(u)) return { ok: true, status: 200, headers: new Headers(), json: async () => LIST } as unknown as Response;
+    const off = Number(/offset=(\d+)/.exec(u)?.[1] ?? 0), lim = Number(/limit=(\d+)/.exec(u)?.[1] ?? 25);
+    const rows = many(1, 60).slice(off, off + lim);
+    return { ok: true, status: 200, headers: new Headers(), json: async () => ({ ...PAGED, rows, shown: rows.length, offset: off, limit: lim, hasMore: off + rows.length < 60 }) } as unknown as Response;
+  }));
+  it("shows 1 to 25 of 60, then the next 25 with numbering that carries on, and back", async () => {
+    serve(); mount("?preset=large");
+    await screen.findByText("Stock 1");
+    const pager = screen.getByRole("navigation", { name: "Pages of this screen" });
+    expect(pager.textContent).toMatch(/Showing 1.25 of 60/);
+    expect(rowSyms()).toHaveLength(25);
+    expect((within(pager).getByRole("button", { name: "Previous 25" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(pager).getByRole("button", { name: "Show next 25" }));
+    await screen.findByText("Stock 26");
+    expect(calls.some((c) => /presets\/large\?offset=25/.test(c) || /offset=25/.test(c))).toBe(true);
+    expect(screen.getByRole("navigation", { name: "Pages of this screen" }).textContent).toMatch(/Showing 26.50 of 60/);
+    expect(within(screen.getByRole("table")).getAllByRole("row")[1].querySelector("td")?.textContent).toBe("26");
+    fireEvent.click(screen.getByRole("button", { name: "Show next 10" }));
+    await screen.findByText("Stock 51");
+    const last = screen.getByRole("navigation", { name: "Pages of this screen" });
+    expect(last.textContent).toMatch(/Showing 51.60 of 60/);
+    expect((within(last).getByRole("button", { name: /Show next/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(last).getByRole("button", { name: "Previous 25" }));
+    await screen.findByText("Stock 26");
+  });
+  it("a Top 10 list or a short list has no pager", async () => {
+    mount("?preset=large");
+    await screen.findByText("Alpha Ltd");
+    expect(screen.queryByRole("navigation", { name: "Pages of this screen" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
+  });
+  it("the export holds every row that passes, not only the page, and the button says so", async () => {
+    serve(); mount("?preset=large");
+    await screen.findByText("Stock 1");
+    const btn = screen.getByRole("button", { name: "Export CSV (all 60)" });
+    expect(btn.getAttribute("title")).toMatch(/all 60 companies/);
+    const blobs: Blob[] = [];
+    URL.createObjectURL = ((b: Blob) => { blobs.push(b); return "blob:x"; }) as typeof URL.createObjectURL; URL.revokeObjectURL = () => {};
+    fireEvent.click(btn);
+    await waitFor(() => expect(blobs).toHaveLength(1));
+    expect(calls.some((c) => /limit=2000/.test(c))).toBe(true);
+    const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blobs[0]); });
+    expect(text.split("\r\n").filter((l) => /^S\d+,/.test(l))).toHaveLength(60);
+    expect(text).toMatch(/Rows: 60 \(all 60 that pass/);
+  });
+});

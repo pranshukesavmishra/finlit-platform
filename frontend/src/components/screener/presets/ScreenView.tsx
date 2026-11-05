@@ -1,7 +1,7 @@
 // The screen view: one prebuilt screen as a card (name, card text, match count, as-of date, how it works, its options) with a results table built from the response.
 // Values come from the response only: a missing one is a dash, never zero, and nothing is ranked or recommended here.
 import { titleOf, subOf, codeNote, exchangeTag, isBseOnly } from "../../../lib/companyLabel";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ApiError } from "../../../lib/api";
 import { Icon } from "../../../lib/icons";
@@ -9,7 +9,7 @@ import { cr, dateIN, nf, MINUS } from "../../../lib/format";
 import { useUI } from "../../../lib/ui";
 import { HScroll } from "../../HScroll";
 import {
-  DISCLAIMER, PLAN_OF, asPct, downloadCsv, nextSortState, presetCsv, rowsForTheme, sortPresetRows, usePresetDetail,
+  DISCLAIMER, PAGE_SIZE, PLAN_OF, asPct, downloadCsv, fetchAllRows, nextSortState, pageRange, presetCsv, rowsForTheme, sortPresetRows, usePresetDetail,
   type ColFormat, type PresetColumn, type PresetDetail, type PresetRow, type SortState, type Theme,
 } from "../../../lib/presets";
 import type { PresetRoute } from "./usePresetRoute";
@@ -54,16 +54,17 @@ function ThemeCards({ themes, on, onPick }: { themes: Theme[]; on: string | null
 }
 
 function Results({ d, cols, rows, sort, setSort }: { d: PresetDetail; cols: PresetColumn[]; rows: PresetRow[]; sort: SortState; setSort: (k: string, first: 1 | -1) => void }) {
+  const first = d.offset ?? 0;
   const head = (key: string, label: string, align: string, first: 1 | -1 = -1) => (
     <th scope="col" className={"psx-a-" + align} aria-sort={sort?.key === key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
       <button type="button" onClick={() => setSort(key, first)} aria-label={`Sort by ${label}`}>{label} <span aria-hidden="true">{sort?.key === key ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</span></button></th>);
   return (
     <HScroll className="scr-tw" label="results table"><table className="scr-t psx-t">
-      <caption className="sr">{d.name}: {rows.length} {rows.length === 1 ? "company" : "companies"} shown. Select a column heading to sort the shown rows.</caption>
+      <caption className="sr">{d.name}: {rows.length} {rows.length === 1 ? "company" : "companies"} shown{d.offset ? `, from number ${first + 1}` : ""}. Select a column heading to sort the shown rows.</caption>
       <thead><tr><th scope="col" className="psx-n">#</th>{head("symbol", "Stock", "left", 1)}{cols.map((c) => <Head key={c.key} c={c} h={head} />)}</tr></thead>
       <tbody>{rows.map((r, i) => (
         <tr key={r.symbol}>
-          <td className="psx-n">{i + 1}</td>
+          <td className="psx-n">{first + i + 1}</td>
           <td className="stick psx-stock"><Link to={`/stocks/${encodeURIComponent(r.symbol)}`} className="psx-co"><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}{exchangeTag(r) && <small className="psx-ex">{exchangeTag(r)}</small>}</Link>
             {!!r.badges?.length && <span className="psx-bs">{r.badges.map((b) => <Badge key={b} text={b} />)}</span>}</td>
           {cols.map((c) => <td key={c.key} className={"psx-a-" + alignOf(c)}><CellValue v={r[c.key]} f={c.format} /></td>)}
@@ -72,6 +73,19 @@ function Results({ d, cols, rows, sort, setSort }: { d: PresetDetail; cols: Pres
     </table></HScroll>);
 }
 const Head = ({ c, h }: { c: PresetColumn; h: (key: string, label: string, align: string, first?: 1 | -1) => ReactNode }) => <>{h(c.key, c.label, alignOf(c), c.format === "text" || c.format === "label" ? 1 : -1)}</>;
+
+/** Previous / next 25 of a long screen, with where the page stands ("26–50 of 76"). Plain buttons, so the keyboard reaches them; the position is announced when it changes. */
+function Pager({ d, range, busy, hidden, goTo }: { d: PresetDetail; range: { from: number; to: number; of: number }; busy: boolean; hidden: number; goTo: (offset: number) => void }) {
+  const size = d.pageSize ?? PAGE_SIZE, off = d.offset ?? 0, left = Math.max(0, (d.available ?? d.count) - (off + d.shown));
+  return (
+    <nav className="psx-pager" aria-label="Pages of this screen">
+      <p className="psx-pg-t" role="status" aria-live="polite">Showing <b>{nf(range.from, 0)}{"–"}{nf(range.to, 0)}</b> of <b>{nf(range.of, 0)}</b>{hidden > 0 && <small> ({hidden} listed only on the BSE hidden on this page)</small>}</p>
+      <div className="psx-pg-b">
+        <button type="button" className="btn" disabled={off <= 0 || busy} onClick={() => goTo(off - size)}>Previous {size}</button>
+        <button type="button" className="btn primary" disabled={!d.hasMore || busy} onClick={() => goTo(off + size)}>Show next {Math.min(size, left) || size}</button>
+      </div>
+    </nav>);
+}
 
 function Misses({ d }: { d: PresetDetail }) {
   const list = (d.closestMisses ?? []).slice(0, 5);
@@ -107,10 +121,15 @@ export function ScreenView({ route }: { route: PresetRoute }) {
   const listReady = list.isSuccess || list.isError;
   const unknown = list.isSuccess && !preset;
   const blocked = preset?.status === "blocked", lockedList = !!preset?.locked;
-  const q = usePresetDetail(id, chips, listReady && !unknown && !blocked && !lockedList);
+  const pageKey = `${id}|${[...chips].sort().join(",")}`;
+  const [pg, setPg] = useState({ key: "", offset: 0 });
+  const offset = pg.key === pageKey ? pg.offset : 0;                      // a new screen or a new option starts at the first 25
+  const q = usePresetDetail(id, chips, listReady && !unknown && !blocked && !lockedList, offset);
   const d = q.data, err = q.error;
+  const top = useRef<HTMLDivElement>(null), [exporting, setExporting] = useState(false);
   const [theme, setTheme] = useState<string | null>(null), [nseOnly, setNseOnly] = useState(false), [sort, setSortState] = useState<SortState>(null);
   const setSort = (k: string, first: 1 | -1) => setSortState((s) => nextSortState(s, k, first));
+  const goTo = (o: number) => { setPg({ key: pageKey, offset: Math.max(0, o) }); window.setTimeout(() => top.current?.scrollIntoView?.({ block: "start" }), 0); };
   const themes = d?.themes ?? [];
   const activeTheme = themes.find((t) => t.industry === theme) ?? null;
   const cols = useMemo(() => (d?.columns ?? []).filter((c) => !["symbol", "name", "stock", "badges"].includes(c.key)), [d]);
@@ -133,19 +152,33 @@ export function ScreenView({ route }: { route: PresetRoute }) {
     <Frame route={route} name={name} cardText={preset?.cardText}><div className="psx-state" role="alert"><h2>This screen is unavailable right now</h2><p>Please try again in a moment.</p>
       <button type="button" className="btn" onClick={() => q.refetch()}>Try again</button></div><Disclaimer /></Frame>);
 
-  const exportCsv = () => {
-    if (!d) return;
+  const paged = !!d && d.pageSize != null && d.count > d.pageSize;      // more rows than one page: the pager shows, and the CSV holds all of them
+  const range = d ? pageRange(d) : null;
+  const exportCsv = async () => {
+    if (!d || !id || exporting) return;
     if (!has("silver")) { upgrade("silver", "CSV export comes with the Silver plan."); return; }
     const labels = Object.fromEntries((preset?.chips ?? []).map((c) => [c.id, c.label]));
-    downloadCsv(presetCsv(d, rows, { chips, chipLabels: labels, sort, exportedOn: new Date().toISOString().slice(0, 10), theme: activeTheme?.industry, tab: route.tab }), `finlit-screen-${id}-${new Date().toISOString().slice(0, 10)}.csv`);
+    let src = d, out = rows;
+    if (paged) {      // every row that passes, not only the 25 on screen; the NSE-only choice and the sort still apply
+      setExporting(true);
+      try {
+        const all = await fetchAllRows(id, chips);
+        const allRows = sortPresetRows(all.rows, sort).filter((r) => !nseOnly || !isBseOnly(r));
+        src = { ...all, listText: all.rows.length >= all.count ? `all ${all.count} that pass` : `the first ${all.rows.length} of ${all.count} that pass` };
+        out = allRows;
+      } catch { setExporting(false); return; }
+      setExporting(false);
+    }
+    downloadCsv(presetCsv(src, out, { chips, chipLabels: labels, sort, exportedOn: new Date().toISOString().slice(0, 10), theme: activeTheme?.industry, tab: route.tab }), `finlit-screen-${id}-${new Date().toISOString().slice(0, 10)}.csv`);
   };
   const meta = d ? (
-    <p className="psx-meta"><b>{d.listText || `${nf(d.count, 0)} match`}</b>{!d.listText && d.shown !== d.count && <span>showing {nf(d.shown, 0)}</span>}{d.asOf && <span>as of {dateIN(d.asOf)}</span>}</p>
+    <p className="psx-meta"><b>{d.listText || `${nf(d.count, 0)} match`}</b>{!d.listText && !paged && d.shown !== d.count && <span>showing {nf(d.shown, 0)}</span>}{paged && range && <span>showing {nf(range.from, 0)}{"–"}{nf(range.to, 0)}</span>}{d.asOf && <span>as of {dateIN(d.asOf)}</span>}</p>
   ) : preset ? <p className="psx-meta">{preset.count != null && <b>{preset.listText || `${nf(preset.count, 0)} match`}</b>}{preset.asOf && <span>as of {dateIN(preset.asOf)}</span>}</p> : null;
   const how = d?.howItWorks?.length ? d.howItWorks : preset?.howItWorks ?? [];
   return (
     <Frame route={route} name={name} cardText={d?.cardText ?? preset?.cardText} meta={meta}
-      actions={<button type="button" className="btn" disabled={!d || !rows.length} onClick={exportCsv} title={has("silver") ? "Download the rows shown as CSV" : "CSV export comes with the Silver plan"}>Export CSV</button>}>
+      actions={<button type="button" className="btn" disabled={!d || !rows.length || exporting} aria-busy={exporting} onClick={exportCsv}
+        title={!has("silver") ? "CSV export comes with the Silver plan" : paged ? `Download all ${d!.count} companies that pass as CSV, not only the ${d!.shown} on this page` : "Download the rows shown as CSV"}>{exporting ? "Preparing CSV" : paged ? `Export CSV (all ${nf(d!.count, 0)})` : "Export CSV"}</button>}>
       {how.length > 0 && <details className="psx-how"><summary>How this screen works</summary><ul>{how.map((h) => <li key={h}>{h}</li>)}</ul></details>}
       {!!preset?.chips.length && (
         <div className="psx-chips" role="group" aria-label="Screen options">
@@ -167,13 +200,14 @@ export function ScreenView({ route }: { route: PresetRoute }) {
         </div>)}
       {!!d?.notes?.length && <div className="psx-notes" role="note">{d.notes.map((n) => <p key={n}>{n}</p>)}</div>}
       {themes.length > 0 && <ThemeCards themes={themes} on={theme} onPick={(i) => setTheme((t) => (t === i ? null : i))} />}
-      <div className={"psx-res" + (q.isFetching && d ? " is-busy" : "")} aria-busy={q.isFetching}>
+      <div ref={top} className={"psx-res" + (q.isFetching && d ? " is-busy" : "")} aria-busy={q.isFetching}>
         {!d ? <div className="skeleton" style={{ height: 300 }} role="status" aria-label="Loading the screen" />
           : d.count === 0 || (!d.rows.length) ? <Misses d={d} />
           : <>
             {activeTheme && <p className="psx-filt" role="status">Showing the leaders of {activeTheme.industry}. <button type="button" className="fgx-link" onClick={() => setTheme(null)}>Show all</button></p>}
             <p className="sr" role="status" aria-live="polite">{rows.length} {rows.length === 1 ? "company" : "companies"} shown.</p>
             {rows.length ? <Results d={d} cols={cols} rows={rows} sort={sort} setSort={setSort} /> : <p className="psx-filt">{nseOnly ? "Every company shown for this screen is listed only on the BSE. Switch off NSE-listed only to see them." : "No leaders are listed for this theme today."}</p>}
+            {paged && range && <Pager d={d} range={range} busy={q.isFetching} hidden={nseOnly ? bseCount : 0} goTo={goTo} />}
           </>}
       </div>
       {d?.rankScoreNote && !!d.rows.length && <p className="psx-notes" role="note">{d.rankScoreNote}</p>}

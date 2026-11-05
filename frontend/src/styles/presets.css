@@ -100,3 +100,11 @@
 .psx-thm small + b + small { color: var(--faint); font: 400 11px var(--sans, inherit); white-space: normal; }
 .psx-thr { display: block; margin-top: 6px; color: var(--faint); font-size: 12px; line-height: 1.4; text-align: left; }
 .psx-notes { margin: 8px 0; color: var(--muted); font-size: 13px; line-height: 1.5; } .psx-notes p { margin: 2px 0; }
+
+/* paging of a long screen: previous / next 25 and where the page stands */
+.psx-res { scroll-margin-top: 84px; }
+.psx-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 14px 0 0; }
+.psx-pg-t { margin: 0; color: var(--muted); font-size: 13.5px; min-width: 0; } .psx-pg-t b { color: var(--text); font-weight: 600; } .psx-pg-t small { display: block; font-size: 12.5px; color: var(--faint); }
+.psx-pg-b { display: flex; flex-wrap: wrap; gap: 8px; }
+.psx-pg-b .btn { min-height: 40px; } .psx-pg-b .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+@media (max-width: 520px) { .psx-pager { flex-direction: column; align-items: stretch; } .psx-pg-b { display: grid; grid-template-columns: 1fr 1fr; } }

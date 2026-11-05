@@ -16,7 +16,8 @@ export type Item = Row & { cap: Cap | null; f: number | null; t: number | null; 
 export type BandKey = "f" | "t" | "q" | "g" | "p" | "b";
 export type RangeKey = "f" | "t" | "o" | "q" | "g" | "p" | "b" | PrismRangeKey;   // q g p b: the four pillars (min and max boxes in the Basic screener)
 export type SortKey = "name" | "price" | "market_cap" | "sector" | "f" | "t" | "overall" | Pillar | PrismCol | "ret_3m" | "ret_6m" | "return_1y" | "pct_from_high";
-export type Range = { min: number | null; max: number | null };
+/** `maxExcl`: the maximum is a strict upper bound ("below 50"), so a score of 49.75 is in and 50 is out, with no gap between "below 50" and "50 or more". */
+export type Range = { min: number | null; max: number | null; maxExcl?: boolean };
 /** The three technical-view bands of the advanced screener: the Prism card's own bands, with "Strong uptrend" counted as Uptrend and "Strong downtrend" as Downtrend. */
 export type TechBand = "pos" | "neutral" | "neg";
 export type TechKey = "st" | "lt";
@@ -101,8 +102,12 @@ export const emptyFilters = (): Filters => ({
 export const cloneFilters = (f: Filters): Filters => ({ caps: [...f.caps], sectors: [...f.sectors], bands: Object.fromEntries(BAND_KEYS.map((k) => [k, [...f.bands[k]]])) as Filters["bands"],
   ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] }, top: f.top });
 
-export const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => v >= BANDS[b].min && v <= BANDS[b].max));
-export const inRange = (v: number | null, r: Range) => (r.min == null && r.max == null) || (v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max));
+/** Each band runs up to, but not including, the start of the next one, so a fractional score (44.6) is in a band and never between two. */
+export const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => {
+  const next = BAND_ORDER[BAND_ORDER.indexOf(b) + 1];
+  return v >= BANDS[b].min && (next ? v < BANDS[next].min : v <= BANDS[b].max);
+}));
+export const inRange = (v: number | null, r: Range) => (r.min == null && r.max == null) || (v != null && (r.min == null || v >= r.min) && (r.max == null || (r.maxExcl ? v < r.max : v <= r.max)));
 const rangeValue = (r: Item, k: RangeKey) => (k === "f" ? r.f : k === "t" ? r.t : k === "o" ? r.overall : k === "q" || k === "g" || k === "p" || k === "b" ? r[PILLARS.find((x) => x.k === k)!.col] : prismRangeValue(r, k) ?? null);
 const bandValue = (r: Item, k: BandKey) => (k === "f" ? r.f : k === "t" ? r.t : r[PILLARS.find((x) => x.k === k)!.col]);
 
@@ -166,7 +171,7 @@ export const PRISM_PRESETS: PrismPreset[] = [
   { id: "strongsafe", label: "Prism strong and lower risk", say: "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", ranges: { z: min(80), zr: min(65) }, labels: [], rated: true },
   { id: "fairvalue", label: "Strong Growth & Profitability at a fair valuation", say: "Prism Growth & Profitability 65 or more and Prism Valuation 50 or more. Valuation is higher when the price is more modest for what the company earns.", ranges: { zf: min(65), zv: min(50) }, labels: [], rated: true },
   { id: "bothtech", label: "Uptrend on both technical views", say: "Prism's short-term and long-term technical views are both in an uptrend (+20 or more).", ranges: {}, labels: [], rated: false, tech: { st: ["pos"], lt: ["pos"] } },
-  { id: "weakvalue", label: "Growth & Profitability strong but valuation weak", say: "Prism Growth & Profitability 65 or more but Prism Valuation below 50: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 49 } }, labels: [], rated: true },
+  { id: "weakvalue", label: "Growth & Profitability strong but valuation weak", say: "Prism Growth & Profitability 65 or more but Prism Valuation below 50: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 50, maxExcl: true } }, labels: [], rated: true },
 ];
 const OWNED: RangeKey[] = [...PRISM_RANGE_KEYS];
 const none = (): Range => ({ min: null, max: null });
@@ -177,13 +182,13 @@ export function withPrismPreset(f: Filters, p: PrismPreset): Filters {
   return n;
 }
 export const activePrismPreset = (f: Filters) => PRISM_PRESETS.find((p) => f.rated === p.rated && same(f.labels, p.labels) && same(f.tech.st, p.tech?.st ?? []) && same(f.tech.lt, p.tech?.lt ?? [])
-  && OWNED.every((k) => { const want = { ...none(), ...(p.ranges[k] || {}) }; return f.ranges[k].min === want.min && f.ranges[k].max === want.max; }))?.id ?? null;
+  && OWNED.every((k) => { const want = { ...none(), ...(p.ranges[k] || {}) }; return f.ranges[k].min === want.min && f.ranges[k].max === want.max && !!f.ranges[k].maxExcl === !!want.maxExcl; }))?.id ?? null;
 /** Clearing a Prism preset again removes what it set. */
 export const withoutPrismPreset = (f: Filters): Filters => withPrismPreset(f, { id: "", label: "", say: "", ranges: {}, labels: [], rated: false });
 
 // ---------- chips ----------
 export type Chip = { id: string; label: string };
-const rangeText = (r: Range) => (r.min != null && r.max != null ? `${r.min} to ${r.max}` : r.min != null ? `${r.min} or more` : `${r.max} or less`);
+const rangeText = (r: Range) => (r.max != null && r.maxExcl ? (r.min != null ? `${r.min} to below ${r.max}` : `below ${r.max}`) : r.min != null && r.max != null ? `${r.min} to ${r.max}` : r.min != null ? `${r.min} or more` : `${r.max} or less`);
 /** One chip per active filter (one per selected sector), each removable on its own. */
 export function chipsFor(f: Filters): Chip[] {
   const out: Chip[] = [];
@@ -278,7 +283,7 @@ const parseTech = (s: string | null): TechBand[] => TECH_BAND_ORDER.filter((b) =
 export type Scope = "all" | "basic" | "advanced";
 const FINLIT_SORT: SortKey[] = ["f", "t", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance"];
 const PRISM_SORT: SortKey[] = ["prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score"];
-const PRISM_PARAMS = [...PRISM_RANGE_KEYS.flatMap((k) => [k + "min", k + "max"]), "pl", "rated", "st", "lt"];
+const PRISM_PARAMS = [...PRISM_RANGE_KEYS.flatMap((k) => [k + "min", k + "max", k + "lt"]), "pl", "rated", "st", "lt"];
 /** True when an address carries anything the Advanced screener owns (a Prism filter, or a sort on a Prism column): old shared links of the single page. */
 export const hasPrismParams = (p: URLSearchParams) => PRISM_PARAMS.some((k) => p.has(k)) || PRISM_SORT.some((k) => p.get("sort") === k);
 
@@ -293,6 +298,8 @@ export function parseState(p: URLSearchParams, scope: Scope = "all"): State {
   RANGE_KEYS.forEach((k) => {
     if (!(PRISM_RANGE_KEYS as string[]).includes(k) ? !finlit : !prism) return;
     let min = num(p.get(k + "min")), max = num(p.get(k + "max"));
+    const lt = num(p.get(k + "lt"));      // ?zvlt=50: below 50 (a strict bound); an exact maximum in the same address wins
+    if (lt != null && max == null) { f.ranges[k] = { min, max: lt, maxExcl: true }; return; }
     if (min != null && max != null && min > max) [min, max] = [max, min];
     f.ranges[k] = { min, max };
   });
@@ -313,7 +320,7 @@ export function serializeState(s: State): URLSearchParams {
   if (f.caps.length) p.set("cap", CAPS.filter((c) => f.caps.includes(c)).join(","));
   f.sectors.forEach((x) => p.append("sector", x));
   BAND_KEYS.forEach((k) => { if (f.bands[k].length) p.set(k, BAND_ORDER.filter((b) => f.bands[k].includes(b)).join(",")); });
-  RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null) p.set(k + "min", String(r.min)); if (r.max != null) p.set(k + "max", String(r.max)); });
+  RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null) p.set(k + "min", String(r.min)); if (r.max != null) p.set(k + (r.maxExcl ? "lt" : "max"), String(r.max)); });
   if (f.labels.length) p.set("pl", PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_SLUG[l]).join(","));
   if (f.rated) p.set("rated", "1");
   if (f.top != null) p.set("top", String(f.top));
