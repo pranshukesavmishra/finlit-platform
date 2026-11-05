@@ -670,6 +670,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(__import__("finlit.earnings.api", fromlist=["router"]).router)   # /api/earnings-calls (the list is open; the answers are Gold)
     app.include_router(advanced_api.router)
     app.include_router(compare_api.router)
+    app.include_router(__import__("finlit.diversification.api", fromlist=["router"]).router)   # POST /api/diversification: the Diversification card (names only)
     app.include_router(etf_api.router)
     app.include_router(mf_score_upgrade.router)   # score history, the fund score screener, the leaderboard and score alerts (Gold)
     app.include_router(mf_score_admin.router)   # /api/admin/mf-score/*
