@@ -36,15 +36,15 @@ export function LineChart({ periods, series, fmt, height = 260, area = false, av
     <div className="lc">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={series.map((s) => s.label).join(", ") + " over time"}>
         <defs>{series.map((s) => <linearGradient key={s.key} id={`${id}-${s.key}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={s.color} stopOpacity=".38" /><stop offset="1" stopColor={s.color} stopOpacity="0" /></linearGradient>)}</defs>
-        {[0, 1, 2, 3, 4].map((k) => { const v = lo + step * k; return <g key={k}><line x1={pl} x2={W - pr} y1={Y(v)} y2={Y(v)} stroke="var(--border)" strokeDasharray={k ? "3 5" : ""} /><text x={pl - 8} y={Y(v) + 4} textAnchor="end" fontSize="10.5" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(v)}</text></g>; })}
-        {periods.map((p, i) => ((n - 1 - i) % every === 0) && <text key={p} x={X(i)} y={H - 8} textAnchor="middle" fontSize="10.5" fill="var(--faint)">{p}</text>)}
-        {avg != null && <g><line x1={pl} x2={W - pr} y1={Y(avg)} y2={Y(avg)} stroke="var(--c2)" strokeDasharray="6 5" strokeWidth="1.6" /><text x={W - pr} y={Y(avg) - 6} textAnchor="end" fontSize="10.5" fontWeight="600" fill="var(--c2)">{avgLabel.toUpperCase()} {fmt(avg)}</text></g>}
+        {[0, 1, 2, 3, 4].map((k) => { const v = lo + step * k; return <g key={k}><line x1={pl} x2={W - pr} y1={Y(v)} y2={Y(v)} stroke="var(--border)" strokeDasharray={k ? "3 5" : ""} /><text x={pl - 8} y={Y(v) + 4} textAnchor="end" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(v)}</text></g>; })}
+        {periods.map((p, i) => ((n - 1 - i) % every === 0) && <text key={p} x={X(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="var(--faint)">{p}</text>)}
+        {avg != null && <g><line x1={pl} x2={W - pr} y1={Y(avg)} y2={Y(avg)} stroke="var(--c2)" strokeDasharray="6 5" strokeWidth="1.6" /><text x={W - pr} y={Y(avg) - 6} textAnchor="end" fontSize="11" fontWeight="600" fill="var(--c2)">{avgLabel.toUpperCase()} {fmt(avg)}</text></g>}
         {series.map((s) => <g key={s.key}>
           {area && <path d={`${path(s.values)}L${X(n - 1)},${H - pb}L${X(0)},${H - pb}Z`} fill={`url(#${id}-${s.key})`} />}
           <path className="lc-line" pathLength={1} d={path(s.values)} fill="none" stroke={s.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 4px 8px color-mix(in srgb, ${s.color} 45%, transparent))` }} />
           {s.values.map((v, i) => v != null && (n <= 14 || i === n - 1) && <circle key={i} cx={X(i)} cy={Y(v)} r={i === hover ? 6 : 3.6} fill="var(--s1)" stroke={s.color} strokeWidth="2.4" />)}
         </g>)}
-        {series.length > 1 && ends.map(({ s, y, v }) => v != null && <text key={s.key} x={W - pr + 10} y={y + 4} fontSize="11.5" fontWeight="600" fill={s.color}>{s.label.split(" ")[0]} {fmt(v)}</text>)}
+        {series.length > 1 && ends.map(({ s, y, v }) => v != null && <text key={s.key} x={W - pr + 10} y={y + 4} fontSize="12" fontWeight="600" fill={s.color}>{s.label.split(" ")[0]} {fmt(v)}</text>)}
         {hover != null && <line x1={X(hover)} x2={X(hover)} y1={pt} y2={H - pb} stroke="var(--border-strong)" />}
         <rect x={pl} y={pt} width={W - pl - pr} height={H - pt - pb} fill="transparent" onPointerMove={onMove} onPointerLeave={() => setHover(null)} />
       </svg>

@@ -24,7 +24,7 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
     ro.observe(el); return () => ro.disconnect();
   }, [fit]);
   const n = labels.length, W = fit && size ? size.w : w, H = fit && size ? size.h : height;
-  const fs = fit ? 11 : 9.5, pr = fit ? 4 : 6, pt = fit && tag ? 26 : fit ? 14 : 12, pb = fit ? 26 : 24;
+  const fs = 11, pr = fit ? 4 : 6, pt = fit && tag ? 26 : fit ? 14 : 12, pb = fit ? 26 : 24;
   const sums = labels.map((_, i) => series.map((s) => s.values[i] ?? 0));
   const pos = (i: number) => (mode === "stack" ? sums[i].filter((v) => v > 0).reduce((a, b) => a + b, 0) : Math.max(0, ...sums[i]));
   const neg = (i: number) => (mode === "stack" ? sums[i].filter((v) => v < 0).reduce((a, b) => a + b, 0) : Math.min(0, ...sums[i]));
@@ -35,7 +35,7 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
   const span = hi - lo || 1, X = (i: number) => pl + (i + 0.5) * ((W - pl - pr) / n), Y = (v: number) => pt + (1 - (v - lo) / span) * (H - pt - pb);
   const bw = Math.min(fit ? 24 : 15, ((W - pl - pr) / n) * (fit ? 0.62 : 0.5)), y0 = Y(0), k = series.length;
   const ticks = nice ?? (lo < 0 ? [lo, 0, hi] : [0, hi / 2, hi]);
-  const every = labelEvery(n, W - pl - pr, Math.max(...labels.map((l) => l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3").length), 1), fit ? 6.8 : 6.2, fit ? 12 : 10);
+  const every = labelEvery(n, W - pl - pr, Math.max(...labels.map((l) => l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3").length), 1), 6.8, fit ? 12 : 10);
   return (
     <div className={"mb" + (fit ? " fit" : "")} ref={box} onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary ?? `${series.map((s) => s.label).join(", ")} by period`}>

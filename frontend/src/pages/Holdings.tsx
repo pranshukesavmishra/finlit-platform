@@ -139,7 +139,7 @@ export function HoldingsPage() {
             errorText={DEMO ? "Scores are not available in the demo preview." : ov.error?.body?.detail} onPeriod={(pd) => go("financials", pd)} onExport={exportCsv} flags={flags}
             actions={(sym) => <><AlertButton symbol={sym} className="btn" /> <button className="btn" aria-label={`Remove ${sym}`} onClick={() => { st.holdings.filter((h) => h.symbol === sym).forEach((h) => portfolio.remove(h.id)); toast(`${sym} removed.`); }}>✕</button></>} />
           </div>
-          <p className="faint" style={{ fontSize: 12.5, margin: "-6px 4px 0" }}>Scores come from each company's latest statements and prices. A share shows "Preparing…" for a moment the first time it is added. Information only, not investment advice.</p>
+          <p className="faint" style={{ fontSize: 13, margin: "-6px 4px 0" }}>Scores come from each company's latest statements and prices. A share shows "Preparing…" for a moment the first time it is added. Information only, not investment advice.</p>
           {model === "finlit" && <><PortfolioInsights lines={lines} />
           <PortfolioLab lines={lines} universe={uni.data?.rows || []} /></>}</>}
       </Gate>

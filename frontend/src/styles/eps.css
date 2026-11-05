@@ -14,7 +14,7 @@
 .eps-case.base { border-color: var(--gold); border-width: 2px; }
 .eps-case h3 { margin: 0; font-size: 16px; }
 .eps-case label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
-.eps-case input { font: 400 15px var(--mono); padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--s1); color: var(--text); width: 100%; }
+.eps-case input { font: 400 16px var(--mono); padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--s1); color: var(--text); width: 100%; }
 .eps-case input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .eps-case input[aria-invalid="true"] { border-color: var(--loss); }
 .eps-case dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 4px 0 0; font-size: 14px; }
@@ -37,11 +37,11 @@
 .eps-chart .ln { stroke: var(--gold); stroke-width: 2.5; stroke-linejoin: round; }
 .eps-chart .dot { fill: var(--gold); } .eps-chart .dot.on { stroke: var(--text); stroke-width: 2; }
 .eps-chart .cur { stroke: var(--text); stroke-width: 1; stroke-dasharray: 3 3; opacity: .6; }
-.eps-read { margin: 12px 0 6px; font-size: 14.5px; }
+.eps-read { margin: 12px 0 6px; font-size: var(--fs-14); }
 .eps-read b { font-family: var(--mono); font-weight: 500; }
 
 .eps-rev { margin-top: 8px; align-items: start; }
-.eps-revlabel { font-weight: 600; font-size: 15px; }
+.eps-revlabel { font-weight: 600; font-size: var(--fs-16); }
 .eps-revout { font: 500 24px/1.2 var(--mono); padding: 6px 0; display: block; }
 
 @media (max-width: 900px) { .eps-charts, .eps-cases { grid-template-columns: minmax(0, 1fr); } .eps-sum.eps-sum3 { grid-template-columns: minmax(0, 1fr); } }

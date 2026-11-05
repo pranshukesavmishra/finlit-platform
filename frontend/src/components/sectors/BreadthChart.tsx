@@ -76,7 +76,7 @@ export function BreadthChart({ page }: { page: IndustryPage }) {
           <table className="sx-t" style={{ minWidth: 520 }}>
             <caption className="sx-visually">Breadth history of {page.name}: share of counted stocks above their averages, by session</caption>
             <thead><tr><th scope="col" style={{ minWidth: 110 }}>Session</th><th scope="col">State</th><th scope="col">9-day</th><th scope="col">20-day</th><th scope="col">50-day</th><th scope="col">Counted</th></tr></thead>
-            <tbody>{[...h.dates.keys()].reverse().map((k) => <tr key={h.dates[k]}><th scope="row" className="l" style={{ fontWeight: 600, textAlign: "left", textTransform: "none", letterSpacing: 0, fontSize: 13.5, color: "var(--text)" }}>{fullDate(h.dates[k])}</th><td className="l">{h.state_code[k]?.replace("_", " ")}</td><td>{pct(h.above_9[k])}</td><td>{pct(h.above_20[k])}</td><td>{pct(h.above_50[k])}</td><td>{h.stocks_counted[k]}</td></tr>)}</tbody>
+            <tbody>{[...h.dates.keys()].reverse().map((k) => <tr key={h.dates[k]}><th scope="row" className="l" style={{ fontWeight: 600, textAlign: "left", textTransform: "none", letterSpacing: 0, fontSize: 14, color: "var(--text)" }}>{fullDate(h.dates[k])}</th><td className="l">{h.state_code[k]?.replace("_", " ")}</td><td>{pct(h.above_9[k])}</td><td>{pct(h.above_20[k])}</td><td>{pct(h.above_50[k])}</td><td>{h.stocks_counted[k]}</td></tr>)}</tbody>
           </table>
         </HScroll>
       </details>

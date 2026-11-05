@@ -48,8 +48,8 @@ export function TimeChart({ kind, series, c, w }: { kind: "line" | "area" | "col
       <svg width={w} height={H} viewBox={`0 0 ${w} ${H}`} tabIndex={0} role="img" aria-label={`${kind} chart of ${series.map((s) => s.label).join(", ")}. Arrow keys move through ${dates.length} dates.`} onPointerMove={move} onKeyDown={key} onBlur={() => setHi(null)}>
         {ticks(doms[0][0], doms[0][1]).map((t) => <g key={t}><line x1={M.l} x2={w - M.r} y1={Y(t, doms[0])} y2={Y(t, doms[0])} stroke={t === 0 ? c.axis : c.grid} /><text x={M.l - 6} y={Y(t, doms[0]) + 4} textAnchor="end" fill={c.muted} fontSize="11">{fmtTick(t, units[0])}</text></g>)}
         {units[1] && ticks(doms[1][0], doms[1][1]).map((t) => <text key={t} x={w - M.r + 6} y={Y(t, doms[1]) + 4} fill={c.muted} fontSize="11">{fmtTick(t, units[1])}</text>)}
-        <text x={M.l - 6} y={9} textAnchor="end" fill={c.muted} fontSize="10">{UNITS[units[0]].label}</text>
-        {units[1] && <text x={w - M.r + 6} y={9} fill={c.muted} fontSize="10">{UNITS[units[1]].label}</text>}
+        <text x={M.l - 6} y={9} textAnchor="end" fill={c.muted} fontSize="11">{UNITS[units[0]].label}</text>
+        {units[1] && <text x={w - M.r + 6} y={9} fill={c.muted} fontSize="11">{UNITS[units[1]].label}</text>}
         {tickDates.map((t) => <text key={t} x={allPeriodic ? X(t) : Math.max(M.l, Math.min(w - M.r, X(t)))} y={H - 10} textAnchor="middle" fill={c.muted} fontSize="11">{tl(t)}</text>)}
         {series.filter((s) => kindOf(s) === "bar").map((s, bi) => s.pts.filter((p) => p.v != null).map((p) => { const dm = doms[ax(s)], y0 = Y(0, dm), y1 = Y(p.v as number, dm), x = X(p.t) - group / 2 + bi * (group / nBars) + 1; return <rect key={s.key + p.t} x={x} y={Math.min(y0, y1)} width={bw} height={Math.max(1, Math.abs(y1 - y0))} rx={Math.min(3, bw / 2)} fill={s.color} opacity={d && d !== p.t ? 0.55 : 1} />; }))}
         {series.filter((s) => kindOf(s) !== "bar").map((s) => {
@@ -100,7 +100,7 @@ export function Scatter({ xs, ys, labels, xl, yl, xu, yu, r, c, w }: { xs: numbe
     onKeyDown={(e) => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); setHi((h) => Math.max(0, Math.min(xs.length - 1, (h ?? xs.length - 1) + (e.key === "ArrowRight" ? 1 : -1)))); } }}>
     {ticks(dy[0], dy[1]).map((t) => <g key={t}><line x1={M.l} x2={w - 16} y1={Y(t, dy)} y2={Y(t, dy)} stroke={c.grid} /><text x={M.l - 6} y={Y(t, dy) + 4} textAnchor="end" fill={c.muted} fontSize="11">{fmtTick(t, yu)}</text></g>)}
     {ticks(dx[0], dx[1], 5).map((t) => <text key={t} x={X(t)} y={H - 12} textAnchor="middle" fill={c.muted} fontSize="11">{fmtTick(t, xu)}</text>)}
-    <text x={M.l + pw / 2} y={H - 0} textAnchor="middle" fill={c.muted} fontSize="10">{xl} ({UNITS[xu].label})</text><text x={M.l - 6} y={9} textAnchor="end" fill={c.muted} fontSize="10">{yl} ({UNITS[yu].label})</text>
+    <text x={M.l + pw / 2} y={H - 0} textAnchor="middle" fill={c.muted} fontSize="11">{xl} ({UNITS[xu].label})</text><text x={M.l - 6} y={9} textAnchor="end" fill={c.muted} fontSize="11">{yl} ({UNITS[yu].label})</text>
     {fit && <line x1={X(dx[0])} x2={X(dx[1])} y1={Y(fit.intercept + fit.slope * dx[0], dy)} y2={Y(fit.intercept + fit.slope * dx[1], dy)} stroke={c.muted} strokeDasharray="5 4" strokeWidth="1.5" />}
     {xs.map((x, i) => <circle key={i} cx={X(x)} cy={Y(ys[i], dy)} r={hi === i ? 7 : 5} fill={c.s[0]} stroke={c.surface} strokeWidth="2" />)}
     {xs.length > 0 && <text x={X(xs[xs.length - 1]) + 8} y={Y(ys[ys.length - 1], dy) - 8} fill={c.text} fontSize="11">{labels[labels.length - 1]}</text>}
@@ -116,7 +116,7 @@ export function Heat({ mode, labels, matrix, grid, cols, units, c, w }: { mode: 
   const [hi, setHi] = useState<string | null>(null);
   const n = mode === "corr" ? labels.length : cols!.length, lw = Math.min(130, w * 0.3), cw = Math.max(28, Math.min(70, (w - lw - 8) / n)), rh = 34, top = mode === "grid" ? 26 : 8;
   return <div className="gx-plot"><svg width={Math.max(w, lw + cw * n + 8)} height={labels.length * rh + top + 8} role="img" aria-label={mode === "corr" ? "Correlation matrix: " + labels.join(", ") : "Values by period: " + labels.join(", ")}>
-    {mode === "grid" && cols!.map((l, j) => <text key={l} x={lw + j * cw + cw / 2} y={16} textAnchor="middle" fill={c.muted} fontSize="10">{l.length > 8 ? l.slice(0, 8) : l}</text>)}
+    {mode === "grid" && cols!.map((l, j) => <text key={l} x={lw + j * cw + cw / 2} y={16} textAnchor="middle" fill={c.muted} fontSize="11">{l.length > 8 ? l.slice(0, 8) : l}</text>)}
     {labels.map((l, i) => <g key={l + i}><text x={lw - 8} y={top + i * rh + 21} textAnchor="end" fill={c.text} fontSize="11">{l.length > 20 ? l.slice(0, 19) + "…" : l}</text>
       {Array.from({ length: n }, (_, j) => {
         let v: number | null, fill: string, txt: string, tip: string;

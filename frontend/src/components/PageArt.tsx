@@ -62,8 +62,8 @@ const scenes: Record<string, (k: string) => React.ReactNode> = {
       {[["--p-quality", 56, 104], ["--p-growth", 44, 91], ["--p-profit", 51, 78], ["--p-balance", 75, 65], ["--p-tech", 31, 52]].map(([c, v, r], i) => { const R = r as number, C = 2 * Math.PI * R, len = ((v as number) / 100) * C * 0.75;
         return <g key={c as string} transform="rotate(135)"><circle r={R} fill="none" stroke="var(--s3)" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${C * 0.75} ${C}`} />
           <circle r={R} fill="none" stroke={`var(${c})`} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${len} ${C}`} style={{ animationDelay: `${i * 140}ms` }} /></g>; })}
-      <text y="8" textAnchor="middle" fontSize="38" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fontWeight="300" fill="var(--text)">51</text>
-      <text y="28" textAnchor="middle" fontSize="8" letterSpacing="1.6" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">FINLIT IQ</text>
+      <text y="8" textAnchor="middle" fontSize="40" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fontWeight="300" fill="var(--text)">51</text>
+      <text y="28" textAnchor="middle" fontSize="11" letterSpacing="1.6" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">FINLIT IQ</text>
     </g>
     {chip(30, 60, "5,700+ stocks", "var(--c3)")}{chip(300, 40, "Updated daily", "var(--gold)", 500)}{chip(318, 292, "5 pillars", "var(--c1)", 900)}
   </>),

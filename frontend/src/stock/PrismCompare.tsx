@@ -195,7 +195,7 @@ export function PrismMethod({ symbol, statement }: { symbol: string; statement: 
       {miss && !miss.complete && miss.items.length > 0 && (
         <div className="pz-miss"><h4>Data that was missing</h4><ul>{miss.items.slice(0, 8).map((i) => <li key={i.label}><b>{i.label}</b> <small>{i.treatment || i.reason}</small></li>)}</ul></div>
       )}
-      <p className="faint" style={{ fontSize: 12.5, margin: "12px 0 0" }}>{PRISM_NOTE} <Link to={`/prism/${encodeURIComponent(symbol)}`}>Open the full Prism report</Link></p>
+      <p className="faint" style={{ fontSize: 13, margin: "12px 0 0" }}>{PRISM_NOTE} <Link to={`/prism/${encodeURIComponent(symbol)}`}>Open the full Prism report</Link></p>
     </div>
   );
 }

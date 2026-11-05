@@ -81,7 +81,7 @@ export function H2HChart({ series, format, label, base, tipFormat }: { series: S
           const s = series[i];
           return <path key={s.side} d={smoothPath(g.lines[i].xy)} fill="none" stroke={SIDE_COLOR[s.side]} strokeWidth={s.side === "cat" ? 2 : 2.4} strokeDasharray={SIDE_DASH[s.side]} strokeLinejoin="round" strokeLinecap="round" />;
         })}
-        {ends.map((e) => <g key={"e" + e.i} aria-hidden="true"><circle cx={e.x + 12} cy={e.y} r="9" fill={SIDE_COLOR[series[e.i].side]} /><text x={e.x + 12} y={e.y + 3.6} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--on-gold, #fff)" style={{ fill: "#fff" }}>{SIDE_LETTER[series[e.i].side]}</text></g>)}
+        {ends.map((e) => <g key={"e" + e.i} aria-hidden="true"><circle cx={e.x + 12} cy={e.y} r="9" fill={SIDE_COLOR[series[e.i].side]} /><text x={e.x + 12} y={e.y + 3.6} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--on-gold, #fff)" style={{ fill: "#fff" }}>{SIDE_LETTER[series[e.i].side]}</text></g>)}
         {read && <line x1={cursor!} x2={cursor!} y1={g.pad.t} y2={bottom} stroke="var(--text)" strokeOpacity=".35" strokeDasharray="4 4" />}
         {read && read.map((r) => <circle key={r.s.side} cx={g.lines[r.i].xy[r.k][0]} cy={g.lines[r.i].xy[r.k][1]} r="5" fill="var(--s1)" stroke={SIDE_COLOR[r.s.side]} strokeWidth="2.4" />)}
         <rect x={g.pad.l} y={g.pad.t} width={W - g.pad.l - g.pad.r} height={bottom - g.pad.t} fill="transparent" style={{ touchAction: "pan-y" }} onPointerMove={move} onPointerDown={move} onPointerLeave={() => setCursor(null)} />

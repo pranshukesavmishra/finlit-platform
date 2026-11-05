@@ -16,6 +16,7 @@ import "@fontsource/ibm-plex-sans/latin-700.css";
 import "@fontsource/ibm-plex-mono/latin-400.css";
 import "@fontsource/ibm-plex-mono/latin-500.css";
 import "@fontsource/ibm-plex-mono/latin-600.css";
+import "./styles/typescale.css";
 import "./styles/finlit.css";
 import "./styles/site.css";
 import "./styles/stock2.css";
@@ -35,6 +36,7 @@ import "./styles/headerlinks.css";
 import "./styles/design-system.css";
 import { installDemo } from "./lib/demo";
 import { installResilience } from "./lib/resilience";
+import { installSvgTextFit } from "./lib/svgText";
 // Loaded last so these (sidebar, earnings dialog, opaque overlays) win over the page styles above. Kept apart from the style list so a team change there never collides with it.
 import "./styles/sidebar.css";
 import "./styles/earnings.css";
@@ -44,6 +46,7 @@ import { purgeLegacy } from "./lib/persist";
 
 installDemo();
 installResilience();
+installSvgTextFit();
 // Layout/behaviour flags written by releases before lib/persist.ts (raw, unversioned): drop them so stale values cannot reshape this release.
 purgeLegacy(["finlit-side", "finlit-side-groups", "finlit-dash-open", "finlit-etf-cols-v2", "finlit-mf-cols-v4"], ["finlit.side."]);
 
