@@ -86,6 +86,7 @@ class Table:
         self.symbols: List[str] = []
         self.name: List[str] = []
         self.sector: List[Optional[str]] = []
+        self.sector_label: List[Optional[str]] = []   # the company's own Sector label (scores.sector / companies.sector), never the broad macro sector in `sector` above
         self.industry: List[Optional[str]] = []
         self.band: List[Optional[str]] = []
         self.full: List[bool] = []   # True: the company's full report is stored; False: only the light listing row (quote figures)
@@ -103,6 +104,7 @@ class Table:
             self.symbols.append(r["symbol"])
             self.name.append(r.get("name") or r["symbol"])
             self.sector.append(r.get("macro_sector") or r.get("sector"))
+            self.sector_label.append(r.get("sector") or None)
             self.industry.append(r.get("industry"))
             self.band.append(r.get("band"))
             self.full.append(bool(r.get("full", True)))
@@ -125,6 +127,7 @@ class Table:
             self.ax_miss.append(m.get("ax_miss") if isinstance(m.get("ax_miss"), dict) else {})
             self.ax_ready.append(isinstance(m.get("ax_miss"), dict) and _num(m.get("m_ver")) >= METRICS_VERSION)
         self.sector, self.sector_alias = _tidy_sectors(self.sector)   # variant spellings of one sector share a label in the filter, the cap and the tables; the stored label is untouched
+        self.sector_label, _ = _tidy_sectors(self.sector_label)   # same merge of spellings; the prebuilt screens group, cap and tag on this field
         n = len(self.symbols)
         self.n = n
         self.n_full = sum(self.full)

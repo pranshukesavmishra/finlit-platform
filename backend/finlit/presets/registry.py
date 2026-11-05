@@ -6,13 +6,14 @@ To add or change a screen, edit the record, bump REGISTRY_VERSION (it is part of
 Record fields (spec names in brackets)
   id, name, group, card_text           what the user sees; names describe, never advise (a test scans every name and card for the banned words)
   prism_filters                        the page's own Prism parameters: zmin (Prism score), zfmin / zvmin / zqmin / zrmin (Growth & Profitability / Valuation / Quality / Risk
-                                       part, "or more"), st / lt (short / long-term technical view score, "or more"), rated=1 (has a Prism score; Provisional
+                                       part, "or more"), zvbelow (Valuation strictly BELOW the number: with zvmin=50 on its twin it makes a clean split, nobody falls between), st / lt (short / long-term technical view score, "or more"), rated=1 (has a Prism score; Provisional
                                        included and badged), status="RATED" (Rated only: the three Top-10 screens), cap = Large | Mid | Small (the site's size buckets)
   ql                                   rules in the Query builder's own language, one condition per line (same parser, same units, same missing-data rule: unknown fails)
   derived                              rules that need a nightly field or a Prism part: (rule, plain-words label), see expr.py for the little language
   rank                                 ((field, "desc" | "asc"), ...): first key, then tie-breaks; a missing value ranks last; "cap:<field>" ranks on the figure held
                                        between its 1st and 99th percentile (spec p16); market cap then symbol decide what is left
-  limit                                10 for the Top-10 screens, else 25 (the full count is always reported)
+  limit                                10 for the Top-10 screens, else 25 (the full count is always reported). A screen of 25 pages: the API serves the rest 25 at a time
+                                       (?offset=25), up to EXPORT_MAX rows; the Top-10 screens never page
   columns, chips                       the table and the optional chips; a chip changes the rules through `effect` (below)
   how_it_works                         plain-words rule lines
 Chip effect keys: prism_set {key: value | None to drop}, ql_add (lines), ql_replace {old line: new line}, derived_add ((rule, label), ...),
@@ -29,7 +30,7 @@ from typing import Dict, List, Mapping, Optional, Tuple
 from .seed import slug
 from .theme_map import SUBTHEMES as THEME_SUBS
 
-REGISTRY_VERSION = 5
+REGISTRY_VERSION = 6      # 6: caps, tags and sector themes read the Sector LABEL (not the macro sector or the Industry); the two valuation views split at 50; the screens page by 25
 DISCLAIMER = "A screen narrows a list. It is not a recommendation."
 BANNED_WORDS = ("best", "buy", "multibagger", "sell", "top pick", "undervalued gem")   # in names and card text, never (spec p2: names describe, never advise)
 RUN_GUARD = ("coalesce(ret_1y, 0) <= 300", "1-year return no more than 300%")   # a stock that has run far past that is not a steady leader: kept out of the Top 10 and momentum lists
@@ -110,7 +111,6 @@ LTS = Col("prism_lt_score", "Long-term view score", "score")
 R1Y = Col("ret_1y", "1-year return", "pct")
 MCAP = Col("market_cap", "Market cap (Rs Cr)", "cr")
 SECTOR = Col("sector", "Sector", "text", "left")
-INDUSTRY = Col("industry", "Industry", "text", "left")
 FINLIT = Col("overall", "FinLit IQ", "score")
 
 
@@ -132,7 +132,7 @@ ALL_CAPS = Chip("all-caps", "All caps", "Also lists small caps (the default is l
 FAST_G = Chip("fast-growers", "Fast growers", "Raises the Growth & Profitability cut-off from 75 to 85.", False, _m(prism_set={"zfmin": 85}), ("Fast growers: Prism Growth & Profitability 85 or more.",))
 SHOW_ALL_THEME = Chip("show-all-theme", "Show all theme members", "Drops the Growth & Profitability and Risk gates: every theme member of Rs 1,000 Cr or more is listed.", False,
                       _m(derived_drop=("has_prism = 0 or (prism_fundamental >= 50 and prism_risk >= 40)",)), ("Every theme member of Rs 1,000 Cr or more is listed, whatever its Growth & Profitability and Risk.",))
-SMALL_GROUPS = Chip("small-groups", "Include small groups", "Also lists industries with 5 to 7 companies, which are too few to call a theme with the same confidence.", False,
+SMALL_GROUPS = Chip("small-groups", "Include small groups", "Also lists sectors with 5 to 7 companies, which are too few to call a theme with the same confidence.", False,
                     _m(small_groups=True), ("Small groups (5 to 7 companies) are included.",))
 SUB_CHIPS = tuple(Chip(slug(sub), sub, f"Only companies in {sub}. Pick several to see any of them.", False, _m(sub=sub), (f"Sub-theme: {sub}.",)) for sub in THEME_SUBS)
 
@@ -196,14 +196,14 @@ PRESETS: List[Preset] = [
            (("has_prism = 0 or (prism_fundamental >= 50 and prism_risk >= 40)", "Rated: Growth & Profitability 50 or more and Risk 40 or more"),),
            (("has_prism", "desc"), ("rank_score", "desc")), 25,
            with_status((STOCK, SUBT, PRISM, FUND, RISK, STS, LTS, R6M, W52, SECTOR, MCAP)), (SHOW_ALL_THEME,) + SUB_CHIPS,
-           ("Companies in a sub-theme, found from their Sector label and a short named list that the research team reviews every quarter. The sub-theme is shown as a column.",
+           ("Companies in a sub-theme: every company whose Sector label belongs to it (for example Aerospace & Defense, Ship Building, Explosives, Consumer Electronics, E-Retail, Exchange and Data Platform) joined with a short named list that the research team reviews every quarter. The sub-theme is shown as a column.",
             "Market cap Rs 1,000 Cr or more.", "Rated or Provisional by Prism: Growth & Profitability 50 or more (still growing) and Risk 40 or more. No trend gate: the two technical views are shown as columns.",
             "Ranked by the same weighted score as the Top 10 lists. Companies Prism has not rated yet are listed below, by market cap, with no score."),
            False, None, ("provisional", "unrated"), "p6-9 (Emerging tech)", "advanced", TOP_RANK),
 
     Preset("sector-themes", "Sector themes in play", "themes", "Sectors where more stocks sit near their 52-week high than in the market as a whole, and the companies leading them.", "themes",
            _m(), "", (), (("has_prism", "desc"), ("prism_final", "desc"), ("overall", "desc")), 25,
-           with_status((STOCK, INDUSTRY, PRISM, STS, LTS, R3M, Col("vs_industry_3m", "3-month return against the sector median (points)", "num1"), W52, MCAP)), (SMALL_GROUPS,),
+           with_status((STOCK, SECTOR, PRISM, STS, LTS, R3M, Col("vs_industry_3m", "3-month return against the sector median (points)", "num1"), W52, MCAP)), (SMALL_GROUPS,),
            ("Every night each sector (by its Sector label) is scored on breadth, the share of its stocks within 15% of their 52-week high, and its median 3-month return against the whole market; stocks of Rs 1,000 Cr or more.",
             "In play: breadth at least 40% and 15 points above the market's, and median 3-month return at least 5 points above the market's.",
             "Leaders (up to 5 per sector): market cap Rs 1,000 Cr or more, within 15% of their 52-week high, 3-month return above the sector median; rated companies first by Prism score, then unrated by FinLit IQ.",
@@ -255,7 +255,7 @@ PRESETS: List[Preset] = [
 QUICK_VIEWS: List[Preset] = [
     Preset("strongsafe", "Prism strong and lower risk", "prism-basics", "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", "quickview", _m(zmin=80, zrmin=65, rated=1)),
     Preset("fairvalue", "Strong Growth & Profitability at a fair valuation", "prism-basics", "Prism Growth & Profitability 65 or more and Prism Valuation 50 or more.", "quickview", _m(zfmin=65, zvmin=50, rated=1)),
-    Preset("weakvalue", "Growth & Profitability strong but valuation weak", "prism-basics", "Prism Growth & Profitability 65 or more but Prism Valuation below 50.", "quickview", _m(zfmin=65, rated=1)),
+    Preset("weakvalue", "Growth & Profitability strong but valuation weak", "prism-basics", "Prism Growth & Profitability 65 or more but Prism Valuation below 50.", "quickview", _m(zfmin=65, zvbelow=50, rated=1)),
 ]
 
 
@@ -353,12 +353,12 @@ BASIC: List[Preset] = [
     Preset("basic-emerging-tech", "Emerging tech", BASIC_GROUP["themes"], "Companies in new-technology businesses (electronics, defence and shipbuilding, software and data, digital platforms, fintech, EVs, clean energy), still growing.",
            "tags", _m(), "", B_THEME_RULES, (("rank_score", "desc"), ("overall", "desc")), 25,
            (RANK, STOCK, SUBT, FINLIT, B_FUND, B_TECH, B_GROW, B_BAL, R6M, W52, SECTOR, MCAP, RSC), SUB_CHIPS,
-           ("Companies in a sub-theme, found from their Sector label and a short named list that the research team reviews every quarter. The sub-theme is shown as a column.",
+           ("Companies in a sub-theme: every company whose Sector label belongs to it (for example Aerospace & Defense, Ship Building, Explosives, Consumer Electronics, E-Retail, Exchange and Data Platform) joined with a short named list that the research team reviews every quarter. The sub-theme is shown as a column.",
             "Market cap Rs 1,000 Cr or more, Growth 55 or more, Balance sheet 40 or more (a blank is allowed).",
             "Ranked by a theme rank score: 50% Growth & Profitability score, 30% Technical, 20% Growth, each a percentile among companies of its size group of Rs 1,000 Cr or more.", B_NOTE),
            False, None, (), "p6-9 (Emerging tech, Basic)", "basic", (("fundamental_score", 0.50), ("pillar_technical", 0.30), ("pillar_growth", 0.20))),
     Preset("basic-sector-themes", "Sector themes in play", BASIC_GROUP["themes"], "Sectors where more stocks sit near their 52-week high than in the market as a whole, and the companies leading them.", "themes",
-           _m(), "", (), (("rank_score", "desc"), ("overall", "desc")), 25, (RANK, STOCK, INDUSTRY, FINLIT, B_FUND, B_TECH, R3M, Col("vs_industry_3m", "3-month return against the sector median (points)", "num1"), W52, MCAP),
+           _m(), "", (), (("rank_score", "desc"), ("overall", "desc")), 25, (RANK, STOCK, SECTOR, FINLIT, B_FUND, B_TECH, R3M, Col("vs_industry_3m", "3-month return against the sector median (points)", "num1"), W52, MCAP),
            (SMALL_GROUPS,),
            ("Every night each sector (by its Sector label) is scored on breadth, the share of its stocks within 15% of their 52-week high, and its median 3-month return against the whole market; stocks of Rs 1,000 Cr or more.",
             "In play: breadth at least 40% and 15 points above the market's, and median 3-month return at least 5 points above the market's.",

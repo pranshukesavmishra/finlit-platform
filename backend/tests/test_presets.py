@@ -410,23 +410,23 @@ def test_in_play_rule_and_states():
 def theme_universe(n_up=10):
     rows = []
     for i in range(n_up):    # a hot sector: close to its highs, rising
-        rows.append(row(f"H{i}", mcap=2000, ind="Hot", ret_3m=20 + i, pct_from_high=5))
+        rows.append(row(f"H{i}", mcap=2000, sector="Hot", ret_3m=20 + i, pct_from_high=5))
     for i in range(10):
-        rows.append(row(f"C{i}", mcap=2000, ind="Cold", ret_3m=-10, pct_from_high=30))
+        rows.append(row(f"C{i}", mcap=2000, sector="Cold", ret_3m=-10, pct_from_high=30))
     for i in range(6):       # a small group, also hot
-        rows.append(row(f"S{i}", mcap=2000, ind="Tiny", ret_3m=30, pct_from_high=5))
+        rows.append(row(f"S{i}", mcap=2000, sector="Tiny", ret_3m=30, pct_from_high=5))
     for i in range(10):
-        rows.append(row(f"G{i}", mcap=2000, ind="Capital Goods", ret_3m=40, pct_from_high=1))
+        rows.append(row(f"G{i}", mcap=2000, sector="Capital Goods", ret_3m=40, pct_from_high=1))
     for i in range(40):      # the rest of the market
-        rows.append(row(f"M{i}", mcap=2000, ind=f"Ind{i // 8}", ret_3m=-5, pct_from_high=40))
+        rows.append(row(f"M{i}", mcap=2000, sector=f"Ind{i // 8}", ret_3m=-5, pct_from_high=40))
     return rows
 
 
 def test_breadth_is_the_share_near_the_52_week_high_not_moving_averages():
     rows = theme_universe()
     t = Table(rows, {}, {})
-    ind = {r["symbol"]: r["industry"] for r in rows}
-    ev = themes.evaluate(t, lambda i: ind[t.symbols[i]], [])
+    ind = {r["symbol"]: r["industry"] for r in rows}      # the Industry column: NOT what themes group by
+    ev = themes.evaluate(t, lambda i: t.sector_label[i], [])
     hot = ev.industries["Hot"]
     assert hot["b50"] == 100.0 and ev.industries["Cold"]["b50"] == 0.0 and hot["rs3"] > 5 and ev.market.b50 is not None
 
@@ -434,15 +434,15 @@ def test_breadth_is_the_share_near_the_52_week_high_not_moving_averages():
 def test_theme_screen_in_play_small_groups_leaders_and_never_empty():
     rows = theme_universe()
     t = Table(rows, {}, {})
-    ind = {r["symbol"]: r["industry"] for r in rows}
-    ev = themes.evaluate(t, lambda i: ind[t.symbols[i]], [])
+    ind = {r["symbol"]: r["industry"] for r in rows}      # the Industry column: NOT what themes group by
+    ev = themes.evaluate(t, lambda i: t.sector_label[i], [])
     assert ev.in_play == ["Hot"] and ev.industries["Tiny"]["small"] and "Capital Goods" not in ev.industries and ev.industries["Cold"]["state"] == "none"
     prism = {f"H{i}": pz(final=40 + i) for i in range(5, 10)}
     fr = engine.Frame(t, prism, AS_OF, {}, ind, ev)
     body = engine.run(fr, BY_ID["sector-themes"])
     hot = [c for c in body["themes"] if c["industry"] == "Hot"][0]
     assert body["count"] == 1 and hot["state"] == "in_play" and len(hot["leaders"]) == 5
-    assert hot["leaders"][0] == "H9" and set(hot["leaders"]) <= {r["symbol"] for r in body["rows"]} and all(r["industry"] == "Hot" for r in body["rows"])
+    assert hot["leaders"][0] == "H9" and set(hot["leaders"]) <= {r["symbol"] for r in body["rows"]} and all(r["sector"] == "Hot" for r in body["rows"])
     assert not any(c["industry"] == "Tiny" for c in body["themes"])
     withsmall = engine.run(fr, BY_ID["sector-themes"], ["small-groups"])
     assert withsmall["count"] == 2 and any(c["industry"] == "Tiny" and c["small"] for c in withsmall["themes"])
@@ -451,12 +451,12 @@ def test_theme_screen_in_play_small_groups_leaders_and_never_empty():
     for r in body["rows"]:                                                       # leaders: within 15% of the high, 3-month return above the sector median
         assert r["pct_from_high"] <= 15 and r["vs_industry_3m"] > 0
     rows_back = themes.stored_rows(AS_OF, ev)
-    assert rows_back[0][1] == "*" and any(r[1] == "Hot" and r[8] for r in rows_back) and all(r[4] is None for r in rows_back)
+    assert rows_back[0][1] == "*" and any(r[1] == "sector:Hot" and r[8] for r in rows_back) and all(r[4] is None for r in rows_back)
 
 
 def test_history_roundtrip_ignores_rows_written_by_the_old_moving_average_breadth():
-    stored = themes.history_from_rows([{"as_of": date(2026, 10, d), "industry": "Hot", "b50": 20, "b200": None, "rs3": 0, "in_play": d == 5} for d in range(1, 6)]
-                                      + [{"as_of": date(2026, 9, 1), "industry": "Hot", "b50": 99, "b200": 70, "rs3": 9, "in_play": True}])
+    stored = themes.history_from_rows([{"as_of": date(2026, 10, d), "industry": "sector:Hot", "b50": 20, "b200": None, "rs3": 0, "in_play": d == 5} for d in range(1, 6)]
+                                      + [{"as_of": date(2026, 9, 1), "industry": "sector:Hot", "b50": 99, "b200": 70, "rs3": 9, "in_play": True}])
     assert len(stored) == 5 and stored[-1]["Hot"]["in_play"] is True and all(h["Hot"]["b50"] == 20 for h in stored)
 
 
@@ -546,3 +546,172 @@ def test_a_stock_that_ran_over_300_percent_in_a_year_stays_out_of_top_10_and_mom
         got = [r["symbol"] for r in body["exportRows"]]
         assert "L000" not in got, pid
     assert engine.run(frame(rows), BY_ID["basic-top-large"])["count"] == 99       # only the 450% run is out; the blank one still passes
+
+
+# ---------------------------------------------------------------------------------------------------------------- issue 30.b: Sector label, not the macro sector or the Industry
+def mac(r, macro, label=None):
+    """A row as production stores it: the broad macro sector in `macro_sector`, the company's own Sector label in `sector`."""
+    r["macro_sector"] = macro
+    if label:
+        r["sector"] = label
+    return r
+
+
+def test_the_table_keeps_the_macro_sector_and_the_sector_label_apart():
+    r = mac(row("A", sector="x"), "Consumer Discretionary", "Gems, Jewellery And Watches")
+    t = Table([r, row("B", sector="Textiles & apparel"), row("C", sector="textiles and apparel")], {}, {})
+    assert t.sector[0] == "Consumer Discretionary" and t.sector_label[0] == "Gems, Jewellery And Watches"
+    assert t.sector_label[1] == t.sector_label[2] and t.sector_label[1].lower().replace("&", "and") == "textiles and apparel"          # spellings still merge
+    fr = engine.Frame(t, {}, AS_OF)
+    assert fr.get(0, "sector") == "Gems, Jewellery And Watches" and fr.sector_of(0) != "Consumer Discretionary"
+    assert Table([row("Z", sector="")], {}, {}).sector_label == [None]
+
+
+def test_top_small_caps_cap_three_per_sector_label_not_per_macro_sector():
+    """Sky Gold, ASK Automotive and Pearl Global share the macro sector Consumer Discretionary with KPIL, Caplin Point and TMB but each has its own Sector label: all six may stand."""
+    rows = uni()
+    names = ["SKYGOLD", "ASKAUTO", "PEARLGLOB", "KPIL", "CAPLIN", "TMB"]
+    labels = ["Gems, Jewellery And Watches", "Auto Components & Equipments", "Textiles & Apparels", "Construction", "Pharmaceuticals", "Banks"]
+    for i, (sym, lab) in enumerate(zip(names, labels)):
+        rows[250 + i]["symbol"] = sym
+        mac(rows[250 + i], "Consumer Discretionary", lab)
+    prism = with_prism(rows)
+    for i, sym in enumerate(names):
+        prism[sym] = pz(final=90 - i, qual=80, risk=70, val=60)
+    got = syms(engine.run(frame(rows, prism), BY_ID["highest-rated-small"]))
+    assert set(names) <= set(got) and len(got) == 10          # none replaced by a lower-ranked small cap (the macro-sector cap kept three and let KPIL, Caplin Point and TMB go)
+    # the other way round: four stocks of ONE label stay capped at three even when their macro sectors differ
+    rows2 = uni()
+    for i, sym in enumerate(names[:4]):
+        rows2[250 + i]["symbol"] = sym
+        mac(rows2[250 + i], f"Macro {i}", "Same Label")
+    prism2 = with_prism(rows2)
+    for i, sym in enumerate(names[:4]):
+        prism2[sym] = pz(final=90 - i, qual=80)
+    got2 = syms(engine.run(frame(rows2, prism2), BY_ID["highest-rated-small"]))
+    assert sum(1 for s in got2 if s in names[:4]) == 3
+
+
+def test_basic_top_ten_also_caps_on_the_sector_label():
+    rows = buni()
+    for i in range(6):
+        mac(rows[i], "Consumer Discretionary", f"Label {i}")
+        edit(rows[i], fundamental_score=99, pillar_technical=99, pillar_quality=99, ret_3m=60, ret_6m=60, ret_1y=100, pct_from_high=0)
+    got = syms(engine.run(frame(rows), BY_ID["basic-top-large"]))
+    assert {f"L00{i}" for i in range(6)} <= set(got)          # six labels, one macro sector: all six stand
+    rows2 = buni()
+    for i in range(5):
+        mac(rows2[i], f"Macro {i}", "One Label")
+        edit(rows2[i], fundamental_score=99, pillar_technical=99, pillar_quality=99, ret_3m=60, ret_6m=60, ret_1y=100, pct_from_high=0)
+    got2 = syms(engine.run(frame(rows2), BY_ID["basic-top-large"]))
+    assert sum(1 for s in got2 if s in {f"L00{i}" for i in range(5)}) == 3
+
+
+def test_no_cap_or_grouping_in_the_presets_reads_the_macro_sector_or_the_industry():
+    src = (Path(__file__).resolve().parents[1] / "finlit" / "presets")
+    for name in ("engine.py", "service.py", "theme_map.py"):
+        text = (src / name).read_text()
+        assert "t.sector[" not in text and "table.sector," not in text and "table.sector)" not in text, name
+    assert "industry_of(i) or" not in (src / "engine.py").read_text()
+
+
+def test_sector_themes_group_by_the_sector_label_not_the_industry():
+    rows = []
+    for i in range(10):    # a hot Chemicals sector whose members sit in several industries; a hot Entertainment industry spread over sectors
+        rows.append(mac(row(f"CH{i}", mcap=2000, ind=["Specialty Chemicals", "Fertilizers", "Entertainment"][i % 3], ret_3m=20 + i, pct_from_high=3), "Materials", "Chemicals"))
+    for i in range(10):
+        rows.append(mac(row(f"PH{i}", mcap=2000, ind="Pharmaceuticals & Biotechnology", ret_3m=18 + i, pct_from_high=4), "Healthcare", "Pharmaceuticals"))
+    for i in range(10):
+        rows.append(mac(row(f"EN{i}", mcap=2000, ind="Entertainment", ret_3m=-5, pct_from_high=40), "Communication", f"Media {i % 2}"))
+    for i in range(40):
+        rows.append(mac(row(f"M{i}", mcap=2000, ind=f"Ind{i % 3}", ret_3m=-5, pct_from_high=40), "Other", f"Rest{i // 8}"))
+    t = Table(rows, {}, {})
+    ev = themes.evaluate(t, themes.by_sector_label(t), [])
+    assert ev.in_play == ["Chemicals", "Pharmaceuticals"] or set(ev.in_play) == {"Chemicals", "Pharmaceuticals"}
+    assert "Entertainment" not in ev.industries and "Pharmaceuticals & Biotechnology" not in ev.industries and "Specialty Chemicals" not in ev.industries
+    fr = engine.Frame(t, {}, AS_OF, {}, {r["symbol"]: r["industry"] for r in rows}, ev)
+    body = engine.run(fr, BY_ID["sector-themes"])
+    assert {c["industry"] for c in body["themes"] if c["state"] == "in_play"} == {"Chemicals", "Pharmaceuticals"}
+    assert {r["sector"] for r in body["rows"]} == {"Chemicals", "Pharmaceuticals"}
+    assert [c["key"] for c in body["columns"]].count("sector") == 1 and "industry" not in [c["key"] for c in body["columns"]]
+    assert all(r["vs_industry_3m"] is not None for r in body["rows"])
+
+
+def test_theme_history_of_another_grouping_is_not_mixed_in():
+    rows = [{"as_of": date(2026, 10, d), "industry": "*", "b50": 30, "b200": None, "rs3": 0, "in_play": False} for d in range(1, 4)]
+    rows += [{"as_of": date(2026, 10, d), "industry": "Entertainment", "b50": 90, "b200": None, "rs3": 9, "in_play": True} for d in range(1, 4)]
+    rows += [{"as_of": date(2026, 10, 3), "industry": themes.KEY_PREFIX + "Chemicals", "b50": 55, "b200": None, "rs3": 6, "in_play": True}]
+    hist = themes.history_from_rows(rows)
+    assert all("Entertainment" not in h for h in hist) and hist[-1]["Chemicals"]["b50"] == 55 and "Chemicals" not in hist[0]
+
+
+# ---------------------------------------------------------------------------------------------------------------- issue 30.b: Emerging tech is the union of the named list and the Sector-label members
+def test_emerging_tech_universe_is_the_union_of_named_list_and_sector_label_members():
+    syms_ = ["LABELDEF", "LABELEMS", "LABELWEB", "LABELCAMS", "KAYNES", "PLAIN", "ODDSPELL", "ODDSPELL2"]
+    labels = ["Aerospace & Defense", "Consumer Electronics", "E-Retail/ E-Commerce", "Depositories, Clearing Houses and Other Intermediaries", "Capital Goods", "Auto Components",
+              "aerospace and defense", "Aerospace & Defence"]
+    rows = [mac(mrow(s, market_cap=5000), "Industrials", lab) for s, lab in zip(syms_, labels)]
+    t = Table(rows, {}, {})
+    # the bug: on the broad macro sector nothing is found
+    assert set(theme_map.tags_for(t.symbols, t.sector)) == {"KAYNES"}          # only the named company: no label member is found
+    tags = theme_map.tags_for(t.symbols, t.sector_label)
+    assert set(tags) == {"LABELDEF", "LABELEMS", "LABELWEB", "LABELCAMS", "KAYNES", "ODDSPELL", "ODDSPELL2"} and "PLAIN" not in tags
+    assert tags["LABELCAMS"] == ["Fintech and market infrastructure"] and tags["LABELWEB"] == ["Digital platforms"]
+    body = engine.run(frame(rows, {}, tags=tags), BY_ID["emerging-tech"])
+    assert set(syms(body)) == set(tags)
+    basic = engine.run(frame([edit(r, pillar_growth=60, pillar_balance=60) for r in rows], {}, tags=tags), BY_ID["basic-emerging-tech"])
+    assert set(syms(basic)) == set(tags)
+
+
+def test_the_named_examples_of_the_spec_are_in_the_theme_by_label_or_by_name():
+    named = {"HAL": "Defence, aerospace and shipbuilding", "BEL": "Defence, aerospace and shipbuilding", "SOLARINDS": "Defence, aerospace and shipbuilding", "MAZDOCK": "Defence, aerospace and shipbuilding",
+             "GRSE": "Defence, aerospace and shipbuilding", "DATAPATTNS": "Defence, aerospace and shipbuilding", "MTARTECH": "Defence, aerospace and shipbuilding",
+             "ASTRAMICRO": "Defence, aerospace and shipbuilding", "PARAS": "Defence, aerospace and shipbuilding", "DIXON": "Electronics, EMS and semiconductors",
+             "ETERNAL": "Digital platforms", "NYKAA": "Digital platforms", "NAUKRI": "Digital platforms", "CAMS": "Fintech and market infrastructure", "KFINTECH": "Fintech and market infrastructure",
+             "IEX": "Fintech and market infrastructure"}
+    tags = theme_map.tags_for(list(named), ["Industrials"] * len(named))          # even with a label that says nothing
+    assert {s: t[0] for s, t in tags.items()} == named
+
+
+def test_unmatched_theme_labels_are_reported_so_a_misspelt_label_is_seen():
+    assert "Explosives" not in theme_map.unmatched_labels(["Explosives", "Aerospace & Defense"])
+    assert "Explosives" in theme_map.unmatched_labels(["Aerospace & Defense"])
+    assert "Aerospace & Defense" not in theme_map.unmatched_labels(["AEROSPACE AND DEFENSE"])
+
+
+# ---------------------------------------------------------------------------------------------------------------- issue 30.b: the two valuation views split at 50
+def test_fair_and_weak_valuation_views_split_at_exactly_50():
+    vals = [49.75, 49.70, 49.69, 49.99, 50.0, 50.01, 0.0, 100.0, 12.5]
+    rows = [mrow(f"V{i}") for i in range(len(vals) + 2)]
+    prism = {f"V{i}": pz(fund=70, val=v) for i, v in enumerate(vals)}
+    prism["V9"] = pz(fund=70, val=None)            # no valuation score
+    prism["V10"] = pz(fund=64.9, val=30)           # Growth & Profitability short of 65: in neither view
+    fr = frame(rows, prism)
+    fair = engine.prism_rules(fr, BY_ID["fairvalue"].prism_filters)
+    weak = engine.prism_rules(fr, BY_ID["weakvalue"].prism_filters)
+    in_fair = [all(r.ok[i] for r in fair) for i in range(fr.t.n)]
+    in_weak = [all(r.ok[i] for r in weak) for i in range(fr.t.n)]
+    for i, v in enumerate(vals):
+        assert in_fair[i] != in_weak[i], v                   # exactly one of the two, never neither, never both
+        assert in_weak[i] == (v < 50), v
+    assert in_weak[0] and in_weak[1] and in_weak[2] and not in_fair[0] and in_fair[4] and not in_weak[4]
+    assert not in_fair[9] and not in_weak[9] and not in_fair[10] and not in_weak[10]
+    assert any(r.label == "Prism Valuation below 50" for r in weak)
+
+
+def test_the_two_valuation_views_are_one_partition_at_50_in_the_registry():
+    f, w = BY_ID["fairvalue"].prism_filters, BY_ID["weakvalue"].prism_filters
+    assert f["zvmin"] == 50 and w["zvbelow"] == 50 and "zvmin" not in w and "zvbelow" not in f and f["zfmin"] == w["zfmin"] == 65
+    assert "Valuation below 50" in BY_ID["weakvalue"].card_text and "Valuation 50 or more" in BY_ID["fairvalue"].card_text
+
+
+# ---------------------------------------------------------------------------------------------------------------- issue 30.b: results page by 25
+def test_a_long_screen_keeps_every_ranked_row_for_paging_and_a_top_10_never_pages():
+    rows = [mrow(f"G{i:03d}", market_cap=3000 + i) for i in range(60)]
+    prism = {r["symbol"]: pz(fund=80 + (i % 10) / 10, qual=70, risk=60) for i, r in enumerate(rows)}
+    body = engine.run(frame(rows, prism), BY_ID["consistent-growers"])
+    assert body["count"] == 60 and body["shown"] == 25 and body["pageSize"] == 25 and len(body["exportRows"]) == 60 and "listText" not in body
+    assert [r["position"] for r in body["exportRows"]] == list(range(1, 61)) and body["exportRows"][:25] == body["rows"]
+    top = engine.run(frame(uni(), with_prism(uni())), BY_ID["highest-rated-large"])
+    assert "pageSize" not in top and top["shown"] == 10 and top["listText"].startswith("Top 10 of ")
+    assert "pageSize" not in engine.run(frame(theme_universe(), {}, theme_eval=None), BY_ID["sector-themes"])
