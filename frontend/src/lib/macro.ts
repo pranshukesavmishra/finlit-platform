@@ -7,6 +7,8 @@ export type Card = {
   key: string; label: string; value: number; unit: string; date: string; period: string; prev: number | null; prevPeriod: string | null; change: number | null;
   changeUnit: string; changePct?: number; yearAgo: number | null; yearChange?: number; source: string; sourceUrl: string | null; what: string | null; spark: Pt[];
   lastDecision?: { date: string; bp: number; url: string };
+  /** For Brent: how late the source publishes. */
+  lag?: string;
 };
 export type SeriesOut = { label: string; unit: string; freq: "M" | "Q" | "W" | "F" | "D"; source: string; sourceUrl: string | null; what: string | null; note: string | null; breaks: { d: string; label: string }[]; points: Pt[] };
 export type Insight = { key: string; tone: "info" | "warn"; title: string; text: string };
@@ -18,6 +20,8 @@ export type Macro = {
   reserves: { reservesAsOf: string; link: string; reserves: Record<string, { inr: number; usd: number; weekUsd: number; fyUsd: number; yearUsd: number }> } | null;
   decisions: { date: string; rate: number; bp: number; url: string }[];
   /** Brent crude from the EIA (US$ a barrel) and how it stands against its 4-quarter average; `reason` says why a number is missing (e.g. "Brent: source key not set"). */
+  /** Copper, aluminium and natural gas (World Bank monthly): the reason each has no card yet. */
+  metals?: Record<string, { label: string; reason: string }>;
   brent?: { status: string; value?: number; date?: string; avg4q?: number | null; vsAvgPct?: number | null; avgFrom?: string; avgTo?: string; reason?: string; note?: string };
   coverage: { key: string; label: string; source: string; from: string; latest: string; observations: number; ageDays: number }[];
   runs: Record<string, { status: string; at: string }>; issues: string[]; sources: { name: string; url: string; covers: string }[]; disclaimer: string;
@@ -75,7 +79,7 @@ export function heat(v: number | null): { bg: string; strong: boolean } {
 export const fmt = (v: number, unit: string): string => {
   const d = unit === "₹" || unit === "US$ bn" ? (Math.abs(v) >= 100 ? 1 : 2) : 2;
   const s = Math.abs(v).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
-  return (v < 0 ? "−" : "") + (unit === "₹" ? "₹" : unit === "US$ bn" ? "US$ " : "") + s + (unit === "%" ? "%" : unit === "US$ bn" ? " bn" : unit === "pp" ? " pp" : "");
+  return (v < 0 ? "−" : "") + (unit === "₹" ? "₹" : unit === "US$ bn" || unit === "US$/bbl" || unit === "US$/t" || unit === "US$/mmBtu" ? "US$ " : "") + s + (unit === "%" ? "%" : unit === "US$ bn" ? " bn" : unit === "pp" ? " pp" : unit === "US$/bbl" ? " /bbl" : unit === "US$/t" ? " /t" : unit === "US$/mmBtu" ? " /mmBtu" : "");
 };
 export const signed = (v: number, unit: string) => (v > 0 ? "+" : v < 0 ? "−" : "") + fmt(Math.abs(v), unit === "pp" ? "pp" : unit).replace(/^US\$ /, "");
 

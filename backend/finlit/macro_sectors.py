@@ -204,15 +204,22 @@ async def switched_on(store) -> bool:
 
 
 async def crude_3m(conn) -> Optional[float]:
-    """Brent's percentage change over about three months from the stored daily snapshots (latest against the last day at least 91 days before it), or None."""
-    last = await conn.fetchrow("SELECT day, value FROM commodity_snapshots WHERE symbol = 'brent' AND kind = 'intl_usd' AND value > 0 ORDER BY day DESC LIMIT 1")
-    if last is None:
-        return None
-    then = await conn.fetchrow("SELECT day, value FROM commodity_snapshots WHERE symbol = 'brent' AND kind = 'intl_usd' AND value > 0 AND day <= $1 ORDER BY day DESC LIMIT 1",
-                               last["day"] - __import__("datetime").timedelta(days=91))
-    if then is None or (last["day"] - then["day"]).days > 120:
-        return None
-    return (float(last["value"]) / float(then["value"]) - 1) * 100
+    """Brent's percentage change over about three months (latest against the last day at least 91 days before it), or None. The commodity vendor's stored daily
+    snapshots are read first; when there are none the U.S. EIA daily Brent series loaded by the macro job (macro series brent_d) is used."""
+    import datetime as _dt
+    for sql_last, sql_then in (
+            ("SELECT day AS d, value AS v FROM commodity_snapshots WHERE symbol = 'brent' AND kind = 'intl_usd' AND value > 0 ORDER BY day DESC LIMIT 1",
+             "SELECT day AS d, value AS v FROM commodity_snapshots WHERE symbol = 'brent' AND kind = 'intl_usd' AND value > 0 AND day <= $1 ORDER BY day DESC LIMIT 1"),
+            ("SELECT d, v FROM macro_points WHERE series = 'brent_d' AND v > 0 ORDER BY d DESC LIMIT 1",
+             "SELECT d, v FROM macro_points WHERE series = 'brent_d' AND v > 0 AND d <= $1 ORDER BY d DESC LIMIT 1")):
+        last = await conn.fetchrow(sql_last)
+        if last is None:
+            continue
+        then = await conn.fetchrow(sql_then, last["d"] - _dt.timedelta(days=91))
+        if then is None or (last["d"] - then["d"]).days > 120:
+            continue
+        return (float(last["v"]) / float(then["v"]) - 1) * 100
+    return None
 
 
 @router.get("/api/macro/sectors")

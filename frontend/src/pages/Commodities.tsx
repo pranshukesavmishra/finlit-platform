@@ -10,7 +10,7 @@ import { useDocTitle } from "../lib/title";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import {
   UNITS, convert, dayMonthYear, direction, group, inr, istStamp, istTime, signedPct, useCommodities, usd,
-  type CommodityIntl, type CommodityItem, type CommodityMcx, type Commodities, type UnitId,
+  type CommodityEia, type CommodityIntl, type CommodityItem, type CommodityMcx, type Commodities, type UnitId,
 } from "../lib/commodities";
 import "../styles/commodities.css";
 
@@ -64,6 +64,22 @@ function IntlBlock({ lines, name }: { lines: CommodityIntl[]; name: string }) {
   );
 }
 
+function EiaBlock({ e }: { e: CommodityEia }) {
+  return (
+    <div className={"cm-blk cm-intl cm-eia st-" + e.state} data-state={e.state}>
+      <div className="cm-lbl"><span>International price</span><span className="cm-src">{e.source}</span></div>
+      {e.usd != null ? (
+        <>
+          <div className="cm-row"><span className={"cm-mid" + (e.state === "stale" ? " dim" : "")}>{usd(e.usd)}</span><span className="cm-unit">per barrel</span><Change pct={e.changePct} /></div>
+          {e.inr && <p className="cm-note">About {inr(e.inr.value)} per barrel. {e.inr.label} ({e.inr.usdinr} on {dayMonthYear(e.inr.usdinrDate)}; Brent of {dayMonthYear(e.inr.priceDate)}).</p>}
+          {e.note && <p className="cm-note">{e.note}</p>}
+          <p className="cm-foot"><span className={"cm-dot " + (e.state === "ok" ? "st-recent" : "st-delayed")} aria-hidden="true" /><span>{e.source}, daily, 1-2 day lag · price of {dayMonthYear(e.date)}</span></p>
+        </>
+      ) : <p className="cm-dash"><span aria-hidden="true">—</span> {e.note ?? "Brent: no prices loaded yet."}</p>}
+    </div>
+  );
+}
+
 function Card({ c }: { c: CommodityItem }) {
   const grp = c.group === "precious" ? "Precious metal" : c.group === "energy" ? "Energy" : "Industrial metal";
   return (
@@ -71,6 +87,7 @@ function Card({ c }: { c: CommodityItem }) {
       <header><h2 id={"cm-" + c.code}>{c.name}</h2><span className="cm-grp">{grp}</span></header>
       {c.mcx && <McxBlock m={c.mcx} label="MCX futures price (via Dhan)" />}
       <IntlBlock lines={c.intl} name={c.name} />
+      {c.eia && <EiaBlock e={c.eia} />}
     </article>
   );
 }
@@ -164,7 +181,7 @@ export function CommoditiesPage() {
         {q.data && items.length === 0 && <p className="faint">Nothing to show in this group.</p>}
         <Converter />
         <Explainer />
-        <p className="faint cm-src-note">Sources: MCX futures prices via Dhan{q.data?.sources.intl.metals ? `; international prices and USD/INR via ${q.data.sources.intl.metals}${q.data.sources.intl.energy && q.data.sources.intl.energy !== q.data.sources.intl.metals ? ` and ${q.data.sources.intl.energy}` : ""}` : ""}. Customs duty from the Union Government's notifications. Updated automatically.</p>
+        <p className="faint cm-src-note">Sources: MCX futures prices via Dhan{q.data?.sources.intl.metals ? `; international prices and USD/INR via ${q.data.sources.intl.metals}${q.data.sources.intl.energy && q.data.sources.intl.energy !== q.data.sources.intl.metals ? ` and ${q.data.sources.intl.energy}` : ""}` : ""}. {q.data?.items.some((i) => i.eia) ? "Brent crude: U.S. Energy Information Administration (daily spot price, published with a 1-2 business day lag). " : ""}Customs duty from the Union Government's notifications. Updated automatically.</p>
       </div>
     </>
   );
