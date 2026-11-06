@@ -7,6 +7,7 @@ import { CardTop } from "./pzr/CardTop";
 import { FactorExplorer } from "./pzr/Factors";
 import { Health, Peers } from "./pzr/Health";
 import { HistoryCharts, HistoryTables } from "./pzr/History";
+import { Technical } from "./pzr/Technical";
 import { Waterfall } from "./pzr/Parts";
 import "../../styles/prism-technical.css";
 import type { PrismReport } from "../../lib/prism";
@@ -38,6 +39,7 @@ export function PrismReportView({ report, actions = {}, example = false }: { rep
       )}
       <Waterfall report={report} />
       <FactorExplorer report={report} review={review} />
+      <Technical report={report} onRecalculate={actions.onRecalculate} />
       <section className="pzr-sec" aria-labelledby="pzr-h-hist">
         <header className="pzr-sh"><h3 id="pzr-h-hist">Financial history</h3><p>From the company's filings, on the same statement basis as the score.</p></header>
         <HistoryCharts report={report} />

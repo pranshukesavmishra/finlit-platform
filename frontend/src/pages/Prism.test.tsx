@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import report from "../lib/__fixtures__/prismReport.json";
 import variants from "../lib/__fixtures__/prismVariants.json";
 import technical from "../lib/__fixtures__/prismTechnical.json";
+import technicalBuilt from "../lib/__fixtures__/prismTechnicalBuilt.json";
 import { score1, type PrismReport } from "../lib/prism";
 import { parseTechnical, ratingWord } from "../lib/prismTechnical";
 
@@ -222,5 +223,25 @@ describe("Prism report top: the card pair (financial health analysis and technic
   });
   it("tile text carries no advice words", () => {
     for (const r of [withTech, R, V.notRated]) expect(top(r).t).not.toMatch(/\b(buy|sell|hold|accumulate|avoid|bullish|bearish)\b/i);
+  });
+});
+
+describe("Prism report: the technical score tables sit below the Risk table (task #5)", () => {
+  const built = technicalBuilt as unknown as Record<string, unknown>;
+  const html = renderToStaticMarkup(<MemoryRouter><PrismReportView report={{ ...R, technicalAssessment: built.smallcap_stage2 } as PrismReport} actions={{}} /></MemoryRouter>);
+  it("shows the Technical view section after the last part's factors and before the financial history", () => {
+    const risk = html.indexOf('id="pzr-part-risk"'), tv = html.indexOf('id="pzr-technical"'), hist = html.indexOf('id="pzr-h-hist"');
+    expect(risk).toBeGreaterThan(-1);
+    expect(tv).toBeGreaterThan(risk);
+    expect(hist).toBeGreaterThan(tv);
+  });
+  it("has both score tables (short term and long term) with reading, signal, weight and points", () => {
+    expect(html).toContain("Short term: how the score is built");
+    expect(html).toContain("Long term: how the score is built");
+    for (const col of ["Reading now", "Signal", "Weight", "Points"]) expect(html).toContain(`>${col}</th>`);
+  });
+  it("uses descriptive trend words only, never the model's Buy, Hold, Reduce or Sell verdicts", () => {
+    const plain = html.replace(/<[^>]+>/g, " ");
+    expect(plain).not.toMatch(/\b(strong buy|reduce|accumulate on dips|bounce only|don't invest|sell \/ avoid)\b/i);
   });
 });
