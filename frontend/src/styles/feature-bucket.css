@@ -29,3 +29,29 @@
 @media (max-width: 900px) { .fb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .fb-grid { grid-template-columns: minmax(0, 1fr); } .fb-ghead h3 { font-size: var(--fs-20); } }
 @media (prefers-reduced-motion: reduce) { .fb-card, .fb-shot img, .fb-open span, .fb-pill { transition: none; } .fb-card:hover, .fb-card:focus-within { transform: none; } .fb-card:hover .fb-shot img, .fb-open:hover span { transform: none; } }
+
+/* Compact cards (6 Nov 2026: the Hub replaced the numbered "Explore our platform" grid, so it sits near the top of the page and must stay short) */
+.fb-sep { width: 1px; align-self: stretch; margin: 4px 4px; background: var(--border-subtle); }
+.fb-flabel { align-self: center; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.fb-plans { display: contents; }
+.fb-group { margin-top: 28px; } .fb-ghead { margin-bottom: 14px; }
+.fb-grid { gap: 14px; }
+.fb-card { gap: 8px; padding: 14px; } .fb-card[hidden] { display: none; }
+.fb-top { align-items: flex-start; } .fb-name { min-width: 0; flex: 1; } .fb-card h4 { margin: 0; font-size: 16px; line-height: 1.3; } .fb-name .fb-tag { margin: 2px 0 0; font-size: 13px; line-height: 1.4; color: var(--text-secondary); }
+a.fb-chip { text-decoration: none; min-height: 24px; display: inline-flex; align-items: center; } a.fb-chip:hover { border-color: currentColor; } a.fb-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.fb-shot { aspect-ratio: 16 / 7; } .fb-shot img { height: 100%; object-fit: cover; object-position: top center; }
+.fb-feat { gap: 3px; font-size: 13px; line-height: 1.45; }
+.fb-edge { padding: 6px 10px; font-size: 12px; line-height: 1.45; }
+.fb-open { min-height: 40px; font-size: 14px; } .fb-n { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text-muted); margin-right: 2px; } .fb-open:hover .fb-n { color: inherit; }
+@media (max-width: 600px) { .fb-sep { display: none; } .fb-flabel { flex-basis: 100%; margin-top: 4px; } .fb-pill { min-height: 44px; } .fb-open { min-height: 44px; } a.fb-chip { min-height: 32px; } }
+/* one row per group on a wide screen (groups hold 4 or 5 tools); on a phone each group is one row you swipe, so the Hub stays a few screens long */
+@media (min-width: 1181px) { .fb-grid { grid-template-columns: repeat(var(--fb-cols, 4), minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .fb-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; margin: 0; padding: 2px 0 10px; -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .fb-grid > .fb-card { flex: 0 0 84%; scroll-snap-align: start; }
+  .fb-card:hover, .fb-card:focus-within { transform: none; }
+}
+/* the icon and the plan chip share the first row; the name and its one line take the full width below */
+.fb-top { flex-wrap: wrap; align-items: center; row-gap: 8px; } .fb-name { flex-basis: 100%; order: 3; }
+.fb-card { position: relative; }   /* keeps the screen-reader-only text inside the card, so the swipe row on phones cannot widen the page */

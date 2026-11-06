@@ -14,3 +14,24 @@ it("filter pills hide other groups visually but keep every card in the page", ()
   fireEvent.click(getByRole("button", { name: "All" }));
   expect(groups.every((g) => !g.hidden)).toBe(true);
 });
+
+it("the plan filter shows only the tools that open on that plan, hides empty groups and keeps every card in the page", () => {
+  const { container, getByRole } = render(<MemoryRouter><FeatureBucket /></MemoryRouter>);
+  fireEvent.click(getByRole("button", { name: "Silver" }));
+  const cards = [...container.querySelectorAll<HTMLElement>(".fb-card")];
+  expect(cards).toHaveLength(22);
+  const shown = cards.filter((c) => !c.hidden);
+  expect(shown.length).toBeGreaterThan(0);
+  expect(shown.every((c) => c.dataset.tier === "silver")).toBe(true);
+  const groups = [...container.querySelectorAll<HTMLElement>(".fb-group")];
+  for (const g of groups) expect(g.hidden).toBe(!g.querySelector(".fb-card:not([hidden])"));
+  fireEvent.click(getByRole("button", { name: "Any plan" }));
+  expect(cards.every((c) => !c.hidden)).toBe(true);
+});
+
+it("every plan chip leads to that plan on the Plans page", () => {
+  const { container } = render(<MemoryRouter><FeatureBucket /></MemoryRouter>);
+  const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a.fb-chip")].map((a) => a.getAttribute("href"));
+  expect(hrefs).toHaveLength(22);
+  expect(new Set(hrefs)).toEqual(new Set(["/plans#basic", "/plans#silver", "/plans#gold"]));
+});

@@ -10,7 +10,6 @@ import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { PlansBand } from "./Plans";
 import { FeatureBucket } from "../components/FeatureBucket";
-import { PlatformGrid } from "../components/PlatformGrid";
 import { useAuth } from "../lib/auth";
 import { Safe3D } from "../three/Safe3D";
 import { supports3d, whenIdle } from "../three/support";
@@ -132,7 +131,7 @@ export function Home() {
         </div>
       </section>
 
-      <PlatformGrid />
+      <FeatureBucket />
       <Lenses />
 
       <section className="wrap" id="coming-soon" aria-labelledby="soonTitle"><Reveal><div className="soon">
@@ -152,8 +151,6 @@ export function Home() {
       </div></section>
 
       <Method s={s} failed={sErr} />
-
-      <FeatureBucket />
 
       <PlansBand id="pricing" compact />
 
