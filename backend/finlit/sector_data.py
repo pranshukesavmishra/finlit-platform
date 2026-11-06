@@ -73,6 +73,19 @@ def building_dir(out: Path, stamp: str) -> Path:
     return d
 
 
+RESUME_PREFIX = ".building-resume-"
+RESUME_KEEP_HOURS = 30          # a stopped build is continued by the next attempts (minutes later, or the next morning); older than this it is dropped
+
+
+def resume_dir(out: Path, sig: str) -> Path:
+    """The folder a build writes into when it may be continued: named after the signature of the NSE files and the package version, and NOT emptied when it
+    already exists, so a run stopped by the job's time limit carries on with the stock files and score parts it already finished. Different inputs give a
+    different name, so nothing is ever reused across inputs."""
+    d = out / "releases" / f"{RESUME_PREFIX}{sig[:16]}"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def publish(building: Path, out: Path, stamp: str) -> Path:
     """Make a finished folder the live one: rename it into place, then point `current` at it with one atomic rename. Returns the release folder."""
     final = out / "releases" / stamp
@@ -102,8 +115,10 @@ def prune(out: Path, keep: int) -> None:
                 age = datetime.now().timestamp() - p.stat().st_mtime
             except OSError:
                 continue
-            if age > 6 * 3600:
+            keep_h = RESUME_KEEP_HOURS if p.name.startswith(RESUME_PREFIX) else 6
+            if age > keep_h * 3600:
                 shutil.rmtree(p, ignore_errors=True)
+                shutil.rmtree(p.parent / f"{p.name}.work", ignore_errors=True)
 
 
 def write_last_run(out: Path, info: Dict[str, Any]) -> None:

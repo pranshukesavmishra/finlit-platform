@@ -30,8 +30,8 @@ def test_the_calendar_is_what_the_incident_says():
 
 
 def test_windows_open_and_close_in_ist_including_the_midnight_wrap():
-    cases = [("NIGHT", (23, 29), False), ("NIGHT", (23, 30), True), ("NIGHT", (0, 0), True), ("NIGHT", (3, 29), True), ("NIGHT", (3, 30), False), ("NIGHT", (12, 0), False),
-             ("MORNING", (4, 59), False), ("MORNING", (5, 0), True), ("MORNING", (6, 44), True), ("MORNING", (6, 45), False),
+    cases = [("NIGHT", (22, 59), False), ("NIGHT", (23, 0), True), ("NIGHT", (0, 0), True), ("NIGHT", (4, 59), True), ("NIGHT", (5, 0), False), ("NIGHT", (12, 0), False),
+             ("MORNING", (4, 59), False), ("MORNING", (5, 0), True), ("MORNING", (7, 59), True), ("MORNING", (8, 0), False),
              ("AFTER_CLOSE", (18, 29), False), ("AFTER_CLOSE", (18, 30), True), ("AFTER_CLOSE", (21, 29), True), ("AFTER_CLOSE", (21, 30), False)]
     for name, (h, m), expect in cases:
         assert schedule.window_open(name, at(*FRI, h, m)) is expect, (name, h, m)
@@ -40,16 +40,16 @@ def test_windows_open_and_close_in_ist_including_the_midnight_wrap():
 
 def test_a_night_window_instance_spans_two_calendar_days():
     start, end = schedule.window_instance("NIGHT", at(*SAT, 1, 0))
-    assert start == at(*FRI, 23, 30) and end == at(*SAT, 3, 30)
+    assert start == at(*FRI, 23, 0) and end == at(*SAT, 5, 0)
     start, end = schedule.window_instance("NIGHT", at(*FRI, 23, 45))
-    assert start == at(*FRI, 23, 30) and end == at(*SAT, 3, 30)
+    assert start == at(*FRI, 23, 0) and end == at(*SAT, 5, 0)
     assert schedule.window_instance("NIGHT", at(*FRI, 12, 0)) is None
 
 
 def test_utc_input_is_converted_to_ist():
     # 18:00 UTC is 23:30 IST
-    assert schedule.window_open("NIGHT", datetime(2026, 10, 30, 18, 0, tzinfo=timezone.utc))
-    assert not schedule.window_open("NIGHT", datetime(2026, 10, 30, 17, 59, tzinfo=timezone.utc))
+    assert schedule.window_open("NIGHT", datetime(2026, 10, 30, 17, 30, tzinfo=timezone.utc))
+    assert not schedule.window_open("NIGHT", datetime(2026, 10, 30, 17, 29, tzinfo=timezone.utc))
 
 
 def test_expected_session_rule_matches_the_technicals_module():
@@ -290,3 +290,26 @@ def test_next_due_is_the_earliest_of_interval_window_daily_and_sla():
     assert nxt == at(*FRI, 23, 30) + timedelta(0) or nxt >= at(*FRI, 23, 30)
     r = due.next_due_at(JOBS["results"], state("results", now, 0.1), ctx(now))
     assert r == now - timedelta(hours=0.1) + timedelta(minutes=25)
+
+
+
+# ------------------------------------------------------------------------------------------------ the night shift (founder, 6 Nov 2026)
+def test_the_night_shift_runs_unbroken_from_23_to_08():
+    for h, m in ((23, 0), (23, 59), (0, 30), (3, 30), (4, 59), (5, 0), (6, 45), (7, 59)):
+        assert schedule.night_shift(at(*SAT, h, m) if h < 12 else at(*FRI, h, m)), (h, m)
+    for h, m in ((8, 0), (12, 0), (18, 0), (22, 59)):
+        assert not schedule.night_shift(at(*FRI, h, m)), (h, m)
+
+
+def test_a_failed_or_held_job_is_retried_soon_at_night_and_waits_longer_by_day():
+    from finlit.jobs.due import JobState, effective_retry_at
+    night, day = at(*SAT, 1, 0), at(*FRI, 12, 0)
+    for now in (night, day):
+        st = JobState("x", last_attempt_at=now, retry_at=now + timedelta(hours=2), last_status="timeout")
+        failed = effective_retry_at(st, now)
+        st.held_until = st.retry_at
+        held = effective_retry_at(st, now)
+        if now is night:
+            assert failed == now + timedelta(minutes=30) and held == now + timedelta(minutes=60)
+        else:
+            assert failed == held == now + timedelta(hours=2)

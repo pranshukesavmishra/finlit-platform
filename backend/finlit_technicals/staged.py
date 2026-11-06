@@ -170,14 +170,27 @@ def _stage(stage: str, args: List[str], on_progress: Optional[Callable[[int, int
 
 
 def run_staged(nse: str | Path, out: str | Path, symbols: Optional[List[str]] = None,
-               progress: Optional[Callable[[int, int, str], None]] = None, parts: Optional[int] = None) -> List[Dict[str, Any]]:
-    """The batch over NSE's files, in stages (see the module docstring). Same arguments and result as default_batch in finlit/sector_job.py."""
+               progress: Optional[Callable[[int, int, str], None]] = None, parts: Optional[int] = None, resume: bool = False) -> List[Dict[str, Any]]:
+    """The batch over NSE's files, in stages (see the module docstring). Same arguments and result as default_batch in finlit/sector_job.py.
+
+    resume=True: a run that was stopped part-way (the job's time limit on a slow server) continues where it stopped. The plan and every finished score
+    part are kept in the work folder next to `out`, and a later call with the same out folder, stock list and number of parts skips them. The caller keys
+    `out` on the signature of the NSE files and the package version, so a kept part is only ever reused for exactly the same inputs."""
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     work = out.parent / f"{out.name}.work"
-    shutil.rmtree(work, ignore_errors=True)
-    work.mkdir(parents=True)
     n_parts = int(parts or os.environ.get("SECTOR_PARTS") or DEFAULT_PARTS)
+    key = {"symbols": list(symbols) if symbols else None, "parts": n_parts}
+    kept = False
+    if resume and (work / "plan.json").is_file():
+        try:
+            kept = json.loads((work / "key.json").read_text()) == key
+        except (OSError, ValueError):
+            kept = False
+    if not kept:
+        shutil.rmtree(work, ignore_errors=True)
+        work.mkdir(parents=True)
+        (work / "key.json").write_text(json.dumps(key))
     t0 = time.time()
     peaks: Dict[str, float] = {}
     secs: Dict[str, int] = {}
@@ -188,11 +201,20 @@ def run_staged(nse: str | Path, out: str | Path, symbols: Optional[List[str]] = 
             sym_args = ["--symbols-file", str(work / "symbols.json")]
         common = ["--nse", str(nse), "--work", str(work), "--out", str(out)]
         peaks["panel"], secs["panel"] = _stage("panel", ["--nse", str(nse)])
-        peaks["prepare"], secs["prepare"] = _stage("prepare", [*common, "--parts", str(n_parts), *sym_args])
+        if kept:
+            print("prepare: kept from the run that was stopped", flush=True)
+        else:
+            peaks["prepare"], secs["prepare"] = _stage("prepare", [*common, "--parts", str(n_parts), *sym_args])
         plan = json.loads((work / "plan.json").read_text())
         total, done = len(plan["symbols"]), 0
         for k, idx in enumerate(plan["parts"]):
             base = done
+            if kept and (work / f"part-{k}.pkl").is_file():
+                print(f"score: part {k} kept from the run that was stopped ({len(idx)} stocks)", flush=True)
+                done += len(idx)
+                if progress:
+                    progress(done, total, "(kept)")
+                continue
 
             def relay(i: int, n: int, sym: str, base: int = base) -> None:
                 if progress:
@@ -203,9 +225,12 @@ def run_staged(nse: str | Path, out: str | Path, symbols: Optional[List[str]] = 
         summary = pickle.loads((work / "summary.pkl").read_bytes())      # nosec B301 - written by the merge stage just now
         print("stages: peak memory MB " + ", ".join(f"{k} {v:g}" for k, v in peaks.items()), flush=True)
         print("stages: seconds " + ", ".join(f"{k} {v}" for k, v in secs.items()), flush=True)
-        return summary
-    finally:
         shutil.rmtree(work, ignore_errors=True)
+        return summary
+    except BaseException:
+        if not resume:                     # kept for the next run when resuming; a killed process never gets here, which also keeps it
+            shutil.rmtree(work, ignore_errors=True)
+        raise
 
 
 def main(argv: Optional[List[str]] = None) -> int:

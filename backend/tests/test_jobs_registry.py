@@ -137,7 +137,8 @@ def test_the_sector_job_is_a_bulk_job_after_technicals_and_always_on():
     j = JOBS["sectors"]
     assert j.cls == "bulk" and j.command == "refresh-sectors" and j.prerequisites == ("technicals",) and j.owns == ("sectors",)
     assert j.sla.kind == "session" and j.sla.hours == 14 and j.max_runtime_min == 90 and 364 <= j.weight_mb <= 600 and j.honours_pause
-    assert [(w.window, w.not_before) for w in j.windows] == [("AFTER_CLOSE", (19, 0)), ("MORNING", None)]
+    assert [(w.window, w.not_before) for w in j.windows] == [("AFTER_CLOSE", (19, 0)), ("NIGHT", None), ("MORNING", None)]
+    assert j.resumable                                                        # longer than one run on the server: it continues where it stopped
     for env in ({}, {"SECTORS_ENABLED": "0"}, SEC_ENV):
         assert disabled_reason(j, env) is None                                # always on: the environment cannot switch it off
     assert evaluate(j, JobState(job="sectors", first_seen_at=ist(2026, 10, 1)), Ctx(now=ist(2026, 10, 30, 19, 30), env={}, probes={})).state != "disabled"

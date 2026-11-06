@@ -228,3 +228,48 @@ def test_a_stage_that_fails_stops_the_run_and_says_which(tmp_path):
     with pytest.raises(RuntimeError, match="'panel' step ended with code"):
         staged.run_staged(tmp_path / "no-such-folder", tmp_path / "out")
     assert not (tmp_path / "out.work").exists()
+
+
+def test_a_stopped_run_continues_with_its_finished_parts_and_gives_the_same_files(tmp_path):
+    """The server's job limit stops a long build part-way (5 Nov 2026: about 2.5 hours against 90 minutes). With resume=True the next call keeps the plan
+    and the finished score parts and runs only the rest; the released files are still byte for byte those of the single-process run."""
+    import pytest
+    d = small_market(tmp_path, stocks=120, start="2024-06-01")
+    old = tmp_path / "old"
+    run_reference(d, old)
+    new = tmp_path / "new"
+    real = staged._stage
+    calls = []
+    stop = [True]
+
+    def stopping(stage, args, *a, **k):
+        calls.append((stage, args[args.index("--part") + 1] if "--part" in args else None))
+        if stop[0] and calls[-1] == ("score", "1"):
+            stop[0] = False
+            raise RuntimeError("stopped by the time limit")
+        return real(stage, args, *a, **k)
+    staged._stage = stopping
+    try:
+        with pytest.raises(RuntimeError, match="time limit"):
+            staged.run_staged(d, new, parts=3, resume=True)
+        assert (tmp_path / "new.work" / "part-0.pkl").is_file()                  # the finished part is kept
+        calls.clear()
+        done = []
+        staged.run_staged(d, new, parts=3, resume=True, progress=lambda i, n, s: done.append(i))
+    finally:
+        staged._stage = real
+    assert ("prepare", None) not in calls and ("score", "0") not in calls and ("score", "1") in calls and ("score", "2") in calls
+    assert tree_differences(old, new) == []
+    assert done and not (tmp_path / "new.work").exists()        # the work folder goes once the set is whole
+
+
+def test_a_kept_work_folder_is_not_reused_for_another_stock_list_or_part_count(tmp_path):
+    d = small_market(tmp_path, stocks=60, start="2025-03-01")
+    new = tmp_path / "new"
+    work = tmp_path / "new.work"
+    work.mkdir()
+    (work / "key.json").write_text(json.dumps({"symbols": None, "parts": 9}))
+    (work / "plan.json").write_text(json.dumps({"symbols": ["NOPE"], "parts": [[0]]}))
+    (work / "part-0.pkl").write_bytes(b"not a part")
+    summary = staged.run_staged(d, new, parts=2, resume=True)
+    assert len(summary) > 10 and all(s.get("symbol") != "NOPE" for s in summary)

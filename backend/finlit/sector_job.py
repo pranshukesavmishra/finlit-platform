@@ -170,7 +170,7 @@ def default_batch(nse: Path, building: Path, symbols: Optional[List[str]], progr
     if str(BACKEND_DIR) not in sys.path:
         sys.path.insert(0, str(BACKEND_DIR))
     if str(os.environ.get("SECTOR_STAGED", "1")).strip() != "0":
-        return staged_runner().run_staged(nse, building, symbols, progress)
+        return staged_runner().run_staged(nse, building, symbols, progress, resume=building.name.startswith(sd.RESUME_PREFIX))
     from finlit_technicals import NseHistory, SectorEngine
     from finlit_technicals.batch import nse_symbols, run
     src = NseHistory(nse)
@@ -313,7 +313,12 @@ async def _refresh(store, env, nse: Path, out: Path, res: Dict[str, Any], force:
         res["unchanged"] = True
         return {**res, **_verdict(live_date, expected, built=False, fetch=res["fetch"])}
     stamp = now.strftime("%Y%m%d-%H%M")
-    building = sd.building_dir(out, stamp)
+    # The full build takes longer than one run of the job on the small server (about 2.5 hours measured on 4 Nov 2026), so the build folder is keyed on the
+    # inputs and kept when a run is stopped: the next attempt continues with the parts already finished (SECTOR_RESUME=0 starts afresh every time).
+    resumable = not symbols and str(env.get("SECTOR_RESUME", "1")).strip() != "0"
+    building = sd.resume_dir(out, sig) if resumable else sd.building_dir(out, stamp)
+    if resumable and any(building.glob("*.json")):
+        print(f"batch: continuing the build stopped earlier ({sum(1 for _ in building.glob('*.json'))} files already written)", flush=True)
     progress_t = [time.monotonic()]
 
     def progress(i: int, n: int, sym: str) -> None:
@@ -325,8 +330,9 @@ async def _refresh(store, env, nse: Path, out: Path, res: Dict[str, Any], force:
     try:
         summary = await asyncio.to_thread(batch_fn, nse, building, symbols, progress)
     except BaseException:
-        import shutil
-        shutil.rmtree(building, ignore_errors=True)
+        if not resumable:          # a resumable build keeps what it finished for the next attempt (pruned after a day)
+            import shutil
+            shutil.rmtree(building, ignore_errors=True)
         raise
     bad = [s for s in summary if "error" in s]
     why = check_release(building, prev_meta.get("stocks"))

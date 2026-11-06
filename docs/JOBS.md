@@ -75,11 +75,13 @@ Per job, each tick (60 s; and at once when a job ends):
 
 | Window | Hours | Used for |
 |---|---|---|
-| MORNING | 05:00 to 06:45 | the full catch-up chain: whatever the night missed, plus results, calendars, listing before the open (fewest visitors) |
+| MORNING | 05:00 to 08:00 | the full catch-up chain: whatever the night missed, plus results, calendars, listing before the open (fewest visitors) |
 | AFTER_CLOSE | 18:30 to 21:30 | technicals, flows, macro, industry, AMFI NAV (from 21:10), facts, ETF, listing |
-| NIGHT | 23:30 to 03:30 (wraps midnight) | the heavy loads: ingest-all, score-all, prune, funds, backfills, indices, audits |
+| NIGHT | 23:00 to 05:00 (wraps midnight) | the heavy loads: ingest-all, score-all, prune, funds, backfills, indices, audits |
 
-A window instance is the specific open span, so NIGHT 23:30 Friday to 03:30 Saturday is one instance. Weekly jobs use a day rule evaluated on the IST date (leadership: Saturday, so it runs Saturday 00:00 to 03:30).
+A window instance is the specific open span, so NIGHT 23:00 Friday to 05:00 Saturday is one instance. Weekly jobs use a day rule evaluated on the IST date (leadership: Saturday, so it runs Saturday 00:00 to 05:00).
+
+**The night shift (6 Nov 2026).** NIGHT and MORNING meet at 05:00, so 23:00 to 08:00 IST is one unbroken night shift: the jobs run back to back all night (bulk jobs one at a time, by priority). Inside the shift a job that failed is tried again after at most 30 minutes and a held one after at most 60 (`NIGHT_RETRY_MIN`, `NIGHT_HELD_RETRY_MIN` in `jobs/due.py`; by day the waits stay 30/60/120 minutes, at most 3 hours), so a failure at midnight gets several more tries before the morning. A long resumable job (ingest, prism, sectors ...) reaches its time limit, yields for 2 minutes and continues where it stopped, so it finishes inside the shift however long it takes.
 
 ## 4. The registry (every job, its SLA, window, class)
 
@@ -97,7 +99,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | alerts-flag / alerts-daily / screens / digest | light | 8-9 | none / 80 h / 80 h / 8 d | each window / weekdays 19:10 / MORNING weekdays / Sunday 19:10 |
 | prune | bulk | 5 | 30 h | NIGHT |
 | **technicals** (`refresh-technicals`) | bulk | 10 | session, 12 h | AFTER_CLOSE and MORNING until the session is processed; probe re-runs every 30 min |
-| **sectors** (`refresh-sectors`, always on; docs/SECTORS.md) | bulk | 12 | session, 14 h | weekdays from 19:00 IST (AFTER_CLOSE) and MORNING until the session is processed; after technicals; weight 450 MB (staged, peak 364 MB), max 90 min; off by default |
+| **sectors** (`refresh-sectors`, always on; docs/SECTORS.md) | bulk | 12 | session, 14 h | weekdays from 19:00 IST (AFTER_CLOSE), the NIGHT shift and MORNING until the session is processed; after technicals; weight 450 MB (staged, peak 364 MB); 90 min per run, **resumable** (the full build takes about 2.5 h on the server: each run continues the build the last one stopped; docs/SECTORS.md section 13) |
 | ingest-flagship / **ingest** (`ingest-all`) | bulk | 15 / 20 | 26 h | NIGHT (18 h), MORNING (14 h); 90 min per run, resumable |
 | **score** (`score-all`) | bulk | 30 | 26 h | NIGHT, MORNING; after ingest |
 | scores-live (`refresh-scores-live`) | light | 7 | none | probe (queue of just-reported companies), at least 3 min apart; MORNING; docs/REALTIME-SCORES.md |

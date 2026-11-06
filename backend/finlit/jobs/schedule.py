@@ -24,10 +24,13 @@ class Window:
 
 
 WINDOWS: Dict[str, Window] = {
-    "MORNING": Window("MORNING", time(5, 0), time(6, 45)),          # fewest visitors; full catch-up chain before the open
+    "MORNING": Window("MORNING", time(5, 0), time(8, 0)),           # fewest visitors; full catch-up chain before the open
     "AFTER_CLOSE": Window("AFTER_CLOSE", time(18, 30), time(21, 30)),   # the day's candles are final; NSE/NSDL/MoSPI/RBI have posted
-    "NIGHT": Window("NIGHT", time(23, 30), time(3, 30)),            # the heavy loads
+    "NIGHT": Window("NIGHT", time(23, 0), time(5, 0)),              # the heavy loads
 }
+# NIGHT and MORNING together are one unbroken night shift, 23:00 to 08:00 IST (the founder's rule of 6 Nov 2026): the jobs run back to back all night, a
+# failed or held job is tried again within NIGHT_RETRY_MIN / NIGHT_HELD_RETRY_MIN instead of waiting hours, and a long job continues where it stopped.
+NIGHT_SHIFT = ("NIGHT", "MORNING")
 READY_AFTER_CLOSE = time(18, 30)   # a trading day's data counts as final from here (the exchange closes 15:30; the reports' own rule is 16:00)
 
 
@@ -38,6 +41,11 @@ def ist(now: datetime) -> datetime:
 def window_open(name: str, now: datetime) -> bool:
     w, t = WINDOWS[name], ist(now).time()
     return (t >= w.start or t < w.end) if w.wraps else (w.start <= t < w.end)
+
+
+def night_shift(now: datetime) -> bool:
+    """True from 23:00 to 08:00 IST."""
+    return any(window_open(n, now) for n in NIGHT_SHIFT)
 
 
 def open_windows(now: datetime) -> List[str]:

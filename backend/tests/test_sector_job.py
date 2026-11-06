@@ -114,7 +114,8 @@ async def test_a_crashing_batch_leaves_the_last_good_set_serving_and_says_why(tm
     res = await run(tmp_path, batch_fn=broken, now=NOW + timedelta(hours=1))
     assert res["status"] == "error" and "MemoryError" in res["reason"] and sj.exit_code(res) == 1
     assert os.path.realpath(tmp_path / "out" / "current") == before and sd.board_date(tmp_path / "out") == THU
-    assert not [p for p in (tmp_path / "out" / "releases").iterdir() if p.name.startswith(".building")]
+    kept = [p.name for p in (tmp_path / "out" / "releases").iterdir() if p.name.startswith(".building")]
+    assert kept and all(n.startswith(sd.RESUME_PREFIX) for n in kept)          # kept so the next attempt continues; never served
     assert json.loads((tmp_path / "out" / "last_run.json").read_text())["status"] == "error"
 
 
@@ -372,3 +373,42 @@ async def test_a_rotation_map_with_a_missing_card_is_not_published_but_no_map_is
     none = fakes.make_release(tmp_path / "none")
     assert (await sj.import_release(Store(), str(none), env=env_for(tmp_path), now=NOW))["status"] == "ok"
     assert sd.sector_meta(sd.live_release(tmp_path / "out"))["rotation"] is False
+
+
+# ------------------------------------------------------------------------------------------------ a build longer than one run (5 Nov 2026)
+async def test_a_build_stopped_by_the_time_limit_is_continued_by_the_next_run(tmp_path):
+    """On the server the full build takes about 2.5 hours and the job may run 90 minutes: every night it was stopped and started again from zero, so
+    2.4.1 and Rotation never went live. Now the build folder is keyed on the inputs and kept, and the next run carries on in the same folder."""
+    make_nse(tmp_path / "nse")
+    seen = []
+
+    def stopped(nse, building, symbols, progress):
+        seen.append(Path(building))
+        (Path(building) / "FIRSTPART.json").write_text("{}")
+        raise TimeoutError("stopped by the time limit")
+    res = await run(tmp_path, batch_fn=stopped)
+    assert res["status"] == "error" and sd.live_release(tmp_path / "out") is None
+
+    def finish(nse, building, symbols, progress):
+        seen.append(Path(building))
+        assert (Path(building) / "FIRSTPART.json").is_file()                    # what the stopped run finished is still there
+        fakes.make_release(Path(building), date="2026-10-29", stocks=3)
+        return [{"symbol": f"S{i}"} for i in range(3)]
+    res = await run(tmp_path, batch_fn=finish, now=NOW + timedelta(minutes=92))
+    assert res["status"] == "ok" and seen[0] == seen[1] and seen[0].name.startswith(sd.RESUME_PREFIX)
+    assert not [p for p in (tmp_path / "out" / "releases").iterdir() if p.name.startswith(".building")]
+
+
+async def test_new_nse_files_start_a_fresh_build_and_resume_can_be_switched_off(tmp_path):
+    make_nse(tmp_path / "nse")
+    seen = []
+
+    def stopped(nse, building, symbols, progress):
+        seen.append(Path(building))
+        raise TimeoutError("stopped")
+    await run(tmp_path, batch_fn=stopped)
+    make_nse(tmp_path / "nse", marker="next-day")
+    await run(tmp_path, batch_fn=stopped, now=NOW + timedelta(hours=1))
+    assert seen[0] != seen[1]                                                   # other inputs: never the same folder
+    res = await sj.refresh(Store(), env=env_for(tmp_path, SECTOR_RESUME="0"), batch_fn=stopped, fetch_fn=fetch_ok, now=NOW + timedelta(hours=2))
+    assert res["status"] == "error" and not seen[-1].name.startswith(sd.RESUME_PREFIX) and not seen[-1].exists()

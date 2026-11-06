@@ -181,3 +181,18 @@ The peer card on the stock page still uses the indicator's peer lists (TradingVi
 **Not wired: the screener.** The screener table is built from the database (`screener/data.py`, versioned metric rows and delta sync), not from the sector release, so `sector_corner`, `sector_rotation_rank` and `sector_rank_change_1w` in `_summary.json` have no path into it. It needs a loader that overlays those three fields from `current/_summary.json` onto the table by symbol, three catalogue entries (rank, 4-week change, and the corner as a coded facet) and the filter chips; that is a change to the screener core and is left for its own piece of work.
 
 **Data checks (section 4 of the package).** `python scripts/check_universe_inputs.py ASHIANA SURAJEST MAHSCOOTER TVSHLTD DPABHUSHAN MIDWESTLTD OMNI --nse /data/nse --days 8` prints, per stock, the series and traded value (Rs crore) the job read for the last sessions next to the same rows read straight from the yearly file, the 65-session median that the universe rule compares with Rs 2 crore (join) and Rs 1 crore (stay), and when the stock joined or left the counted list. Read in the code: the series column is read by `fetch.parse` for all three NSE formats (a test file for each gives EQ/BE as expected) and traded value is `TtlTrfVal` / `TOTTRDVAL` / `TURNOVER_LACS x 1e5`, all in rupees, so no defect could be proved from the code. Note the hysteresis: a stock that joined at Rs 2 crore or more stays while its median is Rs 1 crore or more, so ASHIANA at Rs 1.41 crore can be correctly counted if it joined earlier; the script shows whether it did. The five stocks marked "not in the EQ series" on 4 Nov: compare the `panel series` and `file series` columns for 4 Nov; BE there means NSE moved them to the trade-for-trade series that day.
+
+## 13. A build longer than one run (6 Nov 2026)
+
+What went wrong: on the server the full build took about 2 h 33 min (the run of 4 Nov, started by hand). The job may run 90 minutes, so from 5 Nov every scheduled
+run was stopped part-way and the next one started again from zero: 11 stops in a row, the job held, and 2.4.1 (the corrected states) and the Rotation files
+never reached the live site (`/api/sectors/status` showed `rotationLoaded: false`, `/api/rotation` answered 503).
+
+The fix: the job is **resumable**. The build folder is `releases/.building-resume-<signature>` (the signature covers every NSE file and the package version),
+and it is kept when a run is stopped; the staged runner keeps its plan and every finished score part (`part-<k>.pkl`) next to it. The next run, 2 minutes
+later, skips what is done and builds only the rest; the released files are byte for byte those of an uninterrupted run
+(`test_a_stopped_run_continues_with_its_finished_parts_and_gives_the_same_files`). New NSE files give a new signature, so nothing is reused across inputs;
+a kept folder older than 30 hours is deleted. `SECTOR_RESUME=0` turns this off. The job now also has the NIGHT window, so it runs through the night shift.
+
+Running it by hand (server window, `ubuntu@ip-`) still works and needs no time limit:
+`docker compose -p finlit -f deploy/aws/docker-compose.aws.yml --env-file /opt/finlit/.env.aws exec app python -m finlit.worker refresh-sectors --no-fetch`.
