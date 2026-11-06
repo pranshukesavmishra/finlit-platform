@@ -70,7 +70,7 @@ export function AppShell() {
   const mine = (id: string, extra: Item[] = []) => [...SECTIONS.find((x) => x.id === id)!.groups.flatMap((g) => g.items).map(toItem), ...extra];
   const groups: Group[] = [
     { title: "Overview", items: [{ to: "/dashboard", label: "Dashboard", icon: "home" }] },
-    ...RESEARCH.groups.map((g) => ({ title: g.title || RESEARCH.label, items: g.items.map(toItem) })),
+    ...RESEARCH.groups.map((g) => ({ title: g.title || RESEARCH.label, items: g.items.filter((it) => it.to !== "/premium/report").map(toItem) })),   // Premium reports stay in the header menus and the footer, not in this left rail
     { title: "Markets", items: mine("markets") },
     { title: "News & events", items: mine("news") },
     { title: "Funds", items: mine("funds") },
