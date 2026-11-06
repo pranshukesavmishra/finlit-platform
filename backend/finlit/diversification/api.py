@@ -124,7 +124,8 @@ async def _prism_universe(app) -> List[dict]:
     return rows
 
 
-def _build(prices: dict, index_rows: List[dict], symbols: List[str], facts: Dict[str, dict], horizon: str, week: str, month: str) -> Dict[str, Any]:
+def _build(prices: dict, index_rows: List[dict], symbols: List[str], facts: Dict[str, dict], horizon: str, week: str, month: str,
+           spellings: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """The CPU part (pandas, numpy, scipy, scikit-learn): runs in a worker thread."""
     from . import calc
     sectors = {s: sec.macro_sector((facts.get(s) or {}).get("sector"), s) for s in symbols}
@@ -143,6 +144,7 @@ def _build(prices: dict, index_rows: List[dict], symbols: List[str], facts: Dict
         else:
             next(e for e in core["excluded"] if e["symbol"] == s)["reason"] = "unknown"
     core["names"] = names
+    _one_score(core, prices, index_rows, symbols, facts, spellings or {}, week)
     if "score" not in core:
         core["needsThree"] = True
     if horizon == "weekly":
@@ -159,6 +161,25 @@ def _build(prices: dict, index_rows: List[dict], symbols: List[str], facts: Dict
     return out
 
 
+def _one_score(core: Dict[str, Any], prices: dict, index_rows: List[dict], symbols: List[str], facts: Dict[str, dict], spellings: Dict[str, str], week: str) -> None:
+    """One score for one list on the whole site: the score, its two parts and 'moves like N' are the ones the My portfolio page shows (the handover pack's
+    engine, finlit/portfolio_page), so the card and the page never disagree. The card's own pair, group, risk and market figures keep their windows."""
+    from ..portfolio_page import inputs
+    meta = inputs.build_meta([s for s in symbols if s in facts], facts, spellings)
+    if len(meta) < 3:
+        return
+    page = inputs.run({k: v for k, v in prices.items() if k != "__NIFTY"}, index_rows, meta, week)
+    score = inputs.card_score(page)
+    if score is None:
+        core.pop("score", None)
+        core.pop("headline", None)
+        return
+    core["score"] = {**core.get("score", {}), **score}
+    if "headline" in core:
+        core["headline"]["effectiveStocks"] = page["score"]["effective_stocks"]
+        core["headline"]["effectiveStocksRounded"] = int(page["score"]["effective_stocks"] + 0.5)
+
+
 @router.post("")
 async def diversification(request: Request, body: DiversificationIn) -> Response:
     app = request.app
@@ -171,7 +192,7 @@ async def diversification(request: Request, body: DiversificationIn) -> Response
     symbols = body.symbols
     now = now_ist()
     week, month = unfinished_week(now), f"{now.year}-{now.month:02d}"
-    key = "div:v1:" + ":".join([week, body.horizon, hashlib.sha1(",".join(sorted(symbols)).encode()).hexdigest()[:24]])   # nosec B324 - cache key
+    key = "div:v2:" + ":".join([week, body.horizon, hashlib.sha1(",".join(sorted(symbols)).encode()).hexdigest()[:24]])   # nosec B324 - cache key
     redis = app.state.store.redis
     try:
         cached = await redis.get(key)
@@ -185,7 +206,8 @@ async def diversification(request: Request, body: DiversificationIn) -> Response
         index_rows = await _index(app)
         if not index_rows:
             raise fail(502, "provider_unavailable", "NIFTY 50 prices are not available right now, so the comparison cannot be worked out. Please try again in a moment.")
-        result = await asyncio.to_thread(_build, prices, index_rows, symbols, facts, body.horizon, week, month)
+        from ..portfolio_page.api import _sector_spellings
+        result = await asyncio.to_thread(_build, prices, index_rows, symbols, facts, body.horizon, week, month, await _sector_spellings(app))
         try:
             await redis.set(key, orjson.dumps(result), ex=CACHE_SECONDS)
         except Exception:

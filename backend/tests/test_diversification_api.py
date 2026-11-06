@@ -69,8 +69,9 @@ async def test_sample_list_through_the_endpoint(app):  # noqa: F811
         r = await c.post(URL, json={"symbols": [s.lower() for s in SAMPLE], "benchmark": "NIF50"})
         assert r.status_code == 200, r.text
         j = r.json()
-        assert j["score"] == EXPECTED["score"] and j["scoreVersion"] == "1" and j["horizon"] == "weekly"
-        assert j["headline"] == EXPECTED["headline"] and j["clusters"] == EXPECTED["clusters"]
+        # one score on the site: the card shows the My portfolio engine's score (104 weeks, plain correlations); calc's own 156-week figure is in expected_output.json
+        assert j["score"] == {**EXPECTED["score"], "value": 68, "unrounded": 68.0, "coMovement": 66, "effectiveSectors": 4.4} and j["scoreVersion"] == "1" and j["horizon"] == "weekly"
+        assert j["headline"] == {**EXPECTED["headline"], "effectiveStocks": 5.9, "effectiveStocksRounded": 6} and j["clusters"] == EXPECTED["clusters"]
         assert j["asOf"]["fromWeek"] == "2023-W45" and j["asOf"]["toWeek"] == "2026-W44" and j["asOf"]["label"] == "Nov 2023 – Oct 2026"
         assert j["spread"]["sectors"][0] == {"name": "Financial services", "count": 6} and j["spread"]["size"] == {"Large": 15, "Mid": 0, "Small": 0}
         assert j["spread"]["groups"] == [{"name": "Tata", "symbols": ["TCS", "TATASTEEL"]}]      # Bajaj and Reliance have one stock each: not a concentration
@@ -102,7 +103,7 @@ async def test_short_list_and_short_history(app):  # noqa: F811
         assert j["excluded"][0]["symbol"] == "NEWCO" and j["excluded"][0]["reason"] == "history" and j["included"] == 15
         assert {"name": "Healthcare", "count": 2} in j["spread"]["sectors"]
         u = (await c.post(URL, json={"symbols": SAMPLE + ["ZZUNKNOWN"]})).json()
-        assert {"symbol": "ZZUNKNOWN", "reason": "unknown", "weeks": 0} in u["excluded"] and u["score"]["value"] == 72
+        assert {"symbol": "ZZUNKNOWN", "reason": "unknown", "weeks": 0} in u["excluded"] and u["score"]["value"] == 68
 
 
 async def test_style_tilt_is_gold_only(app):  # noqa: F811
@@ -122,4 +123,4 @@ async def test_second_call_is_served_from_the_cache(app, monkeypatch):  # noqa: 
         await c.post(URL, json={"symbols": SAMPLE})
         monkeypatch.setattr(div_api, "_build", lambda *a, **k: (_ for _ in ()).throw(AssertionError("recomputed")))
         r = await c.post(URL, json={"symbols": list(reversed(SAMPLE))})           # same names in another order: same cache entry
-        assert r.status_code == 200 and r.json()["score"]["value"] == 72
+        assert r.status_code == 200 and r.json()["score"]["value"] == 68

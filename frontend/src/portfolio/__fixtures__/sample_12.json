@@ -1,0 +1,869 @@
+{
+ "inputs": {
+  "meta": {
+   "HDFCBANK": {
+    "name": "HDFC Bank Ltd",
+    "sector": "Financial Services",
+    "size": "L",
+    "mcap_cr": 1194710,
+    "prism": {
+     "final": 63,
+     "growth_profitability": 73,
+     "valuation": 39,
+     "quality": 68,
+     "risk": 83
+    }
+   },
+   "ICICIBANK": {
+    "name": "ICICI Bank Ltd",
+    "sector": "Financial Services",
+    "size": "L",
+    "mcap_cr": 1096374,
+    "prism": {
+     "final": 66,
+     "growth_profitability": 83,
+     "valuation": 29,
+     "quality": 72,
+     "risk": 99
+    }
+   },
+   "SBIN": {
+    "name": "State Bank Of India",
+    "sector": "Financial Services",
+    "size": "L",
+    "mcap_cr": 924554,
+    "prism": {
+     "final": 62,
+     "growth_profitability": 75,
+     "valuation": 54,
+     "quality": 34,
+     "risk": 89
+    }
+   },
+   "BAJFINANCE": {
+    "name": "Bajaj Finance Ltd",
+    "sector": "Financial Services",
+    "size": "L",
+    "mcap_cr": 656963,
+    "prism": {
+     "final": 75,
+     "growth_profitability": 92,
+     "valuation": 72,
+     "quality": 45,
+     "risk": 81
+    }
+   },
+   "INFY": {
+    "name": "Infosys Ltd",
+    "sector": "Information Technology",
+    "size": "L",
+    "mcap_cr": 473926,
+    "prism": {
+     "final": 76,
+     "growth_profitability": 60,
+     "valuation": 84,
+     "quality": 99,
+     "risk": 67
+    }
+   },
+   "TCS": {
+    "name": "Tata Consultancy Services Ltd",
+    "sector": "Information Technology",
+    "size": "L",
+    "mcap_cr": 906982,
+    "prism": {
+     "final": 72,
+     "growth_profitability": 54,
+     "valuation": 78,
+     "quality": 100,
+     "risk": 70
+    }
+   },
+   "TECHM": {
+    "name": "Tech Mahindra Ltd",
+    "sector": "Information Technology",
+    "size": "L",
+    "mcap_cr": 179046,
+    "prism": {
+     "final": 67,
+     "growth_profitability": 69,
+     "valuation": 56,
+     "quality": 69,
+     "risk": 83
+    }
+   },
+   "RELIANCE": {
+    "name": "Reliance Industries Ltd",
+    "sector": "Oil, Gas & Consumable Fuels",
+    "size": "L",
+    "mcap_cr": 1772627,
+    "prism": {
+     "final": 60,
+     "growth_profitability": 58,
+     "valuation": 40,
+     "quality": 79,
+     "risk": 86
+    }
+   },
+   "SUNPHARMA": {
+    "name": "Sun Pharmaceutical Industries Ltd",
+    "sector": "Healthcare",
+    "size": "L",
+    "mcap_cr": 444285,
+    "prism": {
+     "final": 63,
+     "growth_profitability": 60,
+     "valuation": 56,
+     "quality": 62,
+     "risk": 100
+    }
+   },
+   "SKYGOLD": {
+    "name": "SKY Gold & Diamonds Ltd",
+    "sector": "Consumer Durables",
+    "size": "S",
+    "mcap_cr": 14945,
+    "prism": {
+     "final": 76,
+     "growth_profitability": 96,
+     "valuation": 63,
+     "quality": 57,
+     "risk": 71
+    }
+   },
+   "KINGFA": {
+    "name": "Kingfa Science & Technology (India) Ltd",
+    "sector": "Capital Goods",
+    "size": "S",
+    "mcap_cr": 8125,
+    "prism": {
+     "final": 68,
+     "growth_profitability": 92,
+     "valuation": 46,
+     "quality": 46,
+     "risk": 80
+    }
+   },
+   "TIPSMUSIC": {
+    "name": "Tips Music Ltd",
+    "sector": "Media, Entertainment & Publication",
+    "size": "S",
+    "mcap_cr": 9747,
+    "prism": {
+     "final": 77,
+     "growth_profitability": 97,
+     "valuation": 34,
+     "quality": 100,
+     "risk": 83
+    }
+   }
+  },
+  "weekly_close_last_date": "2026-10-30",
+  "weeks": 104
+ },
+ "page": {
+  "layout": "short",
+  "weeks": 104,
+  "from": "2024-11-08",
+  "to": "2026-10-30",
+  "score": {
+   "score": 71,
+   "band": "Fairly spread",
+   "comovement": 68,
+   "sector_spread": 75,
+   "effective_stocks": 6.3,
+   "effective_sectors": 4.8
+  },
+  "order": [
+   "INFY",
+   "TCS",
+   "TECHM",
+   "HDFCBANK",
+   "ICICIBANK",
+   "RELIANCE",
+   "BAJFINANCE",
+   "SKYGOLD",
+   "SBIN",
+   "SUNPHARMA",
+   "TIPSMUSIC",
+   "KINGFA"
+  ],
+  "corr": [
+   [
+    1.0,
+    0.78,
+    0.79,
+    0.17,
+    0.09,
+    0.29,
+    0.19,
+    0.25,
+    0.05,
+    0.11,
+    0.08,
+    0.0
+   ],
+   [
+    0.78,
+    1.0,
+    0.79,
+    0.18,
+    0.3,
+    0.38,
+    0.19,
+    0.3,
+    0.2,
+    0.14,
+    0.1,
+    -0.01
+   ],
+   [
+    0.79,
+    0.79,
+    1.0,
+    0.15,
+    0.13,
+    0.37,
+    0.13,
+    0.26,
+    0.1,
+    0.16,
+    0.17,
+    -0.02
+   ],
+   [
+    0.17,
+    0.18,
+    0.15,
+    1.0,
+    0.56,
+    0.36,
+    0.52,
+    0.13,
+    0.33,
+    0.19,
+    0.06,
+    0.12
+   ],
+   [
+    0.09,
+    0.3,
+    0.13,
+    0.56,
+    1.0,
+    0.29,
+    0.47,
+    0.27,
+    0.42,
+    0.21,
+    0.15,
+    0.17
+   ],
+   [
+    0.29,
+    0.38,
+    0.37,
+    0.36,
+    0.29,
+    1.0,
+    0.29,
+    0.24,
+    0.32,
+    0.39,
+    0.16,
+    0.12
+   ],
+   [
+    0.19,
+    0.19,
+    0.13,
+    0.52,
+    0.47,
+    0.29,
+    1.0,
+    0.28,
+    0.3,
+    0.22,
+    0.07,
+    0.15
+   ],
+   [
+    0.25,
+    0.3,
+    0.26,
+    0.13,
+    0.27,
+    0.24,
+    0.28,
+    1.0,
+    0.3,
+    0.14,
+    0.22,
+    0.25
+   ],
+   [
+    0.05,
+    0.2,
+    0.1,
+    0.33,
+    0.42,
+    0.32,
+    0.3,
+    0.3,
+    1.0,
+    0.03,
+    0.2,
+    0.18
+   ],
+   [
+    0.11,
+    0.14,
+    0.16,
+    0.19,
+    0.21,
+    0.39,
+    0.22,
+    0.14,
+    0.03,
+    1.0,
+    0.07,
+    -0.02
+   ],
+   [
+    0.08,
+    0.1,
+    0.17,
+    0.06,
+    0.15,
+    0.16,
+    0.07,
+    0.22,
+    0.2,
+    0.07,
+    1.0,
+    0.2
+   ],
+   [
+    0.0,
+    -0.01,
+    -0.02,
+    0.12,
+    0.17,
+    0.12,
+    0.15,
+    0.25,
+    0.18,
+    -0.02,
+    0.2,
+    1.0
+   ]
+  ],
+  "groups": [
+   {
+    "members": [
+     "INFY",
+     "TCS",
+     "TECHM"
+    ],
+    "avg_corr": 0.79,
+    "letter": "A"
+   },
+   {
+    "members": [
+     "HDFCBANK",
+     "ICICIBANK"
+    ],
+    "avg_corr": 0.56,
+    "letter": "B"
+   }
+  ],
+  "segments": {
+   "same": {
+    "pairs": 9,
+    "avg": 0.55,
+    "median": 0.52,
+    "at_least_05": 5,
+    "share_at_least_05": 55.6,
+    "top": [
+     {
+      "a": "TCS",
+      "b": "TECHM",
+      "corr": 0.79
+     },
+     {
+      "a": "INFY",
+      "b": "TECHM",
+      "corr": 0.79
+     },
+     {
+      "a": "INFY",
+      "b": "TCS",
+      "corr": 0.78
+     }
+    ],
+    "hist": [
+     0,
+     0,
+     0,
+     0,
+     1,
+     1,
+     2,
+     2,
+     0,
+     3,
+     0,
+     0
+    ]
+   },
+   "cross": {
+    "pairs": 57,
+    "avg": 0.18,
+    "median": 0.17,
+    "at_least_05": 0,
+    "share_at_least_05": 0.0,
+    "top": [
+     {
+      "a": "RELIANCE",
+      "b": "SUNPHARMA",
+      "corr": 0.39
+     },
+     {
+      "a": "TCS",
+      "b": "RELIANCE",
+      "corr": 0.38
+     },
+     {
+      "a": "TECHM",
+      "b": "RELIANCE",
+      "corr": 0.37
+     }
+    ],
+    "hist": [
+     0,
+     3,
+     9,
+     23,
+     15,
+     7,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "bins": [
+    [
+     -0.2,
+     -0.1
+    ],
+    [
+     -0.1,
+     0.0
+    ],
+    [
+     0.0,
+     0.1
+    ],
+    [
+     0.1,
+     0.2
+    ],
+    [
+     0.2,
+     0.3
+    ],
+    [
+     0.3,
+     0.4
+    ],
+    [
+     0.4,
+     0.5
+    ],
+    [
+     0.5,
+     0.6
+    ],
+    [
+     0.6,
+     0.7
+    ],
+    [
+     0.7,
+     0.8
+    ],
+    [
+     0.8,
+     0.9
+    ],
+    [
+     0.9,
+     1.0
+    ]
+   ]
+  },
+  "within": {
+   "Financial Services": {
+    "n": 4,
+    "avg": 0.43
+   },
+   "Information Technology": {
+    "n": 3,
+    "avg": 0.79
+   }
+  },
+  "avg_with_rest": {
+   "HDFCBANK": 0.25,
+   "ICICIBANK": 0.28,
+   "SBIN": 0.22,
+   "BAJFINANCE": 0.26,
+   "INFY": 0.25,
+   "TCS": 0.31,
+   "TECHM": 0.28,
+   "RELIANCE": 0.29,
+   "SUNPHARMA": 0.15,
+   "SKYGOLD": 0.24,
+   "KINGFA": 0.1,
+   "TIPSMUSIC": 0.14
+  },
+  "near_duplicates": [
+   {
+    "a": "INFY",
+    "b": "TECHM",
+    "corr": 0.79
+   },
+   {
+    "a": "TCS",
+    "b": "TECHM",
+    "corr": 0.79
+   },
+   {
+    "a": "INFY",
+    "b": "TCS",
+    "corr": 0.78
+   }
+  ],
+  "sector_weight": {
+   "eq": {
+    "Financial Services": 33.32,
+    "Information Technology": 24.99,
+    "Oil, Gas & Consumable Fuels": 8.33,
+    "Healthcare": 8.33,
+    "Consumer Durables": 8.33,
+    "Capital Goods": 8.33,
+    "Media, Entertainment & Publication": 8.33
+   },
+   "mc": {
+    "Financial Services": 50.4,
+    "Information Technology": 20.31,
+    "Oil, Gas & Consumable Fuels": 23.07,
+    "Healthcare": 5.78,
+    "Consumer Durables": 0.19,
+    "Capital Goods": 0.11,
+    "Media, Entertainment & Publication": 0.13
+   }
+  },
+  "size_weight": {
+   "eq": {
+    "L": 74.97,
+    "S": 24.99
+   },
+   "mc": {
+    "L": 99.56,
+    "S": 0.43
+   }
+  },
+  "size_count": {
+   "L": 9,
+   "S": 3
+  },
+  "share_weight": {
+   "eq": {
+    "HDFCBANK": 8.33,
+    "ICICIBANK": 8.33,
+    "SBIN": 8.33,
+    "BAJFINANCE": 8.33,
+    "INFY": 8.33,
+    "TCS": 8.33,
+    "TECHM": 8.33,
+    "RELIANCE": 8.33,
+    "SUNPHARMA": 8.33,
+    "SKYGOLD": 8.33,
+    "KINGFA": 8.33,
+    "TIPSMUSIC": 8.33
+   },
+   "mc": {
+    "HDFCBANK": 15.55,
+    "ICICIBANK": 14.27,
+    "SBIN": 12.03,
+    "BAJFINANCE": 8.55,
+    "INFY": 6.17,
+    "TCS": 11.81,
+    "TECHM": 2.33,
+    "RELIANCE": 23.07,
+    "SUNPHARMA": 5.78,
+    "SKYGOLD": 0.19,
+    "KINGFA": 0.11,
+    "TIPSMUSIC": 0.13
+   }
+  },
+  "share_risk": {
+   "eq": {
+    "HDFCBANK": 4.76,
+    "ICICIBANK": 5.43,
+    "SBIN": 5.76,
+    "BAJFINANCE": 7.83,
+    "INFY": 8.9,
+    "TCS": 8.97,
+    "TECHM": 10.08,
+    "RELIANCE": 6.61,
+    "SUNPHARMA": 3.33,
+    "SKYGOLD": 20.8,
+    "KINGFA": 9.43,
+    "TIPSMUSIC": 8.11
+   },
+   "mc": {
+    "HDFCBANK": 13.74,
+    "ICICIBANK": 12.4,
+    "SBIN": 10.37,
+    "BAJFINANCE": 10.0,
+    "INFY": 6.75,
+    "TCS": 14.33,
+    "TECHM": 2.84,
+    "RELIANCE": 26.15,
+    "SUNPHARMA": 2.99,
+    "SKYGOLD": 0.31,
+    "KINGFA": 0.05,
+    "TIPSMUSIC": 0.06
+   }
+  },
+  "sector_risk": {
+   "eq": {
+    "Financial Services": 23.78,
+    "Information Technology": 27.95,
+    "Oil, Gas & Consumable Fuels": 6.61,
+    "Healthcare": 3.33,
+    "Consumer Durables": 20.8,
+    "Capital Goods": 9.43,
+    "Media, Entertainment & Publication": 8.11
+   },
+   "mc": {
+    "Financial Services": 46.51,
+    "Information Technology": 23.92,
+    "Oil, Gas & Consumable Fuels": 26.15,
+    "Healthcare": 2.99,
+    "Consumer Durables": 0.31,
+    "Capital Goods": 0.05,
+    "Media, Entertainment & Publication": 0.06
+   }
+  },
+  "market": {
+   "eq": {
+    "beta": 0.97,
+    "worst10_list": -2.9,
+    "worst10_nifty": -3.2,
+    "vol": 15.4,
+    "vol_nifty": 13.0,
+    "max_fall": -13.1,
+    "max_fall_nifty": -14.8
+   },
+   "mc": {
+    "beta": 0.99,
+    "worst10_list": -3.0,
+    "worst10_nifty": -3.2,
+    "vol": 13.9,
+    "vol_nifty": 13.0,
+    "max_fall": -18.1,
+    "max_fall_nifty": -14.8
+   }
+  },
+  "readings": [
+   {
+    "rule": "C1",
+    "section": "where",
+    "priority": 70,
+    "text": "Financial Services is the largest sector at 33.3% of the list.",
+    "mode": "eq"
+   },
+   {
+    "rule": "C5",
+    "section": "where",
+    "priority": 60,
+    "text": "Financial Services and Information Technology together are 58.3% of the list.",
+    "mode": "eq"
+   },
+   {
+    "rule": "C1",
+    "section": "where",
+    "priority": 88,
+    "text": "Financial Services is half the list or more (50.4%).",
+    "mode": "mc"
+   },
+   {
+    "rule": "C2",
+    "section": "where",
+    "priority": 80,
+    "text": "RELIANCE alone is 23.1% of the list.",
+    "mode": "mc"
+   },
+   {
+    "rule": "C2",
+    "section": "where",
+    "priority": 80,
+    "text": "HDFCBANK alone is 15.6% of the list.",
+    "mode": "mc"
+   },
+   {
+    "rule": "C4",
+    "section": "where",
+    "priority": 50,
+    "text": "Large caps are 99.6% of the list when sized by company value.",
+    "mode": "mc"
+   },
+   {
+    "rule": "C4",
+    "section": "where",
+    "priority": 30,
+    "text": "There are no mid caps in the list.",
+    "mode": "eq"
+   },
+   {
+    "rule": "M1",
+    "section": "together",
+    "priority": 62,
+    "text": "12 shares move like 6.3 independent ones.",
+    "mode": "both"
+   },
+   {
+    "rule": "M2",
+    "section": "together",
+    "priority": 71,
+    "text": "Shares in the same sector move together much more than shares in different sectors (0.55 against 0.18 on average).",
+    "mode": "both"
+   },
+   {
+    "rule": "M3",
+    "section": "together",
+    "priority": 76,
+    "text": "The 3 Information Technology shares move almost as one (0.79 on average).",
+    "mode": "both"
+   },
+   {
+    "rule": "M6",
+    "section": "together",
+    "priority": 55,
+    "text": "INFY and TECHM moved almost identically (0.79). 3 pairs are at 0.75 or more.",
+    "mode": "both"
+   },
+   {
+    "rule": "M7",
+    "section": "together",
+    "priority": 45,
+    "text": "KINGFA and TIPSMUSIC mostly move on their own (under 0.15 with the rest).",
+    "mode": "both"
+   },
+   {
+    "rule": "K1",
+    "section": "risk",
+    "priority": 72,
+    "text": "SKYGOLD is 8.3% of the amount but 20.8% of the risk.",
+    "mode": "eq"
+   },
+   {
+    "rule": "K3",
+    "section": "risk",
+    "priority": 74,
+    "text": "Three shares carry 40.3% of the risk: SKYGOLD, TECHM and KINGFA.",
+    "mode": "eq"
+   },
+   {
+    "rule": "K3",
+    "section": "risk",
+    "priority": 74,
+    "text": "Three shares carry 54.2% of the risk: RELIANCE, TCS and HDFCBANK.",
+    "mode": "mc"
+   }
+  ],
+  "summary": {
+   "eq": [
+    {
+     "rule": "M3",
+     "section": "together",
+     "priority": 76,
+     "text": "The 3 Information Technology shares move almost as one (0.79 on average).",
+     "mode": "both"
+    },
+    {
+     "rule": "K3",
+     "section": "risk",
+     "priority": 74,
+     "text": "Three shares carry 40.3% of the risk: SKYGOLD, TECHM and KINGFA.",
+     "mode": "eq"
+    },
+    {
+     "rule": "K1",
+     "section": "risk",
+     "priority": 72,
+     "text": "SKYGOLD is 8.3% of the amount but 20.8% of the risk.",
+     "mode": "eq"
+    },
+    {
+     "rule": "M2",
+     "section": "together",
+     "priority": 71,
+     "text": "Shares in the same sector move together much more than shares in different sectors (0.55 against 0.18 on average).",
+     "mode": "both"
+    },
+    {
+     "rule": "C1",
+     "section": "where",
+     "priority": 70,
+     "text": "Financial Services is the largest sector at 33.3% of the list.",
+     "mode": "eq"
+    }
+   ],
+   "mc": [
+    {
+     "rule": "C1",
+     "section": "where",
+     "priority": 88,
+     "text": "Financial Services is half the list or more (50.4%).",
+     "mode": "mc"
+    },
+    {
+     "rule": "C2",
+     "section": "where",
+     "priority": 80,
+     "text": "RELIANCE alone is 23.1% of the list.",
+     "mode": "mc"
+    },
+    {
+     "rule": "M3",
+     "section": "together",
+     "priority": 76,
+     "text": "The 3 Information Technology shares move almost as one (0.79 on average).",
+     "mode": "both"
+    },
+    {
+     "rule": "K3",
+     "section": "risk",
+     "priority": 74,
+     "text": "Three shares carry 54.2% of the risk: RELIANCE, TCS and HDFCBANK.",
+     "mode": "mc"
+    },
+    {
+     "rule": "M2",
+     "section": "together",
+     "priority": 71,
+     "text": "Shares in the same sector move together much more than shares in different sectors (0.55 against 0.18 on average).",
+     "mode": "both"
+    }
+   ]
+  },
+  "together_open_by_default": true,
+  "short_history": []
+ }
+}
