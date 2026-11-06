@@ -412,3 +412,17 @@ async def test_new_nse_files_start_a_fresh_build_and_resume_can_be_switched_off(
     assert seen[0] != seen[1]                                                   # other inputs: never the same folder
     res = await sj.refresh(Store(), env=env_for(tmp_path, SECTOR_RESUME="0"), batch_fn=stopped, fetch_fn=fetch_ok, now=NOW + timedelta(hours=2))
     assert res["status"] == "error" and not seen[-1].name.startswith(sd.RESUME_PREFIX) and not seen[-1].exists()
+
+
+async def test_two_builds_never_run_at_once_and_the_lock_frees_itself(tmp_path):
+    """A build started by hand on the server and the scheduled one must not write the same folder together: the second one does nothing and says why."""
+    make_nse(tmp_path / "nse")
+    out = tmp_path / "out"
+    held = sj.build_lock(out, NOW)
+    assert held is not None
+    res = await run(tmp_path, batch_fn=good_batch())
+    assert res["status"] == "busy" and "another sector build is running" in res["reason"] and sj.exit_code(res) == 1
+    assert sd.live_release(out) is None
+    held.close()                                                                # the holder ends: the lock is free again
+    res = await run(tmp_path, batch_fn=good_batch())
+    assert res["status"] == "ok"

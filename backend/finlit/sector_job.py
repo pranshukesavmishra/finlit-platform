@@ -277,16 +277,53 @@ async def refresh(store: Any, *, env: Optional[Dict[str, str]] = None, force: bo
     t0 = time.monotonic()
     nse, out = sd.nse_dir(env), sd.out_dir(env)
     res: Dict[str, Any] = {"status": "error", "nse": str(nse), "fetch": {"status": "off", "message": "not asked to download"}}
+    lock = build_lock(out, now)
+    if lock is None:
+        # a build started by hand (or the scheduled one) is still running: two builds of the same set must never write the same folder at once
+        busy = {"status": "busy", "reason": f"another sector build is running ({read_lock_note(out)}); this run did nothing and is tried again later",
+                "seconds": round(time.monotonic() - t0), "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        print(busy["reason"], flush=True)
+        return busy
     try:
         res = await _refresh(store, env, nse, out, res, force, fetch, symbols, fetch_fn or run_fetch, batch_fn or default_batch, now)
     except Exception as exc:      # a bug or an out-of-disk must not take the supervisor down, and must be reported in words
         log.exception("refresh-sectors failed")
         res.update(status="error", reason=f"{type(exc).__name__}: {exc}"[:300])
+    finally:
+        lock.close()                     # closing the file gives the lock back; a killed process gives it back too
     res["seconds"] = round(time.monotonic() - t0)
     res["peakMb"] = peak_rss_mb()
     res["at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     await finish(store, out, res)
     return res
+
+
+LOCK_NAME = ".build.lock"
+
+
+def build_lock(out: Path, now: datetime) -> Optional[Any]:
+    """Take the one build lock (an exclusive flock on <out>/.build.lock), or None when another process holds it. The operating system frees the lock when the
+    holder ends, however it ends (finished, stopped by the time limit, killed), so a stale lock can never block the job."""
+    import fcntl
+    out.mkdir(parents=True, exist_ok=True)
+    fh = open(out / LOCK_NAME, "a+")
+    try:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        fh.close()
+        return None
+    fh.seek(0)
+    fh.truncate()
+    fh.write(f"started {now.strftime('%d %b %H:%M IST')}, process {os.getpid()}")
+    fh.flush()
+    return fh
+
+
+def read_lock_note(out: Path) -> str:
+    try:
+        return (out / LOCK_NAME).read_text().strip() or "start time not recorded"
+    except OSError:
+        return "start time not recorded"
 
 
 async def _refresh(store, env, nse: Path, out: Path, res: Dict[str, Any], force: bool, fetch: Optional[bool], symbols, fetch_fn, batch_fn, now: datetime) -> Dict[str, Any]:
