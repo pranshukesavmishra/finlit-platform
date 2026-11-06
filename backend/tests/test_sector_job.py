@@ -426,3 +426,18 @@ async def test_two_builds_never_run_at_once_and_the_lock_frees_itself(tmp_path):
     held.close()                                                                # the holder ends: the lock is free again
     res = await run(tmp_path, batch_fn=good_batch())
     assert res["status"] == "ok"
+
+
+def test_the_resume_key_ignores_modification_times_and_the_reference_lists(tmp_path):
+    """6 Nov 2026: the download rewrites ref/ and amfi/ (and touches file times) on every run, so every attempt got a new build folder and none finished."""
+    nse = make_nse(tmp_path / "nse")
+    (nse / "ref").mkdir(); (nse / "ref" / "industries.json").write_text("a"); (nse / "amfi").mkdir(); (nse / "amfi" / "caps.csv").write_text("a")
+    first = sj.resume_signature(nse)
+    full = sj.signature(nse)
+    for f in list(nse.glob("*.gz")) + [nse / "ref" / "industries.json", nse / "amfi" / "caps.csv"]:
+        os.utime(f, (1_800_000_000, 1_800_000_000))                              # touched
+    (nse / "ref" / "industries.json").write_text("rewritten longer")             # a reference list rewritten
+    (nse / "amfi" / "caps.csv").write_text("also rewritten")
+    assert sj.resume_signature(nse) == first and sj.signature(nse) != full       # the build folder stays; the 'unchanged' check still sees the change
+    (nse / "bhav_2026.csv.gz").write_bytes(b"a new trading day was added")        # the market data changed: another set, another folder
+    assert sj.resume_signature(nse) != first

@@ -73,6 +73,18 @@ def signature(nse: Path) -> str:
     return h.hexdigest()
 
 
+def resume_signature(nse: Path) -> str:
+    """The key of a build that may be continued: the package version and the names and sizes of the market-data files (bhav_*, idx_*) only. The full signature
+    above also counts the modification times and the small reference lists (ref/, amfi/), which the download rewrites on every run: on 6 Nov 2026 that gave
+    a new key, so a new empty build folder, on each attempt and three builds were started and stopped instead of one being finished. A reference list that
+    changes in the middle of a build is picked up by the next build; the market data decides whether a half-built set can still be used."""
+    h = hashlib.sha1(("resume:" + package_version()).encode())     # nosec B324 - change detector, not security
+    for pattern in ("bhav_*.csv.gz", "idx_*.csv.gz"):
+        for p in sorted(nse.glob(pattern)):
+            h.update(f"{p.name}:{p.stat().st_size}".encode())
+    return h.hexdigest()
+
+
 def folder_problem(nse: Path) -> Optional[str]:
     """None when the folder holds what the batch needs, else one plain sentence."""
     if not nse.is_dir():
@@ -353,7 +365,7 @@ async def _refresh(store, env, nse: Path, out: Path, res: Dict[str, Any], force:
     # The full build takes longer than one run of the job on the small server (about 2.5 hours measured on 4 Nov 2026), so the build folder is keyed on the
     # inputs and kept when a run is stopped: the next attempt continues with the parts already finished (SECTOR_RESUME=0 starts afresh every time).
     resumable = not symbols and str(env.get("SECTOR_RESUME", "1")).strip() != "0"
-    building = sd.resume_dir(out, sig) if resumable else sd.building_dir(out, stamp)
+    building = sd.resume_dir(out, resume_signature(nse)) if resumable else sd.building_dir(out, stamp)
     if resumable and any(building.glob("*.json")):
         print(f"batch: continuing the build stopped earlier ({sum(1 for _ in building.glob('*.json'))} files already written)", flush=True)
     progress_t = [time.monotonic()]
