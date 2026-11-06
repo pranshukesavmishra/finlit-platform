@@ -55,3 +55,11 @@ a.fb-chip { text-decoration: none; min-height: 24px; display: inline-flex; align
 /* the icon and the plan chip share the first row; the name and its one line take the full width below */
 .fb-top { flex-wrap: wrap; align-items: center; row-gap: 8px; } .fb-name { flex-basis: 100%; order: 3; }
 .fb-card { position: relative; }   /* keeps the screen-reader-only text inside the card, so the swipe row on phones cannot widen the page */
+/* "Plus all features of Silver / Free": the lower plans a chosen plan also includes, as compact links */
+.fb-plus { margin-top: 28px; display: grid; gap: 14px; }
+.fb-plus-row { padding: 14px 16px; border-radius: 16px; border: 1px dashed var(--border-strong, var(--border-subtle)); background: var(--bg-surface); }
+.fb-plus-row p { margin: 0 0 10px; font-size: 14px; color: var(--text-secondary); } .fb-plus-row p b { color: var(--text-primary); font-size: 16px; } .fb-plus-row p span { color: var(--text-muted); }
+.fb-plus-row ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.fb-plus-row a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 12px 4px 6px; border-radius: 999px; border: 1px solid var(--border-subtle); color: var(--text-primary); font-size: 14px; font-weight: 600; text-decoration: none; background: var(--bg-page); }
+.fb-plus-row a:hover { border-color: var(--text-primary); } .fb-plus-row a:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (max-width: 600px) { .fb-plus-row a { min-height: 44px; } }

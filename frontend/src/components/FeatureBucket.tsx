@@ -8,6 +8,8 @@ import "../styles/feature-bucket.css";
 const pad = (n: number) => String(n).padStart(2, "0");
 /** Where a plan chip leads: that plan on the Plans page. */
 const PLAN_LINK: Record<ToolTier, string> = { free: "/plans#basic", silver: "/plans#silver", gold: "/plans#gold" };
+/** Each plan includes the plans below it: Gold = Gold tools + everything in Silver + everything in Free; Silver = Silver tools + everything in Free. */
+const INCLUDES: Record<ToolTier, ToolTier[]> = { free: [], silver: ["free"], gold: ["silver", "free"] };
 const PLAN_FILTERS: [ToolTier | "all", string][] = [["all", "Any plan"], ["free", "Free"], ["silver", "Silver"], ["gold", "Gold"]];
 
 /** Tools & Research Hub: five groups of tool cards, filtered by group and by the plan that opens them. Every card stays in the page (the filters only hide
@@ -58,6 +60,17 @@ export function FeatureBucket() {
           </div>
         );
       })}
+      {plan !== "all" && INCLUDES[plan].length > 0 && (
+        <div className="fb-plus" aria-label={`Also included in the ${TIER_LABEL[plan]} plan`}>
+          {INCLUDES[plan].map((t) => (
+            <div key={t} className={`fb-plus-row fb-plus-${t}`}>
+              <p><b>Plus all features of {TIER_LABEL[t]}</b> <span>{t === "free" ? "(everything in the free account)" : "(and everything in Free)"}</span></p>
+              <ul>{TOOL_IDS.filter((id) => TOOL_ICONS[id].tier === t).sort((a, b) => TOOL_COPY[a].n - TOOL_COPY[b].n).map((id) => (
+                <li key={id}><Link to={TOOL_ICONS[id].route}><ToolIcon id={id} size="sm" />{TOOL_ICONS[id].name}</Link></li>))}</ul>
+            </div>
+          ))}
+        </div>
+      )}
       <p className="fb-fine">Tools are for information and education only {"—"} never investment advice.</p>
     </div></section>
   );

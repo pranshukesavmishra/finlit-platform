@@ -35,3 +35,17 @@ it("every plan chip leads to that plan on the Plans page", () => {
   expect(hrefs).toHaveLength(22);
   expect(new Set(hrefs)).toEqual(new Set(["/plans#basic", "/plans#silver", "/plans#gold"]));
 });
+
+it("Gold adds 'Plus all features of Silver' and of Free, Silver adds Free, Free and Any plan add nothing", () => {
+  const { container, getByRole, queryByLabelText } = render(<MemoryRouter><FeatureBucket /></MemoryRouter>);
+  fireEvent.click(getByRole("button", { name: "Gold" }));
+  const rows = [...container.querySelectorAll(".fb-plus-row p b")].map((b) => b.textContent);
+  expect(rows).toEqual(["Plus all features of Silver", "Plus all features of Free"]);
+  expect(container.querySelectorAll(".fb-plus-silver li")).toHaveLength(2);
+  fireEvent.click(getByRole("button", { name: "Silver" }));
+  expect([...container.querySelectorAll(".fb-plus-row p b")].map((b) => b.textContent)).toEqual(["Plus all features of Free"]);
+  fireEvent.click(getByRole("button", { name: "Free" }));
+  expect(container.querySelector(".fb-plus")).toBeNull();
+  fireEvent.click(getByRole("button", { name: "Any plan" }));
+  expect(queryByLabelText(/Also included/)).toBeNull();
+});
