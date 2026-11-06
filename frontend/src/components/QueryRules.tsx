@@ -6,7 +6,7 @@ import { Icon } from "../lib/icons";
 export function QueryRules({ open, onToggle, onInsert }: { open: boolean; onToggle: () => void; onInsert: (query: string) => void }) {
   return (
     <section id="qb-rules" className={"qr-box" + (open ? " is-open" : "")} aria-labelledby="qr-h">
-      <h2 id="qr-h" className="qr-bar">
+      <h2 id="qr-h" className="qrl-bar">
         <button type="button" aria-expanded={open} aria-controls="qr-body" onClick={onToggle}>
           <span className="qr-ico" aria-hidden="true"><Icon name="clipboard" /></span>
           <span className="qr-title">Rules for writing a query</span>

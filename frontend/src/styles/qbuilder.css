@@ -153,11 +153,11 @@
 
 /* "Rules for writing a query": its own collapsible box above the editor, closed until opened */
 .qr-box { display: grid; gap: 10px; margin-bottom: 16px; min-width: 0; }
-.qr-bar { margin: 0; font: inherit; }
-.qr-bar button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 18px; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--pop-bg, #1C1F25); color: #F6F5F2; cursor: pointer; text-align: left; font: inherit; }
-.qr-bar button:hover { border-color: var(--gold); }
-.qr-bar button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.qrl-bar { margin: 0; font: inherit; height: auto; }
+.qrl-bar button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 18px; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--pop-bg, #1C1F25); color: #F6F5F2; cursor: pointer; text-align: left; font: inherit; }
+.qrl-bar button:hover { border-color: var(--gold); }
+.qrl-bar button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .qr-ico { display: grid; place-items: center; flex: none; color: #F6F5F2; } .qr-ico .ico { width: 22px; height: 22px; }
 .qr-title { flex: 1; min-width: 0; font: 400 20px/1.25 var(--serif); overflow-wrap: anywhere; }
-.qr-chev { flex: none; transition: transform .2s; transform: rotate(180deg); } .is-open > .qr-bar .qr-chev { transform: none; }
+.qr-chev { flex: none; transition: transform .2s; transform: rotate(180deg); } .is-open > .qrl-bar .qr-chev { transform: none; }
 @media (prefers-reduced-motion: reduce) { .qr-chev { transition: none; } }
