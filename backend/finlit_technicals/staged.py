@@ -103,7 +103,7 @@ def stage_score(nse: str, work: str, out: str, part: int) -> None:
             p.release_pages()
     lines, labels, homes = score_stocks(syms, cached, eng, Path(out), caps=caps, progress=progress)
     with open(Path(work, f"part-{part}.pkl.tmp"), "wb") as fh:
-        pickle.dump({"lines": list(zip(idx, lines)), "labels": labels, "homes": homes, "groups": eng._res}, fh, protocol=4)
+        pickle.dump({"lines": list(zip(idx, lines)), "labels": labels, "homes": homes, "groups": eng._res, "days": len(p.dates), "last_day": str(p.dates[-1])[:10]}, fh, protocol=4)
     os.replace(Path(work, f"part-{part}.pkl.tmp"), Path(work, f"part-{part}.pkl"))
     print(f"score: part {part}: {len(lines)} stocks, {len(eng._res)} groups", flush=True)
 
@@ -120,6 +120,12 @@ def stage_merge(nse: str, work: str, out: str, t0: float) -> None:
             part = pickle.load(fh)           # nosec B301 - written a few minutes ago by this package's own score stage
         for i, line in part["lines"]:
             lines[i] = line
+        seen = (part.get("days"), part.get("last_day"))
+        if k == 0:
+            first = seen
+        elif seen != first:
+            raise RuntimeError(f"the score parts were built on different market data (part 0: {first[0]} days to {first[1]}; part {k}: {seen[0]} days to {seen[1]}); "
+                               "a build is only continued when the market data is the same: run it again from the start")
         labels.update(part["labels"])
         homes.update(part["homes"])
         eng._res.update(part["groups"])      # the groups the parts already worked out; any other is worked out here
@@ -169,6 +175,17 @@ def _stage(stage: str, args: List[str], on_progress: Optional[Callable[[int, int
     return peak, round(time.time() - started)
 
 
+def _data_key(nse: str | Path) -> str:
+    """Names and sizes of the market-data files. A kept work folder (finished score parts) is only reused when this is the same: a part built before a new
+    trading day was added and one built after it describe different days, and the rotation (which needs every group on one calendar) refuses to mix them."""
+    import hashlib
+    h = hashlib.sha1()      # nosec B324 - change detector, not security
+    for pattern in ("bhav_*.csv.gz", "idx_*.csv.gz"):
+        for f in sorted(Path(nse).glob(pattern)):
+            h.update(f"{f.name}:{f.stat().st_size}".encode())
+    return h.hexdigest()
+
+
 def run_staged(nse: str | Path, out: str | Path, symbols: Optional[List[str]] = None,
                progress: Optional[Callable[[int, int, str], None]] = None, parts: Optional[int] = None, resume: bool = False) -> List[Dict[str, Any]]:
     """The batch over NSE's files, in stages (see the module docstring). Same arguments and result as default_batch in finlit/sector_job.py.
@@ -180,7 +197,7 @@ def run_staged(nse: str | Path, out: str | Path, symbols: Optional[List[str]] = 
     out.mkdir(parents=True, exist_ok=True)
     work = out.parent / f"{out.name}.work"
     n_parts = int(parts or os.environ.get("SECTOR_PARTS") or DEFAULT_PARTS)
-    key = {"symbols": list(symbols) if symbols else None, "parts": n_parts}
+    key = {"symbols": list(symbols) if symbols else None, "parts": n_parts, "data": _data_key(nse)}
     kept = False
     if resume and (work / "plan.json").is_file():
         try:

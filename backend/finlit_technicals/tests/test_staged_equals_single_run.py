@@ -273,3 +273,30 @@ def test_a_kept_work_folder_is_not_reused_for_another_stock_list_or_part_count(t
     (work / "part-0.pkl").write_bytes(b"not a part")
     summary = staged.run_staged(d, new, parts=2, resume=True)
     assert len(summary) > 10 and all(s.get("symbol") != "NOPE" for s in summary)
+
+
+def test_a_kept_work_folder_is_not_reused_when_the_market_data_changed(tmp_path):
+    """6 Nov 2026: three score parts built before a new trading day was added were joined with a fourth built after it; the rotation then failed with
+    'Length of values (2688) does not match length of index (2687)'. The kept folder now records the market data it was built on."""
+    d = small_market(tmp_path, stocks=60, start="2025-03-01")
+    new = tmp_path / "new"
+    work = tmp_path / "new.work"
+    work.mkdir()
+    (work / "key.json").write_text(json.dumps({"symbols": None, "parts": 2, "data": "an-older-data-key"}))
+    (work / "plan.json").write_text(json.dumps({"symbols": ["NOPE"], "parts": [[0], []]}))
+    (work / "part-0.pkl").write_bytes(b"built on older data")
+    summary = staged.run_staged(d, new, parts=2, resume=True)
+    assert len(summary) > 10 and all(s.get("symbol") != "NOPE" for s in summary)
+
+
+def test_the_merge_refuses_parts_built_on_different_days(tmp_path):
+    import pickle
+    import pytest
+    d = small_market(tmp_path, stocks=60, start="2025-03-01")
+    out, work = tmp_path / "out", tmp_path / "w"
+    out.mkdir(); work.mkdir()
+    (work / "plan.json").write_text(json.dumps({"symbols": ["A", "B"], "parts": [[0], [1]]}))
+    for k, days in enumerate((100, 101)):
+        (work / f"part-{k}.pkl").write_bytes(pickle.dumps({"lines": [(k, {"symbol": "AB"[k]})], "labels": {}, "homes": {}, "groups": {}, "days": days, "last_day": "2026-11-0%d" % (5 + k)}))
+    with pytest.raises(RuntimeError, match="different market data"):
+        staged.stage_merge(str(d), str(work), str(out), 0.0)
