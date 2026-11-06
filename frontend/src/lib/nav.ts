@@ -29,7 +29,6 @@ export const SECTIONS: NavSection[] = [
       i("/compare", "Compare companies", "Two to four companies side by side, in charts", "compare"),
       i("/prism", "FinLit Prism", "A company's financial health rated in four parts, with a PDF", "layers", { gold: true }),
       i("/outlook", "Profit and revenue outlook", "Revenue and profit estimates from a company's own history and its sector", "activity", { gold: true }),
-      i("/premium/report", "Premium reports", "The full written report on a company", "notes", { gold: true }),
     ] },
     { title: "Investment calculators", items: [
       i("/eps-calculator", "EPS & P/E calculator", "Estimate earnings per share and explore valuation multiples.", "gauge"),

@@ -11,7 +11,7 @@ describe("site map", () => {
     const names = (id: string) => SECTIONS.find((s) => s.id === id)!.groups.flatMap((g) => g.items.map((i) => i.label));
     expect(RESEARCH.groups.map((g) => g.title)).toEqual(["Find stocks", "Analyse a company", "Investment calculators", "Charts"]);
     expect(RESEARCH.groups[0].items.map((i) => i.label)).toEqual(["Stock screener", "Basic score screener", "Advanced score screener", "Query builder"]);
-    expect(RESEARCH.groups[1].items.map((i) => i.label)).toEqual(["Company report", "Compare companies", "FinLit Prism", "Profit and revenue outlook", "Premium reports"]);
+    expect(RESEARCH.groups[1].items.map((i) => i.label)).toEqual(["Company report", "Compare companies", "FinLit Prism", "Profit and revenue outlook"]);
     expect(RESEARCH.groups[2].items.map((i) => i.label)).toEqual(["EPS & P/E calculator", "DCF valuation calculator", "SIP calculator"]);
     expect(RESEARCH.groups[3].items.map((i) => i.label)).toEqual(["Chart builder", "Correlation charts"]);
     expect(names("markets")).toEqual(["Sector Pulse", "Sector Rotation", "FII & DII flows", "India economy", "Commodity prices"]);
@@ -20,7 +20,7 @@ describe("site map", () => {
     expect(names("myfinlit")).toEqual(["Dashboard", "Watchlists", "My portfolio", "MF portfolio", "Alerts"]);
   });
   it("marks the Gold tools of the Research menu", () => {
-    expect(RESEARCH.groups.flatMap((g) => g.items).filter((i) => i.gold).map((i) => i.to).sort()).toEqual(["/advanced-score-screener", "/dcf", "/outlook", "/premium/report", "/prism"]);
+    expect(RESEARCH.groups.flatMap((g) => g.items).filter((i) => i.gold).map((i) => i.to).sort()).toEqual(["/advanced-score-screener", "/dcf", "/outlook", "/prism"]);
   });
   it("lists every address once, and every one of them is a real route", () => {
     const paths = [...all.map((i) => i.to), PRICING.to];
@@ -37,5 +37,12 @@ describe("site map", () => {
     expect(sectionHere("/funds", research)).toBe(false);
     expect(isHere("/results/quarter", all.find((i) => i.to === "/results")!)).toBe(false);   // "end" items match only themselves
     expect(isHere("/graphs/advanced", all.find((i) => i.to === "/graphs")!)).toBe(false);
+  });
+});
+
+describe("Premium reports tab (task #4)", () => {
+  it("is no longer listed under Analyse a company, so no menu, rail or footer shows it", () => {
+    const all = [...SECTIONS, MORE].flatMap((s) => s.groups.flatMap((g) => g.items));
+    expect(all.some((i) => i.to === "/premium/report")).toBe(false);
   });
 });
