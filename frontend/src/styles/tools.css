@@ -328,3 +328,7 @@ section.block .tr-c .tr-h h3 { margin: 0; flex: 1; min-width: 0; font: 600 16px/
 section.block .tr-c p.tr-in { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--bg-subtle); font-size: var(--fs-13); line-height: 1.4; color: var(--text-body); }
 .tr-in svg { flex: none; width: 15px; height: 15px; margin-top: 1px; color: var(--text-muted); } .tr-in.up svg { color: var(--gain); } .tr-in.down svg { color: var(--loss); }
 @media (max-width: 1200px) { .tr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } } @media (max-width: 640px) { .tr-grid { grid-template-columns: 1fr; } }
+/* Compare, Overview: choose the scoring model(s) to show (FinLit IQ and, on Gold, FinLit Prism) */
+.cmp-models { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; } .cmp-models small { color: var(--muted); font-size: var(--fs-13); }
+.cc-prism { padding-top: 10px; border-top: 1px dashed var(--border); } .cc-prism small a { color: inherit; text-decoration: underline; }
+@media (max-width: 600px) { .cmp-models .mchip { min-height: 44px; } }
