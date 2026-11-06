@@ -73,7 +73,7 @@ export function IndexHeatmap({ rows, loading }: { rows: Row[]; loading: boolean 
       <div className="dsh-chips" role="group" aria-label="Index">
         {main.map((p) => <button key={p.id} type="button" aria-pressed={sel === p.id} onClick={() => setSel(p.id)}>{p.label}</button>)}
         <span className="dsh-menu"><button type="button" aria-haspopup="listbox" aria-expanded={more} aria-pressed={rest.some((p) => p.id === sel)} onClick={() => setMore(!more)}>{rest.find((p) => p.id === sel)?.label ?? "More indices"} ▾</button>
-          {more && <div className="pop" role="listbox" aria-label="More indices">{rest.map((p) => <button key={p.id} type="button" role="option" aria-selected={sel === p.id} onClick={() => { setSel(p.id); setMore(false); }}>{p.label}</button>)}</div>}</span>
+          {more && <div className="dsh-pop" role="listbox" aria-label="More indices">{rest.map((p) => <button key={p.id} type="button" role="option" aria-selected={sel === p.id} onClick={() => { setSel(p.id); setMore(false); }}>{p.label}</button>)}</div>}</span>
       </div>
       {loading ? <div className="skeleton" style={{ height: phone ? 300 : 420, borderRadius: 12 }} aria-busy="true" /> : !cells.length ? <p className="dsh-note">No traded stocks for this group today. {basis}</p> : view === "map" ? <HeatTiles cells={cells} h={phone ? 320 : 420} /> : <List cells={cells} />}
       <div className="dsh-hfoot"><span>{cells.length ? `${cells.length} stocks${mv != null ? ` · cap-weighted move ${sgn(mv)}` : ""} · hover or tap a tile for price and detail. ` : ""}{basis}</span>

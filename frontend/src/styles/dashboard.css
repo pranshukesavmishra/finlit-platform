@@ -112,8 +112,8 @@
 
 /* blocks 7 */
 .dsh-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; position: relative; } .dsh-menu { position: relative; display: inline-block; }
-.dsh-menu .pop { position: absolute; z-index: 20; top: 40px; left: 0; min-width: 200px; max-height: 280px; overflow: auto; background: var(--d-card); border: 1px solid var(--d-line); border-radius: 12px; padding: 6px; box-shadow: 0 10px 28px rgba(0, 0, 0, .16); display: flex; flex-direction: column; }
-.dsh-menu .pop button { text-align: left; height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--d-ink); font: 500 14px var(--font-sans, Inter, sans-serif); cursor: pointer; } .dsh-menu .pop button[aria-selected="true"] { background: var(--d-tile); font-weight: 600; } .dsh-menu .pop button:hover { background: var(--d-tile); }
+.dsh-menu .dsh-pop { position: absolute; z-index: 20; top: 40px; left: 0; min-width: 200px; max-height: 280px; overflow: auto; background: var(--d-card); border: 1px solid var(--d-line); border-radius: 12px; padding: 6px; box-shadow: 0 10px 28px rgba(0, 0, 0, .16); display: flex; flex-direction: column; }
+.dsh-menu .dsh-pop button { text-align: left; height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--d-ink); font: 500 14px var(--font-sans, Inter, sans-serif); cursor: pointer; } .dsh-menu .dsh-pop button[aria-selected="true"] { background: var(--d-tile); font-weight: 600; } .dsh-menu .dsh-pop button:hover { background: var(--d-tile); }
 .dsh-map { position: relative; width: 100%; overflow: hidden; border-radius: 12px; }
 .dsh-map .t { position: absolute; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; padding: 6px 8px; margin: 0; border: 1px solid var(--d-card); border-radius: 0; color: #FFFFFF !important; text-decoration: none !important; overflow: hidden; cursor: pointer; font-family: var(--font-sans, Inter, sans-serif); }
 .dsh-map .t b { font-weight: 600; line-height: 1.1; white-space: nowrap; } .dsh-map .t em { font-style: normal; font-size: 12px; line-height: 1.1; white-space: nowrap; } .dsh-map .t:hover, .dsh-map .t:focus-visible { filter: brightness(1.12); z-index: 2; }
@@ -184,3 +184,4 @@
   .dsh-hl .row { min-height: 44px; }
   .dsh-edit li { grid-template-columns: minmax(0, 1fr) auto; } .dsh-edit .grip { display: none; } .dsh-edit li small { grid-column: 1 / -1; grid-row: auto; } .dsh-edit .dsh-seg { grid-column: 1; } .dsh-edit .mv { grid-column: 2; }
 }
+.dsh-menu .dsh-pop button:hover { background: var(--d-tile); } .dsh-menu .dsh-pop button:focus-visible { outline: 2px solid var(--d-on); outline-offset: -2px; }
