@@ -26,3 +26,4 @@ Report each issue in one message: cause, what changed, test results, what is sti
 - Everything stays free.
 - Secrets (API keys, tokens, passwords) only in the server's `/opt/finlit/.env.aws` or GitHub/host dashboards; never in chat or in the repo.
 - Deliver as you go (the founder said so on 5 Nov 2026): after the tests pass, commit, push and deliver without waiting for approval. Tell him what shipped and what he must do. No model names in commits or code.
+- Always give the direct clickable link yourself (the founder said so on 6 Nov 2026): every time something is pushed, look up the new sync pull request on `Yusra-Khan532/Financial-Portfolio` and put its full URL in the message, plus links to the live pages to check. Never make him ask for a link.
