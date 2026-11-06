@@ -23,7 +23,6 @@ import { CompanyBriefSection } from "./CompanyBrief";
 import { useLeadership } from "../lib/leadership";
 import { LeadershipSection } from "./Leadership";
 import { SectorPeersSection } from "./SectorPeers";
-import { EarningsCallSection } from "./EarningsCall";
 import { useDocTitle } from "../lib/title";
 import "../styles/report-polish.css";
 import { MiniBar } from "./MiniBar";
@@ -158,7 +157,6 @@ export function StockPage() {
         <ErrorBoundary section="This section"><PriceSection s={s} symbol={symbol} ratios={ratios} /></ErrorBoundary>
         <PlFlagsLayer f={fin} lender={!!s.dataQuality.isBank} />
         <ErrorBoundary section="This section"><QuarterSection f={fin} /></ErrorBoundary>
-        <ErrorBoundary section="This section"><EarningsCallSection symbol={symbol} name={s.profile.name} /></ErrorBoundary>
         <ErrorBoundary section="This section"><FinancialsSection f={fin} /></ErrorBoundary>
         <ErrorBoundary section="This section"><TrendsSection f={fin} e={events} r={ratios} /></ErrorBoundary>
         <ErrorBoundary section="This section"><ChartLab s={s} symbol={symbol} f={fin} r={ratios} o={own} e={events} p={peers} /></ErrorBoundary>
