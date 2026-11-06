@@ -32,7 +32,7 @@ describe("chart help registry", () => {
     // mk("Revenue", "revenue", ...) takes the id from its second argument
     const mkIds = [...s4.matchAll(/mk\("[^"]+", "([a-z_]+)"/g)].map((m) => m[1]);
     const ids = new Set([...cardIds.filter((x) => !/^[A-Z]/.test(x)), ...mkIds]);
-    expect(ids.size).toBeGreaterThanOrEqual(17);
+    expect(ids.size).toBeGreaterThanOrEqual(16);
     for (const id of ids) expect(CHART_HELP["trend-" + id], `trend-${id}`).toBeDefined();
     const dash = sources.find((x) => x.f.endsWith("Dashboard.tsx"))!.text;
     for (const m of dash.matchAll(/(\w+): "(dash-[a-z]+)"/g)) expect(CHART_HELP[m[2]], m[2]).toBeDefined();

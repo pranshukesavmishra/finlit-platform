@@ -12,7 +12,7 @@ import { useAuth } from "../lib/auth";
 import { Hero } from "./Hero";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { FinancialsSection, Notes, PriceSection } from "./Sections";
-import { InsightsSection, PeersSection, RatiosSection } from "./Sections3";
+import { InsightsSection, PeersSection, RatiosSection, SegmentsSection } from "./Sections3";
 import { QuarterSection, TrendsSection } from "./Sections4";
 import { ChartLab } from "./ChartLab";
 import { PlFlagsLayer } from "./PlFlagsLayer";
@@ -160,13 +160,14 @@ export function StockPage() {
         <ErrorBoundary section="This section"><QuarterSection f={fin} /></ErrorBoundary>
         <ErrorBoundary section="This section"><EarningsCallSection symbol={symbol} name={s.profile.name} /></ErrorBoundary>
         <ErrorBoundary section="This section"><FinancialsSection f={fin} /></ErrorBoundary>
-        <ErrorBoundary section="This section"><TrendsSection f={fin} seg={seg} e={events} r={ratios} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><TrendsSection f={fin} e={events} r={ratios} /></ErrorBoundary>
         <ErrorBoundary section="This section"><ChartLab s={s} symbol={symbol} f={fin} r={ratios} o={own} e={events} p={peers} /></ErrorBoundary>
         <ErrorBoundary section="This section"><RatiosSection r={ratios} lender={!!s.dataQuality.isBank} sector={s.profile.sector} industry={s.profile.industry} labels={[s.profile.sector, s.profile.industry, s.profile.subIndustry]} /></ErrorBoundary>
         <ErrorBoundary section="This section"><OwnershipSection o={own} ins={ownIns.data} insWhy={ownInsWhy} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PeersSection p={peers} self={symbol} s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><SectorPeersSection symbol={symbol} name={s.profile.name} tech={tech} score={s.score} jump={jump} /></ErrorBoundary>
-        <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} seg={seg} tech={tech} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} tech={tech} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><SegmentsSection seg={seg} /></ErrorBoundary>
         <ErrorBoundary section="This section"><DividendsSection e={events} price={q?.price} r={ratios} /></ErrorBoundary>
         <DiscussionLink symbol={symbol} />
         <ErrorBoundary section="This section"><MethodSection s={s} /></ErrorBoundary>

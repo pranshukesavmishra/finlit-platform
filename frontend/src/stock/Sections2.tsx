@@ -70,7 +70,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
   const monthly = (shares * last) / 12;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="dividends" no="14 · Dividends & events" icon="coins" tier="basic" title="Cash returned to shareholders" sub="Amounts are adjusted for splits and bonuses." color="--gold-deep" />
+      <SectionHead id="dividends" no="15 · Dividends & events" icon="coins" tier="basic" title="Cash returned to shareholders" sub="Amounts are adjusted for splits and bonuses." color="--gold-deep" />
       {e.dividendYieldTtm != null && <Plain tone={streak >= 5 && rising >= 3 ? "good" : "info"}>For every ₹100 invested at today's price, this company pays about ₹{nf(e.dividendYieldTtm, 2)} a year. It has paid a dividend for {streak} year{streak === 1 ? "" : "s"} running{rising >= 2 ? ` and raised it ${rising} years in a row` : ""}.{payout != null ? ` It keeps about ${nf(100 - payout, 0)}% of its profit to grow the business.` : ""} {e.dividendYieldTtm < 1 ? "A low yield suggests owning it for growth rather than income." : ""}</Plain>}
       <div className="dvk">
         <div className="dk" style={{ "--dc": "var(--gold)" } as React.CSSProperties}>
@@ -138,7 +138,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
 export function MethodSection({ s }: { s: Summary }) {
   return (
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="15 · Pros, cons & Prism history" icon="info" title="Pros and cons, and how the Prism score has moved" sub="What is strong and what needs care, overall, then how the Prism score has changed over time." color="--info" />
+      <SectionHead id="method" no="16 · Pros, cons & Prism history" icon="info" title="Pros and cons, and how the Prism score has moved" sub="What is strong and what needs care, overall, then how the Prism score has changed over time." color="--info" />
       <div className="pc-g pc-all">
         <div className="pcb pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
         <div className="pcb con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
@@ -148,15 +148,15 @@ export function MethodSection({ s }: { s: Summary }) {
   );
 }
 
-/* ---------------- Revenue segmentation (used in Gold insights) ---------------- */
+/* ---------------- Revenue segmentation (Section 14 of the report) ---------------- */
 export function SegmentCard({ seg }: { seg?: Segments }) {
   const latest = seg?.latest || [];
   const top = latest[0], conc = top?.sharePct ?? 0;
   const colors = segmentColors(segmentNames(seg)).color;  // one colour per segment, shared by the strip, the tiles, the chart and the table
   const col = (name: string) => colors[name] ?? OTHERS_COLOR;
   return (
-    <div className="card acc" id="segments" style={{ "--ac": "var(--p-profit)" } as React.CSSProperties}>
-      <div className="card-h"><h3 className="seg-title"><span className="ci"><Icon name="pie" /></span>Where the revenue comes from<ChartHelp id="segments" /></h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
+    <div className="card acc" style={{ "--ac": "var(--p-profit)" } as React.CSSProperties}>
+      <div className="card-h"><h3 className="seg-title"><span className="ci"><Icon name="pie" /></span>Revenue by business segment<ChartHelp id="segments" /></h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
       {latest.length ? (
         <>
           <div className="rib" role="img" aria-label="Revenue share by segment">{latest.map((x) => <span key={x.name} title={`${x.name}: ${pct(x.sharePct)}`} style={{ flex: Math.max(x.sharePct || 0, 7), "--bc": col(x.name) } as React.CSSProperties}><b className={(x.sharePct || 0) < 9 ? "xs" : ""}>{(x.sharePct || 0) >= 10 ? pct(x.sharePct, 0) : pct(x.sharePct, 1)}</b></span>)}</div>

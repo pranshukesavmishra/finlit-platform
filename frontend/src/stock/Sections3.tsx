@@ -283,16 +283,16 @@ const WHY: Record<string, [string, string]> = {
   sales_cagr: ["Steady sales growth shows demand for what the company sells.", "Watch whether growth holds as the base gets bigger."],
 };
 
-export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; seg?: Segments; tech?: { rsi14: number | null } }) {
+export function InsightsSection({ s, r, tech }: { s: Summary; r?: Ratios; tech?: { rsi14: number | null } }) {
   const b = useMemo(() => buckets(s, r, tech), [s, r, tech]);
   const trig = [...s.watchouts.slice(0, 3).map((n) => ({ ...n, kind: "watch" as const })), ...s.strengths.slice(0, 3).map((n) => ({ ...n, kind: "good" as const }))];
   const spec = b.filter(([, k]) => SPEC[k]), plain = b.filter(([, k]) => !SPEC[k]);
   return (
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
       <SectionHead id="insights" no="13 · Gold insights" icon="crown" tier="gold" title={`Triggers to watch and where ${s.profile.name.split(" ")[0]} fits`} sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
-      <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next. Segments show where the money comes from.</Plain>
+      <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next.</Plain>
       <p className="faint" style={{ margin: "0 0 14px" }}><Link to={`/outlook/${encodeURIComponent(s.profile.symbol)}`}>Profit and revenue outlook, from this company's own history (Gold) →</Link></p>
-      <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking", "Revenue segmentation by segment"]}>
+      <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking"]}>
         <div className="spc-grid">{spec.map(([ic, k, val, c], i) => {
           const sp = SPEC[k], pos = ((sp.at(val)) / sp.stops.length) * 100;
           return (
@@ -318,7 +318,18 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
             ))}
           </div>
         </div>
-        <div style={{ marginTop: 16 }}><SegmentCard seg={seg} /></div>
+      </Gate>
+    </section>
+  );
+}
+
+/** Section 14: where the revenue comes from, by business segment. It used to be a box at the end of section 13 (Gold insights); it is its own section now. */
+export function SegmentsSection({ seg }: { seg?: Segments }) {
+  return (
+    <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
+      <SectionHead id="segments" no="14 · Segments" icon="pie" tier="gold" title="Where the revenue comes from" sub="Each business segment's share of revenue, its growth and its profit, year by year." color="--p-profit" />
+      <Gate tier="gold" title="Unlock revenue segmentation" points={["Revenue by business segment, year by year", "Each segment's share, growth and profit", "How dependent the company is on one segment"]}>
+        <SegmentCard seg={seg} />
       </Gate>
     </section>
   );

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
@@ -19,7 +21,7 @@ const mk = (periods: string[], rows: Record<string, (number | null)[]>): Segment
 describe("segment card with history", () => {
   it("keeps the latest-year strip and tiles and adds the chart, table and insights", () => {
     const html = card(LARGE);
-    expect(html).toContain("Where the revenue comes from");
+    expect(html).toContain("Revenue by business segment");
     expect(html).toContain('class="rib"');
     expect(html).toContain("seg-l2");
     expect(html).toContain("How the mix has changed");
@@ -68,5 +70,30 @@ describe("segment card with history", () => {
   it("does not use advice wording", () => {
     const text = card(LARGE).replace(/<[^>]+>/g, " ").toLowerCase();
     for (const w of [" buy ", " sell ", "accumulate", "avoid ", "target price", "recommend"]) expect(text).not.toContain(w);
+  });
+});
+
+describe("Section 14 and the report numbering (task #11)", () => {
+  const read = (f: string) => readFileSync(join(__dirname, f), "utf8");
+  it("Where the revenue comes from is its own Section 14, no longer a box inside Section 13", () => {
+    const s3 = read("Sections3.tsx");
+    expect(s3).toContain('no="14 · Segments"');
+    expect(s3).toContain('title="Where the revenue comes from"');
+    const insights = s3.slice(s3.indexOf("export function InsightsSection"), s3.indexOf("export function SegmentsSection"));
+    expect(insights).not.toContain("SegmentCard");
+    expect(insights).toContain('no="13 · Gold insights"');
+  });
+  it("the sections after it are renumbered 15 and 16, in page order", () => {
+    expect(read("Sections2.tsx")).toContain('no="15 · Dividends & events"');
+    expect(read("Sections2.tsx")).toContain('no="16 · Pros, cons & Prism history"');
+    const page = read("StockPage.tsx");
+    const at = (s: string) => page.indexOf(s);
+    expect(at("<InsightsSection")).toBeLessThan(at("<SegmentsSection"));
+    expect(at("<SegmentsSection")).toBeLessThan(at("<DividendsSection"));
+  });
+  it("the Trends section no longer draws a Revenue by segment chart", () => {
+    const s4 = read("Sections4.tsx");
+    expect(s4).not.toContain("Revenue by segment");
+    expect(s4).toContain("How sales, profit and cash have moved");
   });
 });

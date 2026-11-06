@@ -5,7 +5,7 @@ import { Icon } from "../lib/icons";
 import { MiniBars, type BarSeries } from "../charts/MiniBars";
 import { Plain } from "../components/Plain";
 import { MINUS, cr, nf, num } from "../lib/format";
-import type { Events, Financials, Ratios, Segments, Table } from "../lib/api";
+import type { Events, Financials, Ratios, Table } from "../lib/api";
 import { SectionHead } from "./Sections";
 import { badgeOf, insightLine, lastIndex, shortPeriod, yoyChange, type Tone } from "../lib/trendInsight";
 
@@ -109,7 +109,7 @@ const segKeys = (e: React.KeyboardEvent<HTMLElement>) => {
   bs[to].focus(); bs[to].click();
 };
 
-export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments; e?: Events; r?: Ratios }) {
+export function TrendsSection({ f, e, r }: { f?: Financials; e?: Events; r?: Ratios }) {
   const [tab, setTab] = useState<"key" | "margin" | "div">("key");
   const [mode, setModeRaw] = useState<"q" | "a">(readMode);
   const setMode = (m: "q" | "a") => { setModeRaw(m); try { sessionStorage.setItem(MODE_KEY, m); } catch { /* private window */ } };
@@ -124,11 +124,9 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
   const tbl = (m: "q" | "a") => (m === "q" ? Q : A.pl);
   const mk = (title: string, key: string, color: string, fmt = crf, x: Partial<Card> = {}): Card => ({ id: key, title, ...x, build: (m) => { const t = tbl(m); return { labels: t.periods, series: [{ key, label: title, values: row(t, key), color }], fmt }; } });
   const annual = (id: string, title: string, hint: string, build: Card["build"], x: Partial<Card> = {}): Card => ({ id, title, hint, annualOnly: true, ...x, build });
-  const segColors = [G, INK, STONE, DEEP, "var(--k4)", "var(--k5)", "var(--k6)", "var(--k8)"];
   const cards: Record<typeof tab, Card[]> = {
     key: [
       mk("Revenue", "revenue", G, crf, { iname: "Revenue" }),
-      annual("seg", "Revenue by segment", "Annual", () => seg && seg.periods.length ? { labels: seg.periods, mode: "stack" as const, fmt: crf, series: Object.entries(seg.segments).sort((a, b) => ((b[1].revenue.slice(-1)[0] as number) || 0) - ((a[1].revenue.slice(-1)[0] as number) || 0)).map(([k, v], i) => ({ key: k, label: k, values: v.revenue, color: segColors[i % segColors.length] })) } : null, { kind: "mix", iname: "Segments" }),
       mk("Operating profit", "operating_profit", DEEP, crf, { iname: "Operating profit" }),
       annual("fcf", "Free cash flow", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "fcf", label: "Free cash flow", values: row(A.cf, "free_cash_flow"), color: INK }], fmt: crf }), { iname: "Free cash flow" }),
       mk("Net profit", "net_profit", INK, crf, { iname: "Net profit" }),

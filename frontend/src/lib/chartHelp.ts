@@ -348,7 +348,6 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
   },
 
   "trend-revenue": trend({ title: "Revenue trend", what: "Total sales for each period.", y: "Rupees crore.", why: "Growing revenue is the starting point for growing profit." }),
-  "trend-seg": trend({ title: "Revenue by segment", what: "Each year's revenue stacked by business segment.", x: "Financial year (annual only).", y: "Rupees crore. Each colour is one segment.", read: "The full height of a column is total revenue and each coloured block is one segment.", why: "It shows which segments are driving growth and how dependent the company is on any one of them." }),
   "trend-operating_profit": trend({ title: "Operating profit trend", what: "Profit from the core business before interest, tax and other income, for each period.", y: "Rupees crore.", why: "It shows how well the main business earns, before financing and tax effects." }),
   "trend-fcf": trend({ title: "Free cash flow trend", what: "Cash from operations minus capital spending, for each year.", x: "Financial year (annual only).", y: "Rupees crore.", why: "It is the cash left for dividends, debt repayment or buybacks." }),
   "trend-net_profit": trend({ title: "Net profit trend", what: "The final profit left for shareholders after all costs and tax, for each period.", y: "Rupees crore.", why: "It is the bottom line that earnings per share and the P/E ratio are built on." }),
