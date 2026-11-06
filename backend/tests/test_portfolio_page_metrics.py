@@ -117,4 +117,6 @@ def test_site_inputs_give_the_same_page_as_the_csv(name):
     rows = [{"d": d.strftime("%Y-%m-%d"), "c": float(c)} for d, c in nifty.items()]
     week = inputs.iso_key((closes.index[-1] + pd.Timedelta(days=3)).strftime("%Y-%m-%d"))     # the week after the last Friday is the unfinished one
     page = inputs.run(prices, rows, stored["inputs"]["meta"], week)
+    extra = page.pop("first_k")                           # the one addition to the pack's object: long lists only
+    assert (extra is None) == (page["layout"] == "short") and (extra is None or extra["k"] == 12 and extra["rest"] == 28)
     assert json.dumps(page, sort_keys=True) == json.dumps(stored["page"], sort_keys=True)

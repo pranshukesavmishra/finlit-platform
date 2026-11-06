@@ -77,7 +77,26 @@ def run(prices: Dict[str, Any], index_rows: Sequence[dict], meta: Dict[str, dict
     """The whole page object for the listed shares (metrics.build_page on the stored weekly closes)."""
     symbols = list(meta)
     frame, nifty = build_frame(prices, index_rows, symbols, week)
-    return metrics.build_page(frame, nifty, meta)
+    page = metrics.build_page(frame, nifty, meta)
+    page["first_k"] = first_k(frame, nifty, symbols, page)
+    return page
+
+
+FIRST_K = 12
+
+
+def first_k(frame: "pd.DataFrame", nifty: "pd.Series", symbols: Sequence[str], page: dict) -> Optional[dict]:
+    """Long lists only: how the first 12 shares of the list (in the order they were added) moved together, and what the rest added to 'moves like'.
+    Same engine, same weeks; the first 12 are those with a year of prices among the first 12 names."""
+    if page["layout"] != "long":
+        return None
+    r, _, _ = metrics.weekly_returns(frame, nifty)
+    head = [s for s in symbols[:FIRST_K] if s in r.columns]
+    if len(head) < 3:
+        return None
+    eff = round(metrics.effective_stocks(r[head].corr().values), 1)
+    total = page["score"]["effective_stocks"]
+    return {"k": len(head), "effective_stocks": eff, "rest": len(page["order"]) - len(head), "added": round(total - eff, 1)}
 
 
 def card_score(page: dict) -> Optional[dict]:
