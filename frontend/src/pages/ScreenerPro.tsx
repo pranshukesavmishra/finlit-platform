@@ -19,6 +19,7 @@ import { ChartHelp } from "../components/ChartHelp";
 import { matchesMetric, rankMetrics } from "../lib/metricSearch";
 import { CheckRow, FgxFocus, FilterGroup, SearchBox } from "../components/screener/FilterGroup";
 import { KpiStrip, SectorBars, TitleCard, Toolbar, Donut, type Kpi } from "../components/screener/PageParts";
+import { useNarrow, useSheet } from "../lib/useSheet";
 import "../styles/fgx.css";
 
 const Cloud3D = lazy(() => import("../three/Cloud3D"));
@@ -121,6 +122,10 @@ export function ScreenerPro() {
   const saved = useSavedScreens();
   const [collapsed, setCollapsed] = useState(narrow), [want, setWant] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
   const showPanel = (id: string) => { setCollapsed(false); setTab("filters"); setWant((w) => ({ id, n: w.n + 1 })); };
+  // phones: the open filter panel is a bottom sheet over the results (page behind locked; Back, Escape or the backdrop close it)
+  const phone = useNarrow("(max-width: 760px)");
+  const sheet = phone && !collapsed;
+  useSheet(sheet, () => setCollapsed(true), { focus: () => document.querySelector<HTMLElement>(".scr.is-sheet .scr-tabs button") });
   const data = cat.data;
   const plan: Plan = data?.plan ?? "basic";
   const byKey = useMemo(() => new Map((data?.groups || []).flatMap((g) => g.metrics.map((m) => [m.key, m] as const))), [data]);
@@ -242,8 +247,10 @@ export function ScreenerPro() {
             {[["name", "Company"], ["market_cap", "Market cap"], ...(res.data?.columns || []).map((k) => [k, byKey.get(k)?.label || k])].flatMap(([k, l]) => (k === "name" ? ["asc", "desc"] : byKey.get(k)?.better === "lower" ? ["asc", "desc"] : ["desc", "asc"]).map((d) => ({ k, d, l })))
               .concat(res.data?.columns.includes(sort.key) || sort.key === "name" ? [] : [{ k: sort.key, d: sort.dir, l: byKey.get(sort.key)?.label || sort.key }]).filter((o, i, a) => a.findIndex((x) => x.k === o.k && x.d === o.d) === i)
               .map(({ k, d, l }) => <option key={k + d} value={`${k}:${d}`}>Sort by {l} ({d === "asc" ? (k === "name" ? "A to Z" : "low to high") : (k === "name" ? "Z to A" : "high to low")})</option>)}</select></label>} />
-        <div className={"scr" + (collapsed ? " fgx-collapsed" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
-          <aside className="scr-side card" aria-label="Filters" hidden={sideW === 0 || collapsed}>
+        <div className={"scr" + (collapsed ? " fgx-collapsed" : "") + (sheet ? " is-sheet" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
+          {sheet && <div className="scr-sheet-back" onClick={() => setCollapsed(true)} aria-hidden="true" />}
+          <aside className="scr-side card" aria-label="Filters" hidden={(sideW === 0 && !sheet) || collapsed} role={sheet ? "dialog" : undefined} aria-modal={sheet || undefined}>
+            {sheet && <span className="sheet-grab" aria-hidden="true" />}
             <FgxFocus.Provider value={want}>
             <div className="seg scr-tabs" role="tablist"><button role="tab" aria-selected={tab === "filters"} onClick={() => setTab("filters")}>Filters{nActive ? <i className="dotn">{nActive}</i> : null}</button><button role="tab" aria-selected={tab === "quick"} onClick={() => setTab("quick")}>Quick screens</button></div>
             {tab === "filters" ? (
@@ -307,6 +314,10 @@ export function ScreenerPro() {
               </div>
             )}
             </FgxFocus.Provider>
+            {sheet && <div className="sheet-foot">
+              <button type="button" className="btn primary" onClick={() => setCollapsed(true)}>{res.isLoading || !res.data ? "Show results" : `Show ${nf(total, 0)} ${total === 1 ? "company" : "companies"}`}</button>
+              {nActive > 0 && <button type="button" className="btn" onClick={() => setF(norm({}))}>Clear all</button>}
+            </div>}
           </aside>
           <SplitDivider width={sideW} set={setSide} />
 

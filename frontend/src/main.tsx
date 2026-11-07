@@ -43,12 +43,15 @@ import "./styles/sidebar.css";
 import "./styles/earnings.css";
 import "./styles/calm.css";
 import "./styles/chartzoom.css";
+import "./styles/mobile.css";   // phones and tablets (every rule inside a phone, tablet or touch query); just before overlay.css, which must stay last
 import "./styles/overlay.css";
+import { installScrollHints } from "./lib/scrollHints";
 import { purgeLegacy } from "./lib/persist";
 
 installDemo();
 installResilience();
 installSvgTextFit();
+installScrollHints();
 // Layout/behaviour flags written by releases before lib/persist.ts (raw, unversioned): drop them so stale values cannot reshape this release.
 purgeLegacy(["finlit-side", "finlit-side-groups", "finlit-dash-open", "finlit-etf-cols-v2", "finlit-mf-cols-v4"], ["finlit.side."]);
 

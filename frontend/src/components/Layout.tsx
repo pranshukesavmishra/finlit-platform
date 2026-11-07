@@ -18,6 +18,7 @@ import { DEMO } from "../lib/demo";
 import { useAuth } from "../lib/auth";
 import { MORE, PRICING, SECTIONS, isHere, sectionHere, type NavSection } from "../lib/nav";
 import { versionLine } from "../lib/version";
+import { useSheet } from "../lib/useSheet";
 import "../styles/ai-top.css";
 
 /** One header dropdown, built from lib/nav.ts. */
@@ -51,6 +52,8 @@ function Header({ onSearch }: { onSearch: () => void }) {
   const onAuth = /^\/(login|forgot-password|reset-password|verify-email)(\/|$)/.test(loc.pathname);   // the sign-in pages carry no assistant
   useEffect(() => { setMenu(false); setOpen(null); setAcct(false); }, [loc.pathname]);
   useEffect(() => { const o = () => setMenu((m) => !m); addEventListener(OPEN_MENU, o); return () => removeEventListener(OPEN_MENU, o); }, []);
+  // the site menu on phones: the page behind stays still; Escape and the phone's Back button close it
+  useSheet(menu, () => setMenu(false), { focus: () => document.querySelector<HTMLElement>(".mnav a, .mnav button") });
   return (
     <header className="top">
       <div className="wrap">

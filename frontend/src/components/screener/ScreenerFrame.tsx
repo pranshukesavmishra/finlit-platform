@@ -1,7 +1,8 @@
 // The page frame both score screeners share: header, filter sidebar (quick views, size, sector, then the page's own filters), summary tiles, active-filter
 // chips, sector mix, the results table with selection, compare, watchlist and CSV, and the pager. The page supplies the model-specific parts.
 import { titleOf, subOf, codeNote } from "../../lib/companyLabel";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { useSheet } from "../../lib/useSheet";
 import { Link } from "react-router";
 import { HScroll } from "../HScroll";
 import { SplitDivider, useSideWidth } from "../SplitDivider";
@@ -51,11 +52,8 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
   const [collapsed, setCollapsed] = useState(false), [want, setWant] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
   const showPanel = (id: string | null) => { if (narrow()) setDrawer(true); else setCollapsed(false); if (id) setWant((w) => ({ id, n: w.n + 1 })); };
   const kpis: Kpi[] = tiles.slice(0, -1).map(([label, value, why], i) => ({ icon: KPI_ICONS[i] ?? "layers", label, value, why }));
-  useEffect(() => {   // Escape closes the filter drawer on narrow screens
-    if (!drawer) return;
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawer(false); };
-    window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
-  }, [drawer, setDrawer]);
+  // the filter drawer on narrow screens: page behind locked; Escape, the backdrop and the phone's Back button close it
+  useSheet(drawer, () => setDrawer(false), { focus: () => document.querySelector<HTMLElement>(".sx-open .sx-close") });
   const qTrim = s.q.trim();
   const sortVal = `${sort.key}:${sort.dir}`;
   const choices: { key: SortKey; label: string; asc: string; desc: string }[] = [
@@ -83,7 +81,8 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
             {sortOpts.map(([k, d, l]) => <option key={k + d} value={`${k}:${d}`}>Sort by {l}</option>)}</select></label>} />
         <div className={"scr sx" + (drawer ? " sx-open" : "") + (collapsed ? " fgx-collapsed" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
           {drawer && <div className="sx-back" onClick={() => setDrawer(false)} aria-hidden="true" />}
-          <aside className="scr-side card sx-side" aria-label={sideLabel} hidden={sideW === 0 || (collapsed && !drawer)}>
+          <aside className="scr-side card sx-side" aria-label={sideLabel} hidden={(sideW === 0 && !drawer) || (collapsed && !drawer)} role={drawer ? "dialog" : undefined} aria-modal={drawer || undefined}>
+            {drawer && <span className="sheet-grab" aria-hidden="true" />}
             <button type="button" className="sx-close btn" onClick={() => setDrawer(false)}>Close filters</button>
             <form onSubmit={(e) => { e.preventDefault(); s.apply(s.draft, true); }} onBlurCapture={(e) => { if ((e.target as HTMLElement).matches?.('input[type="number"]') && dirty && !bad) s.apply(); }} noValidate>
               <FgxFocus.Provider value={want}>

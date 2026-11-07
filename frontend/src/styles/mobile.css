@@ -1,0 +1,152 @@
+/* ============================================================================================
+   Phones and tablets: the last page style layer (imported in main.tsx after every page stylesheet, just before overlay.css, so it wins without !important wars).
+   Every rule here sits inside a phone, tablet or touch query: the desktop layout (wider than 1024px, mouse) never changes.
+   Breakpoints used by new code (see docs/MOBILE.md):
+     phone  <= 480px   small phones (360 to 480)
+     mobile <= 760px   every phone, landscape included (the bottom tab bar shows here)
+     tablet <= 1024px  tablets; the desktop layout starts above this
+   ============================================================================================ */
+:root { --bp-phone: 480px; --bp-mobile: 760px; --bp-tablet: 1024px; }
+
+/* iOS must not enlarge text by itself when the phone turns; pinch-zoom stays allowed */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* ---------------------------------------------------------------------- every phone */
+@media (max-width: 760px) {
+  /* last safety net against a page that scrolls sideways (clip does not break sticky, unlike hidden).
+     The real causes are fixed below; this only stops a 1-2px leftover from making the whole page wobble. */
+  #root { overflow-x: clip; min-height: 100vh; min-height: 100dvh; }
+  /* anchor jumps land below the sticky header, not under it */
+  html { scroll-padding-top: 72px; }
+
+  /* tables: the scroller stays inside the page gutter (it used -16px against a 14px gutter: 2px of sideways page scroll) */
+  .wrap .tw { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; }
+  .card .tw, .mf .tw, .sx .tw.sx-scroll, .sx-tablebox .tw, .etf-datatable .tw { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+  /* a table scrolls sideways by itself, never the page; the browser's back-swipe is not triggered by it */
+  .tw { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  /* a soft fade at the edge says "more columns this way"; it goes once you reach the end (lib/scrollHints.ts sets data-edge) */
+  .tw[data-edge="end"], .h-scroll[data-edge="end"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 30px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 30px), transparent); }
+  .tw[data-edge="both"], .h-scroll[data-edge="both"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 30px), transparent); mask-image: linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 30px), transparent); }
+  .tw[data-edge="start"], .h-scroll[data-edge="start"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 22px); mask-image: linear-gradient(to right, transparent, #000 22px); }
+  /* screener tables: the frozen name column takes at most ~40% of the screen, so the figures beside it have room
+     (it took 240px of 360, leaving one half-cut number column) */
+  :is(.scr-t, .sx-t, .ss-t) .stick { width: 40vw; min-width: 120px; max-width: 168px; }
+  :is(.scr-t, .sx-t, .ss-t) .stick .av { display: none; }
+  :is(.scr-t, .sx-t, .ss-t) .stick .co { display: block; min-width: 0; }
+  :is(.scr-t, .sx-t, .ss-t) .stick :is(b, small) { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :is(.scr-t, .sx-t, .ss-t) td, :is(.scr-t, .sx-t, .ss-t) th { padding-block: 10px; }
+  :is(.scr-t, .sx-t, .ss-t) .stick { box-shadow: 1px 0 0 var(--border), 6px 0 10px -8px rgba(15, 14, 10, .25); }
+
+  /* numbers never break in the middle */
+  td.num, th.num, .num { font-variant-numeric: tabular-nums; }
+
+  /* header: the bottom bar already has Dashboard, so a signed-in header keeps only logo, assistant, theme, alerts and account */
+  .top .wrap:has(.acct-dd) .mob-cta { display: none; }
+  .top .ai-top { width: 36px; height: 36px; border-radius: 10px; }
+  .top .ai-top svg { width: 17px; height: 17px; }
+
+  /* site menu: its last links used to sit behind the bottom tab bar; now it stops above the bar and scrolls by itself */
+  .mnav { max-height: calc(100dvh - 64px - 86px - env(safe-area-inset-bottom, 0px)); padding-bottom: 12px; }
+  .mnav a { min-height: 44px; display: flex; align-items: center; }
+
+  /* product drawer: same, its plan box at the end is never under the bottom bar */
+  .side-body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; }
+
+  /* stock page header: the letter badge sits beside the name; the details card below uses the full width
+     (before: the badge was centred against the whole tall block, so it floated half a screen below the name) */
+  .idl { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: start; gap: 4px 12px; }
+  .idl > .badge { width: 48px; height: 48px; border-radius: 14px; font-size: var(--fs-16); grid-row: 1; margin-top: 2px; }
+  .idl > div:not(.badge) { display: contents; }
+  .idl .hs-name { grid-column: 2; grid-row: 1; align-self: center; }
+  .idl .hs-name h1 { margin-bottom: 0; }
+  .idl > div:not(.badge) > :not(.hs-name) { grid-column: 1 / -1; min-width: 0; }
+
+  /* table headings, group rows and plan labels: 12px at least */
+  table th small, table tr.grp td, .dsh-kicker, .dsh-new, .pl-info b { font-size: var(--fs-12); }
+
+  /* small labels: nothing under 12px on a phone */
+  .mt-i { font-size: var(--fs-12); letter-spacing: 0; }
+  .tape-st, .pfq-plan, .fcols b, .eyebrow, .hh-kicker, :not(.side-l) > .gtag { font-size: var(--fs-12); }
+
+  /* every grid and flex child may shrink: the usual reason a card pushes past the screen */
+  .card > * { min-width: 0; }
+  .card p, .card li, .card h3, .card h4, .tag, .chip { overflow-wrap: anywhere; }
+  img, video { max-width: 100%; height: auto; }
+
+  /* pagination and "load more": full width, easy to hit */
+  .pager .btn, .load-more, .more-btn { width: 100%; min-height: 44px; }
+}
+
+/* the narrowest phones (360-380px): bottom-bar labels a step smaller so "Dashboard" and "Research" keep a gap between them */
+@media (max-width: 380px) { .mt-i { font-size: var(--fs-11); } }
+
+/* ---------------------------------------------------------------------- bottom sheets (screener filters) */
+.sheet-grab, .sheet-foot, .scr-sheet-back { display: none; }
+@media (max-width: 760px) {
+  /* the filter panel rises from the bottom, at most 88% of the screen, scrolls inside itself, with a sticky "Show results" footer */
+  :root:root :is(.sx.sx-open .sx-side, .scr.is-sheet > .scr-side) {
+    display: block; position: fixed; z-index: var(--z-drawer); left: 0; right: 0; top: auto !important; bottom: 0 !important; width: auto; height: auto !important; max-height: 88dvh; margin: 0;
+    border-radius: 22px 22px 0 0; border-width: 1px 0 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding: 6px 16px 0 !important; background: var(--ov-surface, var(--s1)); box-shadow: 0 -24px 60px -20px rgba(15, 14, 10, .45);
+    animation: sheet-up .24s cubic-bezier(.2, .8, .2, 1);
+  }
+  .scr-sheet-back { display: block; position: fixed; inset: 0; z-index: var(--z-backdrop); background: var(--ov-backdrop, rgba(10, 9, 7, .55)); }
+  .sheet-grab { display: block; width: 40px; height: 4px; border-radius: 4px; margin: 4px auto 10px; background: var(--border-strong); }
+  .sheet-foot { display: flex; gap: 8px; position: sticky; bottom: 0; z-index: 2; margin: 14px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--ov-surface, var(--s1)); border-top: 1px solid var(--border); }
+  .sheet-foot .btn { min-height: 46px; white-space: nowrap; flex: none; } .sheet-foot .btn.primary { flex: 1; }
+  .sx.sx-open .sx-side .ss-actions { position: sticky; bottom: 0; margin: 14px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--ov-surface, var(--s1)); border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .sx.sx-open .sx-side .ss-actions .btn { min-height: 46px; white-space: nowrap; flex: none; } .sx.sx-open .sx-side .ss-actions .btn.primary { flex: 1; }
+  /* the bottom tab bar steps aside while a sheet is up */
+  body:has(.sx.sx-open, .scr.is-sheet) .mtabs { visibility: hidden; }
+}
+@keyframes sheet-up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { :root:root :is(.sx.sx-open .sx-side, .scr.is-sheet > .scr-side) { animation: none; } }
+
+/* ---------------------------------------------------------------------- dialogs on phones */
+@media (max-width: 760px) {
+  /* the alert dialog rises from the bottom (thumb reach) instead of floating in the middle; it scrolls inside itself */
+  :root:root .alx-modal { left: 0; right: 0; top: auto; bottom: 0; transform: none; width: auto; max-height: 92dvh; border-radius: 22px 22px 0 0;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); animation: sheet-up .24s cubic-bezier(.2, .8, .2, 1); overscroll-behavior: contain; }
+  :root:root .alx-drawer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; }
+  .alx-mh { position: sticky; top: -20px; z-index: 2; background: inherit; padding-top: 4px; }
+  /* close buttons are easy to hit */
+  .ipo-dr-x, .ec-dlg .ec-x, .alx-x, .cz-x, .modal .x { min-width: 44px; min-height: 44px; }
+  /* back to top (lib/scrollHints.ts shows it after two screens of scrolling) */
+  .to-top { position: fixed; z-index: var(--z-tray); left: 14px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: 40px; height: 40px; border-radius: 50%;
+    display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--border)); background: color-mix(in srgb, var(--s1) 92%, transparent);
+    color: var(--text); box-shadow: 0 10px 24px -14px rgba(15, 14, 10, .5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s; cursor: pointer; }
+  .to-top.on { opacity: 1; transform: none; pointer-events: auto; }
+  .to-top svg { width: 18px; height: 18px; }
+  body:has(.sx.sx-open, .scr.is-sheet, .shell.is-open, .mnav, .alx-modal, .palette, .gs) .to-top { display: none; }
+}
+@media (min-width: 761px) { .to-top { display: none; } }
+@media (prefers-reduced-motion: reduce) { :root:root .alx-modal { animation: none; } .to-top { transition: none; } }
+
+/* ---------------------------------------------------------------------- touch screens and phone widths */
+@media (pointer: coarse), (max-width: 760px) {
+  /* inputs at 16px: iOS zooms the whole page in when you tap a smaller one */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]), select, textarea { font-size: max(var(--fs-16), 1em); }
+
+  /* tap targets: sort buttons in table headers, the FAQ footer links, small inline actions */
+  th > button, th > .mf-sort, th > .fl-sort { min-height: 36px; }
+  .pfq-f a, .dk-link, .alx-link { display: inline-flex; align-items: center; min-height: 36px; }
+  .wl-coin .wc-n a, th.mfs-n > a, th.nm > a { display: inline-block; padding-block: 8px; }
+  .doc-c h3 > a, .crumbs a, .kf-col .ins a, .sx-link, .hh-link, .dk-pc-h a { display: inline-block; padding-block: 6px; }
+  .evi-crumb a, .mfi-back a, .fl-src li a, .mc-src-list li a, .rcs-all a, .own-yr2-all, .ow-sec-h a, .etf-link, .pzr-link, .ld-link, .dp-how, .formerr a, .pzs-go { display: inline-block; padding-block: 6px; }
+  th > button { min-width: 28px; }
+  .scr-find input, .tools select { min-height: 36px; }
+  .gx-cell .gx-x, .gx-chip > button, .rcx-i { min-width: 32px; min-height: 32px; }
+  input[type="range"] { min-height: 28px; }
+  .fl-cal-g .fl-cell { min-height: 32px; min-width: 32px; }
+  button.chip, a.chip, .chip-b, .ld-chip, .ld-fig { min-height: 36px; }
+
+  /* charts: one finger moving up or down scrolls the page; the chart reads taps and sideways drags */
+  .recharts-wrapper, .recharts-surface, .chart-box, .cz-host, .adv-plot, svg[role="img"] { touch-action: pan-y pinch-zoom; }
+}
+
+/* ---------------------------------------------------------------------- motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

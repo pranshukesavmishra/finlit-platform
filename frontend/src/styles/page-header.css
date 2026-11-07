@@ -49,3 +49,7 @@
   .ph-lk, .ph-learn { min-height: 40px; }
 }
 @media print { .ph { animation: none; } .ph-art-box { display: none; } }
+
+/* phones: the plan badge and eyebrow stay at the 12px floor (docs/MOBILE.md) */
+@media (max-width: 760px) { .ph-plan, .ph-eyebrow { font-size: var(--fs-12); } }
+@media (pointer: coarse), (max-width: 760px) { .ph-back a { display: inline-block; padding-block: 6px; } }   /* easy to tap on phones */

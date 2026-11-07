@@ -11,6 +11,7 @@ import { useAlerts, useNotices } from "../lib/alerts";
 import { MORE, SECTIONS, type NavItem } from "../lib/nav";
 import { badgeFor } from "../lib/sideGroups";
 import { isBool, isBoolMap, loadUi, saveUi } from "../lib/persist";
+import { useNarrow, useSheet } from "../lib/useSheet";
 
 const RESEARCH = SECTIONS.find((x) => x.id === "research")!;   // by id: the header order changes (Workspace comes first)
 
@@ -32,7 +33,10 @@ export function AppShell() {
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => { const o = () => setOpen((v) => !v); addEventListener("finlit:open-side", o); return () => removeEventListener("finlit:open-side", o); }, []);
   useEffect(() => { saveUi("side-collapsed", 1, collapsed); }, [collapsed]);
-  useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false); addEventListener("keydown", k); return () => removeEventListener("keydown", k); }, [open]);
+  // phones: the drawer locks the page behind it; Escape, the backdrop and the phone's Back button close it
+  const phone = useNarrow();
+  useSheet(open && phone, () => setOpen(false), { focus: () => document.querySelector<HTMLElement>(".side .side-toggle.show-sm") });
+  useEffect(() => { if (!open || phone) return; const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false); addEventListener("keydown", k); return () => removeEventListener("keydown", k); }, [open, phone]);
   // Each group is a drop-down: a header you click to show or hide its pages. The group holding the current page is always open;
   // what you opened or closed by hand is remembered.
   const [folded, setFolded] = useState<Record<string, boolean>>(() => loadUi("side-groups", 1, isBoolMap, {}));
