@@ -21,7 +21,7 @@ describe("Fundamental section", () => {
     for (const w of ["AVERAGE", "Weak", "Healthy", "Strong", "59.1", "/ 100"]) expect(t.toLowerCase()).toContain(w.toLowerCase());
     expect(h).toContain('aria-label="Valuation 42 of 100: Weak. Counts for 30% of the overall score. Higher is better: a higher score is a stronger result."');
     expect(h).toContain("a higher Risk score means lower risk");
-    expect(t).toContain("Financial health analysis");
+    expect(t).toContain("Fundamental analysis");
   });
   it("is calm when not rated: grey ring, No data cards, no score", () => {
     const r = rating({ status: "NOT RATED", label: "NOT RATED", final: null });

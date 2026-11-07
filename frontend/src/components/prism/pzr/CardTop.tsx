@@ -1,4 +1,4 @@
-// The top of a Prism report: the same two cards the company page shows ("Financial health analysis" with the four weighted parts, and "Technical analysis"
+// The top of a Prism report: the same two cards the company page shows ("Fundamental analysis" with the four weighted parts, and "Technical analysis"
 // with the short- and long-term views), drawn by the same components (stock/PrismCardView) so the two pages can never drift apart. Above them, the company's name and its status words.
 import { Link } from "react-router";
 import { Icon } from "../../../lib/icons";
@@ -10,6 +10,7 @@ import { STATUS, prismSummary, type PrismLatest } from "../../../stock/PrismCard
 import { LabelChip, StatusChip, istTime, type ReportActions } from "./Hero";
 import "../../../styles/prism-compare.css";
 import "../../../styles/prism-card.css";
+import "../../../styles/prism-report.css";
 
 const STATUS_NOTE: Record<PrismReport["rating"]["status"], string> = {
   RATED: "Enough of the data was available for a full rating.",

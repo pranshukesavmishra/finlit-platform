@@ -193,7 +193,7 @@ describe("the income line is called Sales for every company, with a sector note"
   });
 });
 
-describe("Prism report top: the card pair (financial health analysis and technical analysis)", () => {
+describe("Prism report top: the card pair (fundamental analysis and technical analysis)", () => {
   const tech = technical as unknown as Record<string, unknown>;
   const withTech = { ...R, technicalAssessment: tech.ready } as PrismReport;
   const top = (r: PrismReport) => { const h = renderToStaticMarkup(<MemoryRouter><PrismReportView report={r} actions={{}} /></MemoryRouter>); const m = h.match(/<section class="pzr-cardtop"[\s\S]*?<\/section><section class="pzr-sec/); return { html: m ? m[0] : h, t: text(m ? m[0] : h) }; };
@@ -201,7 +201,7 @@ describe("Prism report top: the card pair (financial health analysis and technic
 
   it("rated with technical: the report's own numbers, words, horizons and the separation note", () => {
     const { html, t } = top(withTech);
-    expect(t).toContain("Cumulative financial-health score"); expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Average");
+    expect(t).toContain("Cumulative fundamental score"); expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Average");
     expect(t).toContain("Technical short term"); expect(t).toContain("Technical long term");
     expect(t).toContain(th.shortTerm.horizon!); expect(t).toContain(th.longTerm.horizon!);
     expect(t).toContain("Technical analysis is not included in the financial-health score");
