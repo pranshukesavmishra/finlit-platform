@@ -230,3 +230,17 @@ describe("the charts", () => {
     expect(screen.getByRole("img", { name: "Sector-wise distribution: No companies in this view." })).toBeTruthy();
   });
 });
+
+describe("the filter box of Latest results", () => {
+  it("is headed Filters, and an arrow in it hides the box (the toolbar button brings it back)", () => {
+    open();
+    const box = screen.getByRole("complementary", { name: "Filters" });
+    expect(within(box).getByRole("heading", { name: "Filters" })).toBeTruthy();
+    const hide = within(box).getByRole("button", { name: "Hide filters" });
+    expect(hide.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(hide);
+    expect(document.getElementById("qr-filters")?.hasAttribute("hidden")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /Show filters/ }));
+    expect(document.getElementById("qr-filters")?.hasAttribute("hidden")).toBe(false);
+  });
+});

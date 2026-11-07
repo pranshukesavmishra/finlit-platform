@@ -10,7 +10,7 @@ import { OwnInsightCards } from "./OwnInsightCards";
 import { OwnMoves } from "./OwnMoves";
 import { OwnersToday } from "./OwnersToday";
 
-const HEAD = { id: "ownership", no: "11 · Ownership", icon: "pie", tier: "basic" as const, title: "Who owns the company", color: "--p-balance" };
+const HEAD = { id: "ownership", no: "10 · Ownership", icon: "pie", tier: "basic" as const, title: "Who owns the company", color: "--p-balance" };
 
 /** The series the section draws: the stored shareholding (every filing the provider has, so every year is selectable), else the insights' own 21 filings. */
 export function seriesOf(o?: Ownership, ins?: OwnInsights): OwnSeries | null {
@@ -19,7 +19,7 @@ export function seriesOf(o?: Ownership, ins?: OwnInsights): OwnSeries | null {
   return null;
 }
 
-/** Section 11. `ins` is the stored ownership insights (never the premium endpoint); `insWhy` is the reason when they cannot be had. */
+/** Section 10. `ins` is the stored ownership insights (never the premium endpoint); `insWhy` is the reason when they cannot be had. */
 export function OwnershipSection({ o, ins, insWhy }: { o?: Ownership; ins?: OwnInsights; insWhy?: string | null }) {
   const [pick, setPick] = useState<number | null>(null);
   const [q, setQ] = useState(CMP_OPTIONS[1].q);

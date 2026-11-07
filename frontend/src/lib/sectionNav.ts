@@ -16,7 +16,6 @@ export const NAV: NavItem[] = [
   ["ratios", "Ratios", "gauge", "Valuation, returns, margins and debt"],
   ["dupont", "DuPont analysis", "layers", "What drives return on equity"],
   ["earnings", "Earnings & cash", "coins", "Is the profit real, and is it turning into cash?"],
-  ["history", "Historical trend", "line", "Margins and returns against their own history, FY19 to FY26"],
   ["ownership", "Ownership", "pie", "Promoters, institutions and the public"],
   ["peers", "Peers", "layers", "How the company compares with its peers"],
   ["sector", "Sector & peers", "activity", "Where its industry stands, and how the stock ranks inside it"],

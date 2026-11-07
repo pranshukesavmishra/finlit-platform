@@ -9,7 +9,7 @@ import { ChartHelp } from "../components/ChartHelp";
 import { Plain } from "../components/Plain";
 import { Spark } from "../charts/Small";
 import { LineChart } from "../charts/LineChart";
-import { MINUS, cr, fmtUnit, initials, nf, num, pct } from "../lib/format";
+import { MINUS, cr, fmtUnit, initials, nf, num } from "../lib/format";
 import { Fragment } from "react";
 import { NotMeaningful, ReadingCell, ReadingFilter, ReadingMobileRow, useRatioReadings } from "./RatioReading";
 import { prefetchStock, type Peers, type Ratios, type Segments, type Summary } from "../lib/api";
@@ -27,7 +27,6 @@ import { ChartZoom } from "../components/ChartZoom";
 const v = (n: string) => `var(${n})`;
 
 /* ================= Ratios ================= */
-const TREND_KEYS: [string, string, string][] = [["gross_margin", "Gross margin", "--p-growth"], ["operating_margin", "Operating margin", "--p-profit"], ["net_margin", "Net margin", "--p-tech"], ["roe", "Return on equity (reported)", "--p-quality"], ["roce", "Return on capital", "--p-balance"]];
 const GROUP_COLOR: Record<string, string> = { valuation: "--p-quality", returns: "--p-quality", margins: "--p-profit", growth: "--p-growth", leverage: "--p-balance", liquidity: "--p-balance", efficiency: "--p-profit", shareholder: "--gold-deep", quality: "--p-quality" };
 const GROUP_ICON: Record<string, string> = { valuation: "tag", returns: "quality", margins: "profit", growth: "growth", leverage: "balance", liquidity: "balance", efficiency: "activity", shareholder: "coins", quality: "quality" };
 const GOLD_GROUPS = new Set(["leverage", "liquidity", "efficiency", "quality", "shareholder"]);
@@ -57,21 +56,6 @@ function Meter({ m, r, on, onSel }: { m: (typeof METERS)[number]; r: Ratios; on:
         <span style={{ left: 0, width: `${a}%`, background: v(zc[0]) }} /><span style={{ left: `${a}%`, width: `${b - a}%`, background: v(zc[1]) }} /><span style={{ left: `${b}%`, width: `${100 - b}%`, background: v(zc[2]) }} />
         <i style={{ left: `${pos}%` }} />
       </div>
-    </div>
-  );
-}
-
-function TrendCard({ k, label, col, vals, better }: { k: string; label: string; col: string; vals: (number | null)[]; better?: string | null }) {
-  const nn = vals.filter((x): x is number => x != null);
-  if (nn.length < 2) return null;
-  const now = nn[nn.length - 1], prev = nn[nn.length - 2], d = now - prev, hi = Math.max(...nn), lo = Math.min(...nn), avg = nn.reduce((a, b) => a + b, 0) / nn.length;
-  const up = d >= 0, goodDir = better === "lower" ? !up : up;
-  return (
-    <div className="trc" key={k} style={{ "--tc": v(col) } as React.CSSProperties}>
-      <div className="trc-h"><span>{label}</span><span className={"chip " + (goodDir ? "up" : "down")}>{up ? "▲ +" : "▼ −"}{nf(Math.abs(d), 1)} pts</span></div>
-      <div className="trc-v">{pct(now, 1)}</div>
-      <Spark values={vals} color={v(col)} w={220} h={70} />
-      <div className="trc-f"><span>Low <b>{nf(lo, 1)}%</b></span><span>Avg <b>{nf(avg, 1)}%</b></span><span>High <b>{nf(hi, 1)}%</b></span></div>
     </div>
   );
 }
@@ -197,14 +181,6 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
         <SectionHead id="earnings" no="09 · Earnings & cash quality" icon="shield" tier="gold" title="Is the profit real, and is it turning into cash?" sub="Profit against cash, collections and stock, and one-off items, checked against fixed rules." color="--p-profit" aside={ef ? <span className="sh-counts">{ef.red} red flag{ef.red === 1 ? "" : "s"} · {ef.watch} to watch · {ef.investigate} to investigate</span> : undefined} />
         <EarningsCash symbol={r.meta.symbol} lender={lender} sector={sector} industry={industry} labels={labels} />
       </section>
-      <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
-        <SectionHead id="history" no="10 · Historical trend · FY19–FY26" icon="line" tier="silver" title="Margins and returns against their own history" sub="Latest year against the low, average and high since FY19." color="--p-growth" />
-      <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
-        <div style={{ margin: "24px 0 16px" }}>
-          <div className="trc-grid">{TREND_KEYS.filter(([k]) => hist.rows[k]).map(([k, label, col]) => <TrendCard key={k} k={k} label={label} col={col} vals={hist.rows[k]} better="higher" />)}</div>
-        </div>
-      </Gate>
-      </section>
     </>
   );
 }
@@ -229,7 +205,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
   const N = peers.length, CX = 190, CY = 190, RR = 128;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="peers" no="12 · Peers" icon="layers" tier="basic" title={`How ${s.profile.name.split(" ")[0]} compares with its peers`} sub="Select a company to open its report." color="--gold-deep" />
+      <SectionHead id="peers" no="11 · Peers" icon="layers" tier="basic" title={`How ${s.profile.name.split(" ")[0]} compares with its peers`} sub="Select a company to open its report." color="--gold-deep" />
       <Plain>Comparing a company with its closest rivals is the quickest way to tell whether a number is good or just normal for the industry. {s.profile.sector ? `These ${N} companies work in ${s.profile.sector}.` : ""}</Plain>
       <div className="pr2">
         <div className="card acc orbit-card" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
@@ -294,7 +270,7 @@ export function InsightsSection({ s, r, tech }: { s: Summary; r?: Ratios; tech?:
   const spec = b.filter(([, k]) => SPEC[k]), plain = b.filter(([, k]) => !SPEC[k]);
   return (
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
-      <SectionHead id="insights" no="13 · Gold insights" icon="crown" tier="gold" title={`Triggers to watch and where ${s.profile.name.split(" ")[0]} fits`} sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
+      <SectionHead id="insights" no="12 · Gold insights" icon="crown" tier="gold" title={`Triggers to watch and where ${s.profile.name.split(" ")[0]} fits`} sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
       <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next.</Plain>
       <p className="faint" style={{ margin: "0 0 14px" }}><Link to={`/outlook/${encodeURIComponent(s.profile.symbol)}`}>Profit and revenue outlook, from this company's own history (Gold) →</Link></p>
       <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking"]}>
@@ -332,7 +308,7 @@ export function InsightsSection({ s, r, tech }: { s: Summary; r?: Ratios; tech?:
 export function SegmentsSection({ seg }: { seg?: Segments }) {
   return (
     <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
-      <SectionHead id="segments" no="14 · Segments" icon="pie" tier="gold" title="Where the revenue comes from" sub="Each business segment's share of revenue, its growth and its profit, year by year." color="--p-profit" />
+      <SectionHead id="segments" no="13 · Segments" icon="pie" tier="gold" title="Where the revenue comes from" sub="Each business segment's share of revenue, its growth and its profit, year by year." color="--p-profit" />
       <Gate tier="gold" title="Unlock revenue segmentation" points={["Revenue by business segment, year by year", "Each segment's share, growth and profit", "How dependent the company is on one segment"]}>
         <SegmentCard seg={seg} />
       </Gate>

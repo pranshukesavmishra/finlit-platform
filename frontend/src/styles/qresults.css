@@ -237,6 +237,11 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 /* Latest results: the filters live in a left panel (the same collapsible groups as the score screeners), the results on the right */
 .qr-split { display: grid; grid-template-columns: minmax(300px, 372px) minmax(0, 1fr); gap: 18px; align-items: start; }
 .qr-side { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; padding: 14px 16px 18px; scrollbar-width: thin; min-width: 0; }
+.qr-side-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.qr-side-h h2 { margin: 0; font: 600 var(--fs-18)/1.3 var(--serif); }
+.qr-side-x { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; }
+.qr-side-x:hover { border-color: var(--gold); color: var(--gold); } .qr-side-x:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+@media (max-width: 1000px) { .qr-side-x { display: none; } }
 .qr-side .qr-fd, .qr-side .qr-f1 { display: grid; gap: 12px; margin: 0; }
 .qr-side .qr-selects { display: grid; gap: 10px; margin-top: 12px; }
 .qr-side .qr-selects .wl-sel { width: 100%; } .qr-side .qr-selects select { width: 100%; }

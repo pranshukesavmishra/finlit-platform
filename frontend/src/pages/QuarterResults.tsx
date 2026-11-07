@@ -347,6 +347,12 @@ export function QuarterResultsPage() {
 
       <div className={"qr-split" + (wide ? " qr-wide" : "")}>
       <aside className="qr-side card" aria-label="Filters" id="qr-filters" hidden={wide}>
+        <div className="qr-side-h">
+          <h2>Filters</h2>
+          <button type="button" className="qr-side-x" onClick={toggleWide} aria-controls="qr-filters" aria-expanded={!wide} aria-label="Hide filters" title="Hide filters, widen table">
+            <svg viewBox="0 0 12 12" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2.5 4 6l3.5 3.5" /></svg>
+          </button>
+        </div>
         <FilterGroup id="qr-date" title="Announcement date" defaultOpen>
         <div className="qr-fd" role="group" aria-label="Announcement date">
           <div className="chips" role="group" aria-label="Quick dates">

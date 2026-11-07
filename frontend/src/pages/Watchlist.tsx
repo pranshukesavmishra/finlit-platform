@@ -1,6 +1,6 @@
 import { PageHeader } from "../components/PageHeader";
 import { titleOf, subOf, codeNote } from "../lib/companyLabel";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AlertButton } from "../components/AlertComposer";
 import { Link, useNavigate } from "react-router";
 import { Icon } from "../lib/icons";
@@ -17,10 +17,14 @@ import { FilterNote, SearchFilters, useRowFilter } from "../components/SearchFil
 import { hiddenRowMatches } from "../lib/searchFilters";
 import { BAND_LABEL, METRICS, fmt, useUniverse, type NumKey, type Row } from "../lib/screener";
 import { ChartHelp } from "../components/ChartHelp";
+import { Logo } from "../components/search/parts";
+import { useQuotesFor } from "../lib/api";
+import { quoteMap } from "../lib/globalSearch";
+import { scoreBand } from "../lib/scoreBands";
 
 type GroupBy = "none" | "sector" | "size" | "band" | "style";
 const GROUPS: { id: GroupBy; label: string; gold?: boolean }[] = [{ id: "none", label: "No grouping" }, { id: "sector", label: "Industry" }, { id: "size", label: "Company size" }, { id: "band", label: "FinLit band", gold: true }, { id: "style", label: "Style", gold: true }];
-const SORTS: { id: NumKey | "name"; label: string }[] = [{ id: "overall", label: "FinLit IQ" }, { id: "change_pct", label: "Today's change" }, { id: "market_cap", label: "Market cap" }, { id: "pe", label: "P/E" }, { id: "dividend_yield", label: "Dividend yield" }, { id: "name", label: "Name" }];
+const SORTS: { id: NumKey | "name"; label: string }[] = [{ id: "overall", label: "FinLit IQ" }, { id: "change_pct", label: "Today's change" }, { id: "market_cap", label: "Market cap" }, { id: "price", label: "Price" }, { id: "roe", label: "ROE" }, { id: "pe", label: "P/E" }, { id: "dividend_yield", label: "Dividend yield" }, { id: "name", label: "Name" }];
 const size = (c: number | null) => (c == null ? "Unknown" : c >= 100000 ? "Large cap" : c >= 30000 ? "Mid cap" : c >= 5000 ? "Small cap" : "Micro cap");
 const style = (r: Row) => (r.pe == null ? "Unknown" : r.pe < 15 || (r.pb != null && r.pb < 1.5) ? "Value" : r.pe > 35 ? "Premium growth" : "Blend");
 const keyOf = (g: GroupBy, r: Row) => (g === "sector" ? r.sector || "Other" : g === "size" ? size(r.market_cap) : g === "band" ? (r.band ? BAND_LABEL[r.band] : "Unscored") : g === "style" ? style(r) : "");
@@ -33,6 +37,15 @@ export function signals(r: Row, target?: number): string[] {
   if ((r.pe ?? 0) >= 60) out.push(`Expensive at ${nf(r.pe!, 0)}× earnings`);
   if (target && r.price) { const d = ((r.price - target) / target) * 100; if (Math.abs(d) <= 5) out.push(`Within ${nf(Math.abs(d), 1)}% of your target ₹${nf(target, 0)}`); }
   return out;
+}
+
+function Th({ id, label, sort, on, r, c }: { id: NumKey | "name"; label: string; sort: NumKey | "name"; on: (k: NumKey | "name") => void; r?: boolean; c?: boolean }) {
+  const active = sort === id;
+  return (
+    <th scope="col" className={(r ? "r " : c ? "c " : "") + (active ? "is-sorted" : "")} aria-sort={active ? (id === "pe" || id === "name" ? "ascending" : "descending") : "none"}>
+      <button type="button" onClick={() => on(id)} title={`Sort by ${label}`}>{label}<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 5 6 2.5 8.5 5M3.5 7 6 9.5 8.5 7" /></svg></button>
+    </th>
+  );
 }
 
 function Add({ rows: all, taken, onAdd }: { rows: Row[]; taken: string[]; onAdd: (r: Row) => void }) {
@@ -57,7 +70,7 @@ export function WatchlistPage() {
   const st = useWatchlist();
   const uniQ = useUniverse(), { data } = uniQ;
   const rows = data?.rows || [], bySym = useMemo(() => new Map(rows.map((r) => [r.symbol, r])), [rows]);
-  const [lid, setLid] = useState(st.lists[0].id), [group, setGroup] = useState<GroupBy>("sector"), [sort, setSort] = useState<NumKey | "name">("overall");
+  const [lid, setLid] = useState(st.lists[0].id), [group, setGroup] = useState<GroupBy>("none"), [sort, setSort] = useState<NumKey | "name">("overall");
   const [sel, setSel] = useState<string[]>([]), [naming, setNaming] = useState(false), [name, setName] = useState(""), [edit, setEdit] = useState<string | null>(null);
   const gold = has("gold"), silver = has("silver");
   const list = st.lists.find((l) => l.id === lid) || st.lists[0];
@@ -71,6 +84,7 @@ export function WatchlistPage() {
     return sort === "pe" ? A - B : B - A;
   }), [list, bySym, sort]);
   const buckets = useMemo(() => { if (group === "none") return [["", items] as [string, Row[]]]; const m = new Map<string, Row[]>(); items.forEach((r) => { const k = keyOf(group, r); m.set(k, [...(m.get(k) || []), r]); }); return [...m.entries()].sort((a, b) => b[1].length - a[1].length); }, [items, group]);
+  const logos = quoteMap(useQuotesFor(list.symbols).data);
   const adv = items.filter((r) => (r.change_pct ?? 0) > 0).length, dec = items.filter((r) => (r.change_pct ?? 0) < 0).length;
   const scored = items.filter((r) => r.overall != null), avg = scored.length ? scored.reduce((a, r) => a + (r.overall as number), 0) / scored.length : null;
   const attention = items.map((r) => ({ r, s: signals(r, st.meta[r.symbol]?.target) })).filter((x) => x.s.length);
@@ -86,8 +100,7 @@ export function WatchlistPage() {
   return (
     <>
       <PageHeader wrap plan="silver" title="Watchlists" art="portfolio" links={["/holdings", "/alerts", "/compare"]}
-        description={<>Group companies into <b>named lists</b>, bucket them by industry or size, add your own notes and targets, and see which ones need a second look.</>}
-        stats={[{ icon: "table", value: st.lists.length > 0 && st.lists.some((l) => l.symbols.length > 0) ? st.lists.length : null, label: "Lists" }, { icon: "building", value: list.symbols.length > 0 ? list.symbols.length : null, label: "Stocks in this list" }]} />
+        description={<>Track and manage your shortlisted companies. Add notes, set targets and monitor them in one place.</>} />
       <div className="wrap wl">
         <Gate tier="silver" title="Build your watchlist" points={["Named lists for your own themes", "Bucket stocks by industry and size", "Notes, target prices and one-click comparison"]}>
           {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Lists are saved in this browser. Reliance is real; the other companies are fictional (SMP-). On the live site your lists will follow your account to the app.</span></div>}
@@ -135,31 +148,70 @@ export function WatchlistPage() {
                 <div className="card acc wl-att" style={{ "--ac": "var(--gold)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Worth a second look<ChartHelp id="wl-second" /></h3><span className="s">Based on the FinLit model and your targets</span></div>
                   <ul>{attention.map(({ r, s }) => <li key={r.symbol}><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b title={codeNote(r)}>{titleOf(r)}</b></Link><span>{s.join(" · ")}</span></li>)}</ul></div>
               )}
-              {buckets.map(([k, rs]) => {
-                const a = rs.filter((r) => r.change_pct != null).reduce((x, r) => x + (r.change_pct as number), 0) / Math.max(1, rs.filter((r) => r.change_pct != null).length), sc = rs.filter((r) => r.overall != null);
-                return (
-                  <div className="wl-g" key={k || "all"}>
-                    {k && <div className="wl-gh"><h3>{k}</h3><span>{rs.length} stock{rs.length === 1 ? "" : "s"}</span><span className={a >= 0 ? "pos" : "neg"}>{a >= 0 ? "▲ +" : "▼ −"}{nf(Math.abs(a), 2)}% today on average</span>{sc.length > 0 && <span>Avg score {nf(sc.reduce((x, r) => x + (r.overall as number), 0) / sc.length, 0)}</span>}</div>}
-                    <div className="wl-cards">{rs.map((r) => {
-                      const m = st.meta[r.symbol] || { added: 0 }, d = m.target && r.price ? ((m.target - r.price) / r.price) * 100 : null;
+              <div className="wl-tw card">
+                <table className="wl-t" aria-label={`${list.name}: your stocks`}>
+                  <thead>
+                    <tr>
+                      <th className="wl-ck"><input type="checkbox" checked={sel.length > 0} disabled={!sel.length} onChange={() => setSel([])} aria-label="Clear the selection" title="Clear the selection" /></th>
+                      <Th id="name" label="Company" sort={sort} on={setSort} />
+                      <th scope="col">Industry</th>
+                      <Th id="price" label="Price" sort={sort} on={setSort} r />
+                      <Th id="pe" label="P/E" sort={sort} on={setSort} r />
+                      <Th id="roe" label="ROE" sort={sort} on={setSort} r />
+                      <Th id="market_cap" label="Mkt cap" sort={sort} on={setSort} r />
+                      <Th id="overall" label="FinLit IQ" sort={sort} on={setSort} c />
+                      <th scope="col">Status</th>
+                      <th scope="col">Target</th>
+                      <th scope="col">Your note</th>
+                      <th scope="col" className="r">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {buckets.map(([k, rs]) => {
+                      const ch = rs.filter((r) => r.change_pct != null), a = ch.reduce((x, r) => x + (r.change_pct as number), 0) / Math.max(1, ch.length), sc = rs.filter((r) => r.overall != null);
                       return (
-                        <article className={"wc" + (sel.includes(r.symbol) ? " sel" : "")} key={r.symbol}>
-                          <header>
-                            <label className="wc-ck"><input type="checkbox" checked={sel.includes(r.symbol)} onChange={() => toggleSel(r.symbol)} aria-label={`Select ${r.symbol} to compare`} /></label>
-                            <div className="wc-n"><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b title={codeNote(r)}>{titleOf(r)}</b></Link>{subOf(r) && <small>{subOf(r)}</small>}</div>
-                            <div className="wc-p"><b>{fmt(METRICS.price, r.price)}</b><span className={(r.change_pct ?? 0) >= 0 ? "pos" : "neg"}>{(r.change_pct ?? 0) >= 0 ? "▲" : "▼"} {fmt(METRICS.change_pct, r.change_pct).replace("+", "")}</span></div>
-                          </header>
-                          <div className="wc-m"><div><span>P/E</span><b>{fmt(METRICS.pe, r.pe)}</b></div><div><span>ROE</span><b>{fmt(METRICS.roe, r.roe)}</b></div><div><span>Mkt cap</span><b>{cr(r.market_cap)}</b></div>
-                            <div className="wc-s">{r.overall != null && r.band ? <span className={"vd " + r.band}>{r.overall} · {BAND_LABEL[r.band]}</span> : <span className="faint">Not scored</span>}</div></div>
-                          <div className="wc-t"><label><span>Target ₹</span><input type="number" inputMode="decimal" min={0} value={m.target ?? ""} placeholder="Set" onChange={(e) => wl.setMeta(r.symbol, { target: e.target.value === "" ? undefined : Math.max(0, Number(e.target.value)) })} aria-label={`${r.symbol} target price`} /></label>
-                            {d != null && <em className={d >= 0 ? "pos" : "neg"}>{d >= 0 ? "▲ " : "▼ "}{nf(Math.abs(d), 1)}% to target</em>}</div>
-                          <textarea className="wc-note" rows={2} maxLength={200} placeholder="Add a note: why are you watching this?" value={m.note ?? ""} onChange={(e) => wl.setMeta(r.symbol, { note: e.target.value })} aria-label={`${r.symbol} note`} />
-                          <footer>{st.lists.length > 1 && <select aria-label={`Move ${r.symbol} to another list`} value="" onChange={(e) => { if (e.target.value) { wl.move(r.symbol, list.id, e.target.value); toast(`Moved ${r.symbol}.`); } }}><option value="">Move to…</option>{st.lists.filter((l) => l.id !== list.id).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>}
-                            <AlertButton symbol={r.symbol} className="lnk" label="Alert" /> <button className="lnk" onClick={() => { wl.remove(r.symbol, list.id); setSel((x) => x.filter((y) => y !== r.symbol)); }}>Remove</button></footer>
-                        </article>);
-                    })}</div>
-                  </div>);
-              })}
+                        <Fragment key={k || "all"}>
+                          {k && (
+                            <tr className="wl-grow"><th colSpan={12} scope="colgroup">
+                              <b>{k}</b><span>{rs.length} stock{rs.length === 1 ? "" : "s"}</span><span className={a >= 0 ? "pos" : "neg"}>{a >= 0 ? "▲ +" : "▼ −"}{nf(Math.abs(a), 2)}% today on average</span>
+                              {sc.length > 0 && <span>Avg score {nf(sc.reduce((x, r) => x + (r.overall as number), 0) / sc.length, 0)}</span>}
+                            </th></tr>
+                          )}
+                          {rs.map((r) => {
+                            const m = st.meta[r.symbol] || { added: 0 }, d = m.target && r.price ? ((m.target - r.price) / r.price) * 100 : null, lg = logos.get(r.symbol);
+                            return (
+                              <tr className={sel.includes(r.symbol) ? "sel" : ""} key={r.symbol}>
+                                <td className="wl-ck" data-l=""><input type="checkbox" checked={sel.includes(r.symbol)} onChange={() => toggleSel(r.symbol)} aria-label={`Select ${r.symbol} to compare`} /></td>
+                                <td className="wl-co" data-l="Company"><div className="wl-coin">
+                                  <Logo src={lg?.logo} name={titleOf(r)} kind="stock" size={36} />
+                                  <span className="wc-n"><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b title={codeNote(r)}>{titleOf(r)}</b></Link>{subOf(r) && <small>{subOf(r)}</small>}</span>
+                                </div></td>
+                                <td className="wl-ind" data-l="Industry">{r.sector || "—"}</td>
+                                <td className="r" data-l="Price"><b>{fmt(METRICS.price, r.price)}</b><span className={(r.change_pct ?? 0) >= 0 ? "pos" : "neg"}>{(r.change_pct ?? 0) >= 0 ? "▲" : "▼"} {fmt(METRICS.change_pct, r.change_pct).replace("+", "")}</span></td>
+                                <td className="r" data-l="P/E">{fmt(METRICS.pe, r.pe)}</td>
+                                <td className="r" data-l="ROE">{fmt(METRICS.roe, r.roe)}</td>
+                                <td className="r" data-l="Mkt cap">{cr(r.market_cap)}</td>
+                                <td className="c" data-l="FinLit IQ">{r.overall != null ? <span className={"wl-iq " + scoreBand(r.overall)}>{Math.round(r.overall)}</span> : <span className="faint" title="Not scored yet">—</span>}</td>
+                                <td data-l="Status">{r.overall != null && r.band ? <span className={"wl-st " + r.band}><i aria-hidden="true" />{BAND_LABEL[r.band]}</span> : <span className="faint">Not scored</span>}</td>
+                                <td data-l="Target">
+                                  <input className="wl-tg" type="number" inputMode="decimal" min={0} value={m.target ?? ""} placeholder="Set" onChange={(e) => wl.setMeta(r.symbol, { target: e.target.value === "" ? undefined : Math.max(0, Number(e.target.value)) })} aria-label={`${r.symbol} target price in rupees`} />
+                                  {d != null && <em className={d >= 0 ? "pos" : "neg"}>{d >= 0 ? "▲ " : "▼ "}{nf(Math.abs(d), 1)}% to target</em>}
+                                </td>
+                                <td className="wl-ntc" data-l="Your note"><textarea className="wl-nt" rows={2} maxLength={200} placeholder="Add a note…" value={m.note ?? ""} onChange={(e) => wl.setMeta(r.symbol, { note: e.target.value })} aria-label={`${r.symbol} note`} /></td>
+                                <td className="r wl-ac" data-l="">
+                                  {st.lists.length > 1 && <select className="wl-mv" aria-label={`Move ${r.symbol} to another list`} value="" onChange={(e) => { if (e.target.value) { wl.move(r.symbol, list.id, e.target.value); toast(`Moved ${r.symbol}.`); } }}><option value="">Move…</option>{st.lists.filter((l) => l.id !== list.id).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>}
+                                  <AlertButton symbol={r.symbol} className="wl-ib" />
+                                  <button type="button" className="wl-ib" onClick={() => { wl.remove(r.symbol, list.id); setSel((x) => x.filter((y) => y !== r.symbol)); }} aria-label={`Remove ${r.symbol} from this list`} title="Remove from this list"><Icon name="trash" /></button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
               {sel.length > 0 && (
                 <div className="wl-dock" role="region" aria-label="Selected stocks"><span><b>{sel.length}</b> selected</span>
                   <button className="btn primary" disabled={sel.length < 2} onClick={() => nav(`/compare?c=${sel.join(",")}`)}>{sel.length < 2 ? "Pick one more to compare" : "Compare selected"}</button>

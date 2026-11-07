@@ -5,7 +5,9 @@ import { Link, useNavigate } from "react-router";
 import { Icon } from "../../../lib/icons";
 import { ActiveFilters, FilterNote, HiddenRows, SearchFilters, useIndexFilter } from "../../SearchFilters";
 import { useSlashFocus } from "../../../lib/premium";
-import { useSearchIndex, type SearchRow } from "../../../lib/api";
+import { useQuotesFor, useSearchIndex, type SearchRow } from "../../../lib/api";
+import { quoteMap } from "../../../lib/globalSearch";
+import { Logo } from "../../search/parts";
 import { indexFacets, sectorAt } from "../../../lib/searchFilters";
 import {
   PRISM_NAME, PRISM_NOTE, cleanSymbol, labelTone, partInfo, partsOf, pctWhole, readPrismRecent, score1, statementWord, useStoredSummary,
@@ -89,8 +91,9 @@ function RecentCard({ symbol }: { symbol: string }) {
 
 const NO_SECTOR = "\u0000none";
 /** Browse by sector: sector chips, then the companies of one sector. Reads the same all-company list as the search box (never only the scored ones), and a last chip holds the companies with no sector on file. */
-export function Browse({ statement }: { statement: Statement }) {
-  const [on, setOn] = useState(false), [sector, setSector] = useState<string | null>(null), [all, setAll] = useState(false);
+export function Browse({ statement, open, onOpen }: { statement: Statement; open?: boolean; onOpen?: (o: boolean) => void }) {
+  const [own, setOwn] = useState(false), on = open ?? own, setOn = (o: boolean) => { setOwn(o); onOpen?.(o); };
+  const [sector, setSector] = useState<string | null>(null), [all, setAll] = useState(false);
   const idx = useSearchIndex(on);
   const data = idx.data;
   const { sectors, none } = useMemo(() => { const f = indexFacets(data); return { sectors: f.sectors, none: f.unknown.sector }; }, [data]);
@@ -104,7 +107,7 @@ export function Browse({ statement }: { statement: Statement }) {
   const label = sector === NO_SECTOR ? "No sector on file" : sector;
   const shown = all ? list : list.slice(0, 60);
   return (
-    <section className="pzr-browse" aria-label="Browse companies">
+    <section className="pzr-browse" id="pzr-browse" aria-label="Browse companies">
       <div className="pzr-browse-h"><h3>Browse companies</h3><button type="button" className="pzr-link" aria-expanded={on} onClick={() => setOn(!on)}>{on ? "Hide sectors" : "Show sectors"}</button></div>
       {!on && <p className="pzr-small">Pick a sector, then a company.</p>}
       {on && (idx.isLoading ? <div className="skeleton" style={{ height: 80 }} aria-busy="true" /> : idx.isError ? <p className="pzr-empty">The sector list is not available right now. Search by name or symbol instead.</p> : <>
@@ -122,12 +125,38 @@ export function Browse({ statement }: { statement: Statement }) {
 const WHAT = ["A score out of 100 and a label from Strong to Poor, or Not rated when the evidence is thin", "Four parts: Growth & Profitability, Valuation, Quality and Risk, each with what supports it and what weighs on it", "Every factor with its value, points and status, and which inputs are missing", "A PDF of exactly the calculation you see"];
 export const PRISM_WHAT = WHAT;
 
+/** Six of the most searched companies, one tap each: straight to that company's Prism page, no typing. */
+export const QUICK_COMPANIES: { symbol: string; name: string }[] = [
+  { symbol: "RELIANCE", name: "Reliance Industries" }, { symbol: "TCS", name: "TCS" }, { symbol: "HDFCBANK", name: "HDFC Bank" },
+  { symbol: "INFY", name: "Infosys" }, { symbol: "ICICIBANK", name: "ICICI Bank" }, { symbol: "ITC", name: "ITC" },
+];
+
+/** "Quick select companies": compact buttons under the search box, and a link that opens the full sector list. */
+export function QuickSelect({ statement, onViewAll }: { statement: Statement; onViewAll: () => void }) {
+  const logos = quoteMap(useQuotesFor(QUICK_COMPANIES.map((c) => c.symbol)).data);
+  const q = statement === "standalone" ? "?statement=standalone" : "";
+  return (
+    <div className="pzr-quick" role="group" aria-label="Quick select companies">
+      <span className="pzr-quick-l">Quick select companies</span>
+      <ul>
+        {QUICK_COMPANIES.map((c) => (
+          <li key={c.symbol}><Link to={`/prism/${c.symbol}${q}`} className="pzr-qbtn"><Logo src={logos.get(c.symbol)?.logo} name={c.name} kind="stock" size={22} /><span>{c.name}</span></Link></li>
+        ))}
+        <li><button type="button" className="pzr-qbtn pzr-qall" onClick={onViewAll}>View all companies<Icon name="arrow" /></button></li>
+      </ul>
+    </div>
+  );
+}
+
 export function LandingBody({ statement, setStatement }: { statement: Statement; setStatement: (s: Statement) => void }) {
   const recent = readPrismRecent();
+  const [browse, setBrowse] = useState(false);
+  const viewAll = () => { setBrowse(true); setTimeout(() => document.getElementById("pzr-browse")?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 60); };
   return (
     <div className="wrap pzr-land">
       <section className="pzr-find" aria-label="Find a company">
         <Picker statement={statement} setStatement={setStatement} big />
+        <QuickSelect statement={statement} onViewAll={viewAll} />
         <p className="pzr-small">Press <kbd>/</kbd> to search from anywhere on this page.</p>
       </section>
       {recent.length > 0 && (
@@ -136,7 +165,7 @@ export function LandingBody({ statement, setStatement }: { statement: Statement;
           <ul className="pzr-recent">{recent.slice(0, 6).map((x) => <RecentCard key={x} symbol={x} />)}</ul>
         </section>
       )}
-      <Browse statement={statement} />
+      <Browse statement={statement} open={browse} onOpen={setBrowse} />
       <section className="pzr-what" aria-label={`What ${PRISM_NAME} is`}>
         <div className="pzr-what-art"><PrismMark /></div>
         <div className="pzr-what-t">

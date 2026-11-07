@@ -15,6 +15,12 @@
 }
 
 /* ---------- shared bits */
+.pzr-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 14px 0 4px; } .pzr-quick-l { font: 600 var(--fs-13) var(--sans); color: var(--muted); }
+.pzr-quick ul { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.pzr-qbtn { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px 0 8px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 var(--fs-13) var(--sans); transition: border-color .15s, background .15s; }
+.pzr-qbtn:hover { border-color: var(--gold); background: var(--gold-soft); } .pzr-qbtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pzr-qbtn .gs-logo { flex: none; } .pzr-qall { padding-left: 14px; color: var(--gold); border-style: dashed; } .pzr-qall .ico { width: 14px; height: 14px; }
+@media (max-width: 640px) { .pzr-quick-l { flex-basis: 100%; } .pzr-qbtn { min-height: 40px; } }
 .pzr-small { margin: 0; font-size: var(--fs-13); color: var(--faint); line-height: 1.55; }
 .pzr-link { all: unset; cursor: pointer; font-size: var(--fs-13); color: var(--gold); text-decoration: underline; text-underline-offset: 3px; } .pzr-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
 .pzr-empty { margin: 0; color: var(--muted); font-size: var(--fs-14); }

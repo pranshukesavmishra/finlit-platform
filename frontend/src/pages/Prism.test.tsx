@@ -22,7 +22,7 @@ vi.mock("../lib/prism", async (orig) => {
 });
 vi.mock("../lib/premium", () => ({ useGold: () => state.gold, useSlashFocus: () => undefined, pushRecent: () => undefined, readRecent: () => [] }));
 vi.mock("../lib/auth", () => ({ useAuth: () => ({ showcase: [], isAdmin: state.admin }) }));
-vi.mock("../lib/api", async (orig) => ({ ...(await orig<typeof import("../lib/api")>()), useSearchIndex: () => ({ data: undefined }) }));
+vi.mock("../lib/api", async (orig) => ({ ...(await orig<typeof import("../lib/api")>()), useSearchIndex: () => ({ data: undefined }), useQuotesFor: () => ({ data: undefined }) }));
 vi.mock("../lib/screener", () => ({ useUniverse: () => ({ data: undefined, isLoading: false, isError: false }) }));
 vi.mock("../lib/ui", () => ({ useUI: () => ({ has: () => state.gold, upgrade: () => undefined }), TIER: { gold: { n: "Gold", ic: "crown", tc: "--t-gold" } } }));
 
@@ -178,6 +178,18 @@ describe("Prism page", () => {
     expect(t).toContain("Choose a company");
     expect(t).toContain("Browse companies");
     expect(t).toContain("20 a day");
+  });
+  it("offers quick select companies under the search box: six one-tap links to their Prism pages and a View all companies button", () => {
+    state.gold = true;
+    const html = page("/prism"), t = text(html);
+    expect(t).toContain("Quick select companies");
+    for (const [name, sym] of [["Reliance Industries", "RELIANCE"], ["TCS", "TCS"], ["HDFC Bank", "HDFCBANK"], ["Infosys", "INFY"], ["ICICI Bank", "ICICIBANK"], ["ITC", "ITC"]]) {
+      expect(t).toContain(name);
+      expect(html).toContain(`href="/prism/${sym}"`);
+    }
+    expect(t).toContain("View all companies");
+    expect(html.indexOf("Quick select companies")).toBeGreaterThan(html.indexOf("Choose a company") > -1 ? 0 : -1);
+    expect(t).not.toMatch(/\b(buy|sell|avoid|top pick)\b/i);
   });
 });
 
