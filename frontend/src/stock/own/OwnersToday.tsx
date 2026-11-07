@@ -11,8 +11,8 @@ export function OwnersToday({ slices, when, isLatest }: { slices: Slice[]; when:
   const label = `Owners in ${when}: ${slices.map((s) => `${s.name} ${pc(s.value)}`).join(", ")}`;
   return (
     <section className="ow-card" aria-labelledby="ow-owners">
+      <ChartZoom label="Owners of the company" className="cz-r">
       <div className="ow-sec-h"><h3 id="ow-owners" className="ow-h2">Owners {isLatest ? "today" : `in ${when}`}<ChartHelp id="own-donut" /></h3><span className="ow-small ow-muted">{when} · hover a slice</span></div>
-      <ChartZoom label="Owners of the company">
       <div className="ow-donut-wrap" onMouseLeave={() => setHover(null)}>
         <div className="ow-donut">
           <svg width="200" height="200" viewBox="0 0 200 200" role="img" aria-label={label}>

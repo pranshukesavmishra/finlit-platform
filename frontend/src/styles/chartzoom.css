@@ -21,3 +21,18 @@
 /* a card whose own controls sit above the chart: the first row leaves room for the arrow */
 .cz-r > .cz-slot > .cz-host > :first-child { padding-right: 46px; }
 @media (max-width: 640px) { .cz-r > .cz-slot > .cz-host > :first-child { padding-right: 0; } .cz-r > .cz-slot { padding-top: 44px; } }
+/* the chart builders' pencil tool sits in the same corner: the arrow stands just to its left */
+.adv-body .cz > .cz-btn { right: 50px; }
+@media (pointer: coarse), (max-width: 640px) { .adv-body .cz > .cz-btn { right: 56px; } }
+/* lists, grids and heat maps have content right up to their corner: the arrow gets a strip of its own above them */
+.cz-top > .cz-slot { padding-top: 40px; }
+@media (pointer: coarse), (max-width: 640px) { .cz-top > .cz-slot { padding-top: 48px; } }
+/* Chart lab cards: the arrow sits in the card's own corner, beside the card title */
+.cz.cz-card { position: static; }
+.cl { position: relative; }
+.cl .card-h { padding-right: 46px; }
+.cz-card > .cz-btn { top: 10px; right: 10px; }
+@media (pointer: coarse), (max-width: 640px) { .cl .card-h { padding-right: 52px; } .cz-card > .cz-btn { top: 6px; right: 6px; } }
+/* table wrappers bleed into a card's padding; the dialog has none */
+.cz-body .cz-host .tw { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+.cz-body .cz-host .ipo-strip { padding: 0 24px; }

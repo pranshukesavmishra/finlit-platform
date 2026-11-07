@@ -98,7 +98,7 @@ export function Waterfall({ report }: { report: PrismReport }) {
   return (
     <section className="pzr-sec" aria-labelledby="pzr-h-wf">
       <header className="pzr-sh"><h3 id="pzr-h-wf">What moved the score</h3><p>Each part adds its score times its weight. The solid bar is what it added; the outline is the share it did not earn. The four additions make the overall score.</p></header>
-      <ChartZoom label="What moved the score">
+      <ChartZoom label="What moved the score" className="cz-top">
       <div className="pzr-wf" role="img" aria-label={concl}>
         <div className="pzr-wf-axis" aria-hidden="true">{[0, 25, 50, 75, 100].map((t) => <span key={t} style={{ left: `${t}%` }}>{t}</span>)}</div>
         {rows.map((r, i) => {

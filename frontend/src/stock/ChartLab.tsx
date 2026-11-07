@@ -34,7 +34,7 @@ function Card({ title, sub, icon = "line", children, full, note, help }: { title
   return (
     <div className={"card acc cl" + (full ? " full" : "")} style={{ "--ac": "var(--gold)" } as CSSProperties}>
       <div className="card-h"><h3><span className="ci"><Icon name={icon} /></span>{title}{help && <ChartHelp id={help} />}</h3>{sub && <span className="s">{sub}</span>}</div>
-      <ChartZoom label={title}>{children}</ChartZoom>{note && <p className="cl-note">{note}</p>}
+      <ChartZoom label={title} className="cz-card">{children}</ChartZoom>{note && <p className="cl-note">{note}</p>}
     </div>
   );
 }

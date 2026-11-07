@@ -33,7 +33,7 @@ function CumulativeLine({ data }: { data: PortfolioReport["charts"]["cumulativeR
 
 function HBars({ rows, color, label }: { rows: { label: string; value: number }[]; color?: boolean; label: string }) {
   const max = Math.max(...rows.map((r) => Math.abs(r.value)), 1);
-  return <ChartZoom label={label}><div data-chart>{rows.map((r) => <div className="hbar" key={r.label} style={{ "--bc": r.value >= 0 ? "var(--gain)" : "var(--loss)" } as React.CSSProperties}><span>{r.label}</span><span className="tr"><b style={{ width: `${(Math.abs(r.value) / max) * 100}%`, background: color ? undefined : "var(--bc)" }} /></span><span className="num">{color === false ? r.value : inr(r.value)}</span></div>)}</div></ChartZoom>;
+  return <ChartZoom label={label} className="cz-top"><div data-chart>{rows.map((r) => <div className="hbar" key={r.label} style={{ "--bc": r.value >= 0 ? "var(--gain)" : "var(--loss)" } as React.CSSProperties}><span>{r.label}</span><span className="tr"><b style={{ width: `${(Math.abs(r.value) / max) * 100}%`, background: color ? undefined : "var(--bc)" }} /></span><span className="num">{color === false ? r.value : inr(r.value)}</span></div>)}</div></ChartZoom>;
 }
 
 export function Portfolio() {

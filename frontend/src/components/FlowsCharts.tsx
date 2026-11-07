@@ -165,7 +165,7 @@ export function CalendarHeat({ days, side, selected, onSelect, name, publishedFr
   };
   const tabbable = selected && byDate.has(selected) ? selected : dates[dates.length - 1];
   return (
-    <ChartZoom label={`${name} flow calendar`}><div className="fl-cal" data-chart>
+    <ChartZoom label={`${name} flow calendar`} className="cz-top"><div className="fl-cal" data-chart>
       <div className="fl-cal-sc" ref={scroller}>
         <div className="fl-cal-in" role="group" aria-label={`${name} flow by day for the last year. Press a day to read its figures. Arrow keys move between days.`}>
           <div className="fl-cal-m" style={{ gridTemplateColumns: `repeat(${cal.cols}, minmax(0, 1fr))` }}>{cal.months.map((m) => <span key={m.col} style={{ gridColumn: `${m.col + 1} / span 4` }}>{m.label}</span>)}</div>

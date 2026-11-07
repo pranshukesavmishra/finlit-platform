@@ -110,7 +110,7 @@ export function HoldingsSection({ portfolio, title = "What it invests in", unit 
         <div><dt>Small holdings</dt><dd>{g.otherCount} below {SMALL_BELOW_PCT}%, {pct(g.otherPct)} together</dd></div>
       </dl>
 
-      <ChartZoom label="Share of each major holding">
+      <ChartZoom label="Share of each major holding" className="cz-top">
       <div className="hd-grid">
         <Donut slices={slices} />
         <ol className="hd-legend" aria-label="Major holdings">

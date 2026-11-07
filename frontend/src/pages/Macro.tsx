@@ -207,7 +207,7 @@ function Heatmap({ m }: { m: Macro }) {
     <section className="mc-panel" aria-labelledby="mcHeat">
       <div className="mc-ph"><h2 id="mcHeat">What is getting dearer</h2><span className="mc-chip">CPI by division, all India, year on year</span></div>
       <p className="mc-note">Each row is one group of household spending. Blue is below 2%, green is under the 4% target, amber is above target, red is above the 6% limit. Sorted by the latest month.</p>
-      <ChartZoom label="What is getting dearer: CPI by division"><div className="mc-hw" data-chart><table className="mc-heat">
+      <ChartZoom label="What is getting dearer: CPI by division" className="cz-top"><div className="mc-hw" data-chart><table className="mc-heat">
         <thead><tr><th>Division</th>{months.map((d) => <th key={d}>{dateIN(d, { month: "short" })}<small>{d.slice(2, 4)}</small></th>)}</tr></thead>
         <tbody>{rank.map((d) => { const mp = new Map(d.points); return (
           <tr key={d.key} className={hot === d.key ? "on" : ""} onMouseEnter={() => setHot(d.key)} onMouseLeave={() => setHot(null)}>

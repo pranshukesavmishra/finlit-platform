@@ -46,7 +46,7 @@ function Persistence() {
 
 function Overall() {
   return (
-    <ChartZoom label={"Share of checks where leaders beat laggards"}>
+    <ChartZoom label={"Share of checks where leaders beat laggards"} className="cz-top">
     <div className="lx-bars" role="img" aria-label="Share of checks where the top 30 percent beat the bottom 30 percent over the next six months: pharma 64, IT 60, banks 60, auto 46.">
       {SECTORS.map((s) => (
         <div key={s.name} className="lx-bar-row"><span className="n">{s.name}</span><div className="lx-bar"><i style={{ width: `${s.rate}%` }} className={s.tier} /><u style={{ left: "50%" }} /><u className="c55" style={{ left: "55%" }} /></div><b>{s.rate}%</b><span className={"ld-tier " + s.tier}>{TIER[s.tier]}</span></div>

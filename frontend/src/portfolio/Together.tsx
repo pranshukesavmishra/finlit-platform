@@ -40,7 +40,7 @@ function Grid({ page, meta, colors, pick, focus, setFocus }: Props & { pick: Pic
   const cell = long ? (n > 60 ? 8 : n > 30 ? 15 : 18) : 29;
   const style = { "--n": n, "--cell": cell + "px" } as React.CSSProperties;
   return (
-    <ChartZoom label="How each pair of shares moved together"><div className="pfx-gridwrap" data-chart><div className={"pfx-grid" + (long ? " small" : "")} style={style} role="table" aria-label="How each pair of shares moved together">
+    <ChartZoom label="How each pair of shares moved together" className="cz-top"><div className="pfx-gridwrap" data-chart><div className={"pfx-grid" + (long ? " small" : "")} style={style} role="table" aria-label="How each pair of shares moved together">
       {order.map((s, i) => <span key={"c" + s} className="pfx-gcol" style={{ gridColumn: 4 + i, gridRow: 1 }} role="columnheader">{s}</span>)}
       {order.map((a, i) => (
         <div key={a} style={{ display: "contents" }} role="row">
@@ -108,7 +108,7 @@ function Rest({ page }: { page: PageObject }) {
   const max = Math.max(0.01, ...xs.map((x) => x[1]));
   return (
     <div className="pfx-rest"><div className="pfx-h"><h3 className="pfx-serif">How much each share moves with the rest</h3><p className="pfx-note">Average correlation with the other {Math.max(0, xs.length - 1)}</p></div>
-      <ChartZoom label="How much each share moves with the rest">
+      <ChartZoom label="How much each share moves with the rest" className="cz-top">
       <p className="pfx-legend"><span><i className="rest-lo" />Under 0.2, mostly moves on its own</span><span><i className="rest-mid" />0.2–0.3</span><span><i className="rest-hi" />0.3+, moves a lot with the rest</span></p>
       <div className="pfx-restbars" role="img" aria-label="Average correlation of each share with the rest of the list">{xs.map(([s, v]) => <span key={s} title={`${s}: ${two(v)}`} className={v < 0.2 ? "lo" : v < 0.3 ? "mid" : "hi"}><i style={{ height: `${Math.max(3, (v / max) * 100)}%` }} /><em>{s}</em></span>)}</div>
       </ChartZoom>

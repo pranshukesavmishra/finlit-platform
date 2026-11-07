@@ -69,7 +69,7 @@ function Heat({ rows }: { rows: Row[] }) {
   const max = Math.max(...rows.map((r) => Math.abs(Number(r.change_pct) || 0)), 0.5);
   if (!rows.length) return null;
   return (
-    <ChartZoom label="Index moves today (heat map)"><div className="pm-heat" data-chart aria-label="Index moves today">{rows.map((r) => {
+    <ChartZoom label="Index moves today (heat map)" className="cz-top"><div className="pm-heat" data-chart aria-label="Index moves today">{rows.map((r) => {
       const c = typeof r.change_pct === "number" ? r.change_pct : null;
       return <div key={String(r.index_symbol || r.index_name)} className="pm-tile" style={{ "--tc": c == null ? "var(--faint)" : c >= 0 ? "var(--gain)" : "var(--loss)", "--ti": c == null ? 0 : 6 + (Math.abs(c) / max) * 22 } as React.CSSProperties}>
         <small title={String(r.index_name || "")}>{String(r.index_name || r.index_symbol)}</small><b>{typeof r.close_price === "number" ? nf(r.close_price) : MINUS}</b><span>{c == null ? MINUS : (c > 0 ? "▲ +" : c < 0 ? "▼ " + MINUS : "") + nf(Math.abs(c)) + "%"}</span></div>;

@@ -32,7 +32,7 @@ function dv(r: PrModel, lender: boolean) {
 export function PrChart({ r, lender }: View) { const { ys, anyNeg, bar, hasOneOff, hasOi } = dv(r, lender); return (<>
       <h4 className="pr-h">Reported profit against normalized profit</h4>
       <p className="pr-say">Normalized profit takes out discontinued operations, exceptional items after tax, and other income above {20}% of pre-tax profit. It is a cleaner guide to what the core business earns, not a forecast.</p>
-      <ChartZoom label="Reported and normalized profit by year">
+      <ChartZoom label="Reported and normalized profit by year" className="cz-top">
       <div className={"pr-chart" + (anyNeg ? " neg" : "")} role="img" aria-label={"Reported and normalized net profit by year: " + ys.map((y) => `${fyLabel(y.period)} reported ${sn(y.netProfit)}, normalized ${sn(y.normalized)}`).join("; ")}>
         {ys.map((y) => (
           <div className="pr-col" key={y.period}>

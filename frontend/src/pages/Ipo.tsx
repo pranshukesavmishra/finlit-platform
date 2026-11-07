@@ -23,7 +23,7 @@ function Strip({ rows }: { rows: Ipo[] }) {
   const show = rows.filter((r) => d0(r.closeDate) >= start && d0(r.openDate) <= start + span).slice(0, 8);
   const days = Array.from({ length: 11 }, (_, i) => start + i * 5 * DAY);
   return (
-    <ChartZoom label={"Open and upcoming issues timeline"}>
+    <ChartZoom label={"Open and upcoming issues timeline"} className="cz-top">
     <div className="ipo-strip" role="img" aria-label="Timeline of open and upcoming issues">
       <div className="ipo-axis">{days.map((t) => <span key={t} style={{ left: `${x(t)}%` }}>{new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>)}</div>
       <div className="ipo-rows">
