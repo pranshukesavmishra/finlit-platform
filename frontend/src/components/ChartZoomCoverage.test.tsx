@@ -32,6 +32,7 @@ const ZOOM = [
 /** Charts that already had their own enlarge arrow before the shared one: the file must still carry it. */
 const OWN: { file: string; needle: RegExp; why: string }[] = [
   { file: "pages/GraphStudio.tsx", needle: /Enlarge chart \$\{i \+ 1\}|ZoomGlyph/, why: "chart builder cells: .gx-zoom enlarges a cell over the page (now drawn with the shared glyph)" },
+  { file: "pages/QuarterResults.tsx", needle: /setZoom\(/, why: "Latest results panel: its own enlarge arrow (task #9) opens the whole panel over the page" },
   { file: "stock/Sections4.tsx", needle: /Expand \$\{c\.title\}/, why: "Trends cards: .tr-x grows a card to the full row" },
 ];
 

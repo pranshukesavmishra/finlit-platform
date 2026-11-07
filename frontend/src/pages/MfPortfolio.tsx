@@ -174,18 +174,14 @@ export function MfPortfolioPage() {
   const q = useMfPortfolio(silver), w = useMfWrites();
   const [params] = useSearchParams();
   const [tab, setTab] = useState<"add" | "import">(params.get("tab") === "import" ? "import" : "add"), [key, setKey] = useState<SortKey>("name"), [dir, setDir] = useState<"asc" | "desc">("asc");
-  const [group, setGroup] = useState<string>("All funds"), [off, setOff] = useState<Set<string>>(new Set());   // the category filter: a group tab and the categories ticked off
+  const [group, setGroup] = useState<string>("All funds");   // the group tab (the categories under it are shown for reading only, they are not a filter)
   const d = q.data, locked = d ? d.scoreLocked : !has("gold");
   const all = d?.holdings ?? [];
   const catOf = (h: Holding) => h.categoryLabel || "Other";
   const inGroup = useMemo(() => (group === "All funds" ? all : all.filter((h) => typeOf(h.category) === group)), [all, group]);
   const cats = useMemo(() => { const m = new Map<string, number>(); for (const h of inGroup) m.set(catOf(h), (m.get(catOf(h)) || 0) + 1); return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0])); }, [inGroup]);
-  const shown = useMemo(() => inGroup.filter((h) => !off.has(group + "|" + catOf(h))), [inGroup, off, group]);
-  const pie = useMemo(() => shares(shown, (h) => (group === "All funds" ? typeOf(h.category) : catOf(h))), [shown, group]);
-  const rows = useMemo(() => sortHoldings(shown, key, dir), [shown, key, dir]);
-  const toggleCat = (c: string) => setOff((o) => { const n = new Set(o); const k = group + "|" + c; if (n.has(k)) n.delete(k); else n.add(k); return n; });
-  const allOn = cats.every(([c]) => !off.has(group + "|" + c));
-  const toggleAll = () => setOff((o) => { const n = new Set(o); for (const [c] of cats) { if (allOn) n.add(group + "|" + c); else n.delete(group + "|" + c); } return n; });
+  const pie = useMemo(() => shares(inGroup, (h) => (group === "All funds" ? typeOf(h.category) : catOf(h))), [inGroup, group]);
+  const rows = useMemo(() => sortHoldings(inGroup, key, dir), [inGroup, key, dir]);
   const groups = useMemo(() => ["All funds", ...["Equity", "Hybrid", "Debt", "Solution oriented", "Others"].filter((g) => all.some((h) => typeOf(h.category) === g))], [all]);
   const noReturns = all.filter((h) => h.returns.r1y == null && h.returns.r3y == null && h.returns.r5y == null).length;
   const [polls, setPolls] = useState(0);
@@ -221,14 +217,13 @@ export function MfPortfolioPage() {
             <div className="card"><small>Portfolio Health Score</small>{locked ? <button className="mp-lock" onClick={unlock}><Icon name="lock" /><span>Gold</span></button> : <b className={"mfs-pv b-" + bandOf(s.score.value)}>{s.score.value == null ? "–" : scoreText(s.score.value)}</b>}<span className="faint">{locked ? "Unlock with Gold" : s.score.value != null ? `${s.score.label}, weighted by value` : s.score.why}</span></div>
           </div>
           {s.notes.map((n) => <p key={n} className="faint mp-note" role="note">{n}</p>)}
-          <section className="card mp-cat" aria-label="Filter your funds by category">
+          <section className="card mp-cat" aria-label="Your funds by category">
             <div className="mp-cat-tabs" role="tablist">{groups.map((g) => <button key={g} role="tab" aria-selected={group === g} className={group === g ? "on" : ""} onClick={() => setGroup(g)}>{g}</button>)}</div>
-            <label className="mp-cat-all"><input type="checkbox" checked={allOn} onChange={toggleAll} /> <span>Select All ({cats.length})</span></label>
             <ChartZoom label="Your funds by category">
-            <div className="mp-cat-body"><div className="mp-cat-chips">{cats.map(([c, n]) => <label key={c} className={"mp-cat-chip" + (off.has(group + "|" + c) ? " off" : "")}><input type="checkbox" checked={!off.has(group + "|" + c)} onChange={() => toggleCat(c)} /><span>{c}</span><em>{n}</em></label>)}</div>
+            <div className="mp-cat-body"><div className="mp-cat-chips">{cats.map(([c, n]) => <div key={c} className="mp-cat-chip"><span>{c}</span><em>{n}</em></div>)}</div>
             <div className="mp-cat-pie">
-              {pie.slices.length ? <Donut parts={pie.slices.map((p, i) => ({ label: p.label, value: p.value, color: K[i % K.length] }))} center={String(shown.length)} sub={shown.length === 1 ? "FUND" : "FUNDS"} /> : <p className="faint mp-note">No fund matches the ticked categories.</p>}
-              <p className="faint mp-note">{group === "All funds" ? "Share of your funds by type." : `Share of your ${group.toLowerCase()} funds by category.`} The ticked categories also filter the table below.</p>
+              {pie.slices.length ? <Donut parts={pie.slices.map((p, i) => ({ label: p.label, value: p.value, color: K[i % K.length] }))} center={String(inGroup.length)} sub={inGroup.length === 1 ? "FUND" : "FUNDS"} /> : <p className="faint mp-note">No funds to show yet.</p>}
+              <p className="faint mp-note">{group === "All funds" ? "Share of your funds by type." : `Share of your ${group.toLowerCase()} funds by category.`}</p>
             </div>
             </div>
             </ChartZoom>
