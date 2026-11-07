@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Assistant, OPEN_AI } from "./Assistant";
-import { bankGroups } from "../lib/questionBank";
+import { bankGroups, STARTERS } from "../lib/questionBank";
 
 const ask = vi.fn(async (q: string, _h?: unknown) => ({ response: "answer to " + q }));
 vi.mock("../lib/siteApi", () => ({ askAssistant: (q: string, h: unknown) => ask(q, h) }));
@@ -80,14 +80,15 @@ describe("Assistant more questions", () => {
 });
 
 describe("Assistant starter questions", () => {
-  it("offers starter questions on a page with no company list and no FAQ, and a tap sends the question", async () => {
+  it("offers starter questions on a page with no company list and no FAQ, and a tap answers at once without calling the model", async () => {
     open("/nowhere-in-particular");
-    const chip = screen.getByRole("button", { name: "What is the difference between a mutual fund and an ETF?" });
-    await act(async () => { fireEvent.click(chip); });
-    expect(ask).toHaveBeenCalledWith("What is the difference between a mutual fund and an ETF?", expect.anything());
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "What is the difference between a mutual fund and an ETF?" })); });
+    expect(ask).not.toHaveBeenCalled();
+    expect(screen.getByText(/ETF trades on the stock exchange/)).toBeTruthy();
   });
-  it("starter questions never use advice wording", () => {
+  it("starter questions and answers never use advice wording", () => {
     const { container } = open("/nowhere-in-particular");
     expect(container.textContent).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target|best|multibagger|top pick)\b/i);
+    for (const x of STARTERS) expect(x.a).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target|best|multibagger|top pick)\b/i);
   });
 });

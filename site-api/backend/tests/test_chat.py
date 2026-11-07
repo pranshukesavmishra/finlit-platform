@@ -234,6 +234,26 @@ def test_chat_falls_back_to_the_next_model_when_google_is_busy(monkeypatch, capl
     assert "event=gemini_model_fallback" in caplog.text
 
 
+def test_a_busy_model_is_skipped_for_the_next_visitors(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    server._chat_attempts.clear()
+    tried = []
+
+    class Busy(Exception):
+        code = 503
+
+    def generate_content(**kwargs):
+        tried.append(kwargs["model"])
+        if kwargs["model"] == "gemini-3.8-flash":
+            raise Busy("overloaded")
+        return SimpleNamespace(text="Answer.")
+
+    install_fake_genai(monkeypatch, generate_content)
+    asyncio.run(server.chat(server.ChatRequest(message="hello"), request()))
+    asyncio.run(server.chat(server.ChatRequest(message="hello again"), request()))
+    assert tried == ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.7-flash"]      # the second visitor goes straight to the model that answered
+
+
 def test_chat_does_not_try_other_models_for_a_bad_key(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     server._chat_attempts.clear()

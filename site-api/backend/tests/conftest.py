@@ -115,3 +115,11 @@ def asgi_request(app, method, path, payload=None, headers=None):
         except json.JSONDecodeError:
             response_data = {"_non_json": True, "text": response_text}
     return response["status"], response_data
+
+
+@pytest.fixture(autouse=True)
+def _fresh_chat_model_cooldown():
+    """A model that was busy in one test must not be skipped in the next."""
+    server._chat_model_cooldown.clear()
+    yield
+    server._chat_model_cooldown.clear()

@@ -38,12 +38,20 @@ export function bankGroups(pathname: string, opts: { lender?: boolean } = {}): B
 export const SECOND = "XYZ";
 
 /** Starter questions for pages that have no company question list and no page FAQ (the home page, for one), so the assistant never opens empty.
- *  They describe how things work; none asks for or offers advice. A tap sends the question like typed text. */
-export const STARTER_QUESTIONS: string[] = [
-  "What is the FinLit IQ score and how is it built?",
-  "What does the FinLit Prism rating describe?",
-  "What is the difference between a mutual fund and an ETF?",
-  "How do I read a P/E ratio?",
-  "What is an expense ratio in a mutual fund?",
-  "Which FinLit tools help me look at a company's financial health?",
+ *  Each has its answer written here, so a tap answers at once without calling the language model (which can take many seconds). They describe how things
+ *  work and use only what the site already says about its own scores; none asks for or offers advice. */
+export const STARTERS: { q: string; a: string }[] = [
+  { q: "What is the FinLit IQ score and how is it built?",
+    a: "The FinLit IQ is a score from 0 to 100 that averages five pillars: quality, growth, profitability, balance sheet and technical (the price trend). Each input is mapped to a score using fixed thresholds. The score has not been back-tested against future returns and does not predict them. Information only, not investment advice." },
+  { q: "What does the FinLit Prism rating describe?",
+    a: "FinLit Prism describes a company's financial health from its filings and prices. The fundamental score weighs four parts: growth and profitability, valuation, quality and risk. Technical indicators are shown separately and are not part of that score. It describes the company; it is not a recommendation." },
+  { q: "What is the difference between a mutual fund and an ETF?",
+    a: "Both pool many investors' money into a basket of securities. A mutual fund's units are bought and redeemed from the fund house at the day's NAV (net asset value). An ETF trades on the stock exchange during market hours at the market price, usually follows an index, and needs a demat account. Costs, taxes and tracking differ by fund, so read each fund's factsheet." },
+  { q: "How do I read a P/E ratio?",
+    a: "P/E is the share price divided by earnings per share: how many rupees the market pays for each rupee of a company's yearly profit. A higher P/E means the market pays more per rupee of profit, a lower one less. It is most useful next to the company's own past P/E and its industry peers; with very low or negative profit it is not meaningful." },
+  { q: "What is an expense ratio in a mutual fund?",
+    a: "The expense ratio is the yearly fee a fund house charges to run a fund, shown as a percentage of the fund's average assets. It is taken out of the fund's NAV a little each day, so the returns a fund reports are already after it. Direct plans have a lower expense ratio than regular plans of the same fund." },
+  { q: "Which FinLit tools help me look at a company's financial health?",
+    a: "On every company page the FinLit IQ scorecard shows the five pillars, and the FinLit Prism report (Gold) goes into growth, valuation, quality and risk with the reasons. The Score Screener lists companies by these scores, and Compare puts companies side by side. They describe a company's financial health; they are not recommendations." },
 ];
+export const STARTER_QUESTIONS: string[] = STARTERS.map((x) => x.q);

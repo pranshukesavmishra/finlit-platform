@@ -4184,7 +4184,9 @@ def gemini_finish_reason(response) -> str:
     return str(getattr(reason, "name", reason)).rsplit(".", 1)[-1].upper()
 
 
-CHAT_CALL_SECONDS = 25      # one Gemini call; a slower one moves on to the next model
+CHAT_CALL_SECONDS = 12      # one Gemini call; a slower one moves on to the next model (25 s made a slow first model cost the visitor 48 s: 25 + the next model)
+CHAT_MODEL_COOLDOWN_SECONDS = 600   # a model that was busy or slow is skipped for this long, so the next visitor goes straight to a model that answers
+_chat_model_cooldown: dict = {}
 CHAT_TOTAL_SECONDS = 60     # the whole answer
 
 
@@ -4258,7 +4260,9 @@ async def chat(payload: ChatRequest, request: Request):
                 options["tools"] = tool_config
                 options["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(disable=True)   # this code runs the tools, to count and limit them
             # Google answers 429/500/503 when a model is busy: the next model in the list takes the question, so the chat keeps working.
-            for position, name in enumerate(chat_models):
+            now_m = monotonic()
+            usable = [m for m in chat_models if _chat_model_cooldown.get(m, 0) <= now_m] or list(chat_models)   # all cooling down: try them all rather than none
+            for position, name in enumerate(usable):
                 remaining = chat_deadline - monotonic()
                 if remaining < 4:
                     raise TimeoutError("FinLit AI answer deadline reached")
@@ -4276,7 +4280,9 @@ async def chat(payload: ChatRequest, request: Request):
                 except Exception as exc:
                     slow = "timeout" in type(exc).__name__.lower() or getattr(exc, "code", None) in (408, 504)
                     busy = getattr(exc, "code", None) in (429, 500, 503) or slow
-                    if not busy or position == len(chat_models) - 1:
+                    if busy:
+                        _chat_model_cooldown[name] = monotonic() + CHAT_MODEL_COOLDOWN_SECONDS
+                    if not busy or position == len(usable) - 1:
                         raise
                     logger.warning("FinLit AI model busy or slow, trying the next one (event=gemini_model_fallback, provider_status=%s, slow=%s, model_id=%s)", getattr(exc, "code", None), slow, name)
 

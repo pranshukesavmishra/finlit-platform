@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { faqForPath } from "../lib/pageFaqs";
-import { bankGroups, bankSuggestions, isLenderSector, SECOND, STARTER_QUESTIONS } from "../lib/questionBank";
+import { bankGroups, bankSuggestions, isLenderSector, SECOND, STARTERS } from "../lib/questionBank";
 import { ASSISTANT } from "../content/site";
 import { askAssistant } from "../lib/siteApi";
 import { Icon } from "../lib/icons";
@@ -100,7 +100,7 @@ export function Assistant({ sector }: { sector?: string | null } = {}) {
               </div>}
             </div>}
             {node === "main" && !bank.length && !pageFaq && <div className="chips" aria-label="Questions you can ask">
-              {STARTER_QUESTIONS.map((q) => <button key={q} onClick={() => sendText(q)}>{q}</button>)}
+              {STARTERS.map((x) => <button key={x.q} onClick={() => askPage(x.q, x.a)}>{x.q}</button>)}
             </div>}
             {node === "main" && pageFaq && <div className="chips" aria-label={`Questions about ${pageFaq.title}`}>
               {pageFaq.items.slice(0, 4).map((it) => <button key={it.q} onClick={() => askPage(it.q, it.a)}>{it.q}</button>)}
