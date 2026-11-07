@@ -25,3 +25,11 @@ describe("misc", () => {
   it("pageWindow", () => { expect(pageWindow(1, 3)).toEqual([1, 2, 3]); expect(pageWindow(10, 20)).toEqual([1, "…", 8, 9, 10, 11, 12, "…", 20]); });
   it("ago", () => { const n = Date.now(); expect(ago(new Date(n - 5000).toISOString(), n)).toBe("just now"); expect(ago(new Date(n - 7200_000).toISOString(), n)).toBe("2 h ago"); });
 });
+
+describe("boards by plan", () => {
+  it("has one board per plan, in plan order, with plain names", async () => {
+    const { PLANS, BOARD_NAME } = await import("./forum");
+    expect(PLANS).toEqual(["basic", "silver", "gold"]);
+    expect(PLANS.map((p) => BOARD_NAME[p])).toEqual(["Basic", "Silver", "Gold"]);
+  });
+});

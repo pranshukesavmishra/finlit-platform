@@ -104,7 +104,7 @@ async def fapp(app):  # noqa: F811
     """The shared fixtures drop users/companies but not the forum tables: rebuild them so the foreign keys are real."""
     async with app.state.store.pool.acquire() as conn:
         await conn.execute("DROP TABLE IF EXISTS forum_reports, forum_votes, forum_posts, forum_profiles CASCADE")
-        for name in ("032_forum.sql", "033_forum_reports.sql"):
+        for name in ("032_forum.sql", "033_forum_reports.sql", "094_forum_plans.sql"):
             await conn.execute((MIGRATIONS / name).read_text())
     return app
 
@@ -174,13 +174,88 @@ async def test_handle_is_required_unique_and_hides_the_email_and_account_name(fa
     await other.aclose()
 
 
-async def test_any_plan_may_post_and_reading_needs_no_account(fapp):
+async def test_every_plan_may_post_each_on_its_own_board(fapp):
     basic = await member(fapp, "basic@example.com", "basic_user")          # Basic is the free tier: the forum is not a paid feature
+    silver = await member(fapp, "silver@example.com", "silver_user", plan="silver")
     gold = await member(fapp, "gold@example.com", "gold_user", plan="gold")
-    assert (await thread(basic)).status_code == 201 and (await thread(gold, title="Gold member question here", body=GOOD + " Second thoughts.")).status_code == 201
-    async with new_client(fapp) as anon:
-        assert (await anon.get("/api/forum/threads")).json()["total"] == 2
-    for c in (basic, gold):
+    ids = {}
+    for who, c in (("basic", basic), ("silver", silver), ("gold", gold)):
+        r = await thread(c, title=f"A {who} member starts a discussion", body=GOOD + f" Written by a {who} member.")
+        assert r.status_code == 201 and r.json()["post"]["plan"] == who, r.text
+        ids[who] = r.json()["post"]["id"]
+    clients = {"basic": basic, "silver": silver, "gold": gold}
+    for who, c in clients.items():
+        me = (await c.get("/api/forum/me")).json()
+        assert me["plan"] == who and me["board"] == who
+        listing = (await c.get("/api/forum/threads")).json()
+        assert listing["board"] == who and [t["id"] for t in listing["threads"]] == [ids[who]] and listing["total"] == 1     # only its own board
+        assert [x["threads"] for x in (await c.get("/api/forum/companies")).json()["companies"]] == [1]
+        assert (await c.get("/api/forum/stats?symbol=RELIANCE")).json()["threads"] == 1
+        for other, oid in ids.items():
+            r = await c.get(f"/api/forum/threads/{oid}")
+            assert r.status_code == (200 if other == who else 404), (who, other)              # another plan's thread does not exist for you
+    async with new_client(fapp) as anon:                                                      # a visitor has no board
+        assert (await anon.get("/api/forum/threads")).json() == {"threads": [], "total": 0, "page": 1, "per": 20, "pages": 1, "sort": "active", "symbol": None, "board": None}
+        assert (await anon.get("/api/forum/companies")).json() == {"companies": []}
+        assert (await anon.get("/api/forum/stats?symbol=RELIANCE")).json()["threads"] == 0
+        assert (await anon.get(f"/api/forum/threads/{ids['basic']}")).status_code == 404
+        assert (await anon.get("/api/forum/me")).json()["board"] is None
+    for c in clients.values():
+        await c.aclose()
+
+
+async def test_members_cannot_reach_another_boards_replies_votes_or_reports(fapp):
+    gold = await member(fapp, "g1@example.com", "gold_one", plan="gold")
+    gold2 = await member(fapp, "g2@example.com", "gold_two", plan="gold")
+    silver = await member(fapp, "s1@example.com", "silver_one", plan="silver")
+    basic = await member(fapp, "b1@example.com", "basic_one")
+    tid = (await thread(gold)).json()["post"]["id"]
+    for outsider in (silver, basic):
+        assert (await outsider.post(f"/api/forum/threads/{tid}/replies", json={"body": "Let me add something here."})).status_code == 404
+        assert (await outsider.put(f"/api/forum/posts/{tid}/vote")).status_code == 404
+        assert (await outsider.post(f"/api/forum/posts/{tid}/report", json={"reason": "spam"})).status_code == 404
+        assert (await outsider.get(f"/api/forum/threads/{tid}")).status_code == 404
+        assert (await outsider.get("/api/forum/threads?board=gold")).json()["total"] == 0          # asking for another board does not open it
+    assert (await gold2.post(f"/api/forum/threads/{tid}/replies", json={"body": "Gold members can talk here."})).status_code == 201
+    assert (await gold2.put(f"/api/forum/posts/{tid}/vote")).status_code == 200
+    reply = (await gold.get(f"/api/forum/threads/{tid}")).json()["replies"][0]
+    assert reply["plan"] == "gold"
+    for c in (gold, gold2, silver, basic):
+        await c.aclose()
+
+
+async def test_the_board_follows_the_plan_the_member_holds_now(fapp):
+    c = await member(fapp, "lapse@example.com", "lapse_user", plan="gold")
+    tid = (await thread(c)).json()["post"]["id"]
+    assert (await c.get(f"/api/forum/threads/{tid}")).status_code == 200
+    async with fapp.state.store.pool.acquire() as conn:
+        uid = await conn.fetchval("SELECT id FROM users WHERE lower(email) = 'lapse@example.com'")
+        await conn.execute("UPDATE users SET plan_until = now() - interval '1 day' WHERE id = $1", uid)       # an expired plan counts as Basic
+    from finlit.auth.service import forget_cached
+    await forget_cached(fapp, str(uid))
+    assert (await c.get("/api/forum/me")).json()["board"] == "basic"
+    assert (await c.get(f"/api/forum/threads/{tid}")).status_code == 404
+    assert (await c.get("/api/forum/threads")).json()["total"] == 0
+    second = await thread(c, title="Now writing on the Basic board", body=GOOD + " After the plan ended.")
+    assert second.status_code == 201 and second.json()["post"]["plan"] == "basic"
+    assert (await c.delete(f"/api/forum/posts/{tid}")).json()["status"] == "deleted"      # the author can still take down their own old post
+    await c.aclose()
+
+
+async def test_a_moderator_can_open_any_board_and_replies_stay_on_the_threads_board(fapp):
+    gold = await member(fapp, "gm@example.com", "gold_member", plan="gold")
+    tid = (await thread(gold)).json()["post"]["id"]
+    admin = await mfa_admin(fapp)
+    assert (await admin.post("/api/forum/profile", json={"handle": "team_note", "accept": True})).status_code == 201
+    assert (await admin.get("/api/forum/threads")).json()["total"] == 0                       # their own (Basic) board is empty
+    listing = (await admin.get("/api/forum/threads?board=gold")).json()
+    assert listing["board"] == "gold" and [t["id"] for t in listing["threads"]] == [tid]
+    assert (await admin.get(f"/api/forum/threads/{tid}")).status_code == 200
+    r = await admin.post(f"/api/forum/threads/{tid}/replies", json={"body": "A note from the team on this."})
+    assert r.status_code == 201 and r.json()["post"]["plan"] == "gold"
+    q = (await admin.get("/api/admin/forum/queue?kind=recent")).json()
+    assert {i["plan"] for i in q["items"]} == {"gold"}
+    for c in (gold, admin):
         await c.aclose()
 
 

@@ -21,6 +21,8 @@
 .fo-act { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fo-act .btn { height: 34px; padding: 0 12px; font-size: 13px; }
 .fo-staff { color: var(--on-gold); background: var(--gold); border-radius: 6px; font-size: 11px; padding: 1px 6px; font-weight: 700; }
+.fo-board { border: 1px solid var(--border); border-radius: 12px; background: var(--s1); padding: 10px 14px; font-size: 13px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
+.fo-board b { color: var(--text); }
 .fo-note { font-size: 13px; color: var(--warn); }
 .fo-err { color: var(--loss); font-size: var(--fs-14); }
 .fo-pager { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }

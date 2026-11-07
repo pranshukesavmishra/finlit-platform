@@ -4,11 +4,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiGet } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useDocTitle } from "../lib/title";
-import { DISCLAIMER, ago, draftProblem, forumMe, linkify, pageWindow, send, validHandle, type Page, type Post, type QueueItem } from "../lib/forum";
+import { BOARD_NAME, DISCLAIMER, PLANS, ago, draftProblem, forumMe, linkify, pageWindow, send, validHandle, type Page, type Post, type QueueItem } from "../lib/forum";
 import "../styles/forum.css";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.body.detail || e.body.status || "Failed" : "Could not reach the server.");
 const Disclaimer = () => <p className="fo-disc" role="note"><b>Not investment advice.</b> {DISCLAIMER} <Link to="/forum/guidelines">Community guidelines</Link></p>;
+/** Which board the viewer is on: the forum is split by plan, so a message reaches only members of the same plan. */
+function BoardNote({ board }: { board?: string }) {
+  const { data: me } = forumMe();
+  if (!me) return null;
+  const loc = typeof window !== "undefined" ? window.location.pathname : "/forum";
+  const on = (board || me.board) as keyof typeof BOARD_NAME | null;
+  if (!me.signedIn) return <p className="fo-board" role="note"><b>Each plan has its own board.</b> Basic, Silver and Gold members talk among their own plan. <Link to={`/login?next=${encodeURIComponent(loc)}`}>Sign in</Link> (free) to see yours.</p>;
+  if (!on) return null;
+  const name = BOARD_NAME[on];
+  return <p className="fo-board" role="note" data-board={on}><b>{name} board.</b> {board && board !== me.board ? `You are looking at the ${name} board as a moderator.` : `Only ${name} members can read and reply here, and what you post is seen by ${name} members only.`}</p>;
+}
 const Shell = ({ title, children }: { title: string; children: ReactNode }) => <div className="wrap fo"><div className="eyebrow">Discussion</div><h1>{title}</h1><Disclaimer />{children}</div>;
 
 export function Body({ text }: { text: string }) {
@@ -42,7 +53,7 @@ function Writer({ children }: { children: ReactNode }) {
   const { data: me } = forumMe();
   const loc = typeof window !== "undefined" ? window.location.pathname : "/forum";
   if (!me) return null;
-  if (!me.signedIn) return <p className="muted"><Link to={`/login?next=${encodeURIComponent(loc)}`}>Sign in</Link> (free) to join the discussion. Reading is open to everyone.</p>;
+  if (!me.signedIn) return <p className="muted"><Link to={`/login?next=${encodeURIComponent(loc)}`}>Sign in</Link> (free) to read and join the discussion on your plan's board.</p>;
   if (me.banned) return <p className="fo-err">Posting is paused on your account.</p>;
   if (!me.canPost) return <JoinForm />;
   return <>{children}</>;
@@ -72,13 +83,17 @@ function List({ symbol }: { symbol?: string }) {
   const [sp, setSp] = useSearchParams();
   const page = Number(sp.get("page")) || 1, sort = sp.get("sort") || "active", q = sp.get("q") || "";
   const [text, setText] = useState(q);
-  const nav = useNavigate(), qc = useQueryClient();
+  const nav = useNavigate(), qc = useQueryClient(), { data: me } = forumMe();
+  const board = me?.moderator && PLANS.includes(sp.get("board") as never) ? sp.get("board")! : "";
   const set = (k: string, v: string) => { const n = new URLSearchParams(sp); v ? n.set(k, v) : n.delete(k); if (k !== "page") n.delete("page"); setSp(n); };
-  const key = ["forum", "threads", symbol || "", sort, q, page];
-  const list = useQuery<Page<{ threads: Post[] }>>({ queryKey: key, queryFn: () => apiGet(`/api/forum/threads?sort=${sort}&page=${page}${symbol ? `&symbol=${symbol}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`) });
-  const companies = useQuery<{ companies: { symbol: string; name: string; threads: number }[] }>({ queryKey: ["forum", "companies"], queryFn: () => apiGet("/api/forum/companies"), enabled: !symbol });
+  const key = ["forum", "threads", symbol || "", sort, q, page, board];
+  const list = useQuery<Page<{ threads: Post[] }>>({ queryKey: key, queryFn: () => apiGet(`/api/forum/threads?sort=${sort}&page=${page}${symbol ? `&symbol=${symbol}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}${board ? `&board=${board}` : ""}`), enabled: !!me?.signedIn });
+  const companies = useQuery<{ companies: { symbol: string; name: string; threads: number }[] }>({ queryKey: ["forum", "companies", board], queryFn: () => apiGet(`/api/forum/companies${board ? `?board=${board}` : ""}`), enabled: !symbol && !!me?.signedIn });
+  if (me && !me.signedIn) return <BoardNote />;
   return (
     <>
+      <BoardNote board={board} />
+      {me?.moderator && <div className="seg" role="group" aria-label="Board">{PLANS.map((b) => <button type="button" key={b} aria-pressed={(board || me.board) === b} onClick={() => set("board", b === me.board ? "" : b)}>{BOARD_NAME[b]} board</button>)}</div>}
       <Writer><details><summary className="btn primary" style={{ display: "inline-flex" }}>Start a discussion</summary>
         <Composer symbol={symbol} onDone={(p) => { qc.invalidateQueries({ queryKey: ["forum"] }); if (p.status === "visible") nav(`/forum/t/${p.id}`); }} /></details></Writer>
       {!symbol && !!companies.data?.companies.length && <div className="fo-chips" aria-label="Active companies">{companies.data.companies.map((c) => <Link key={c.symbol} className="chip ghost" to={`/forum/c/${c.symbol}`}>{c.symbol} · {c.threads}</Link>)}</div>}
@@ -135,7 +150,7 @@ function Thread() {
   useDocTitle(q.data?.thread.title || "Discussion");
   const refresh = () => qc.invalidateQueries({ queryKey: ["forum"] });
   if (q.isPending) return <Shell title="Discussion"><div className="skeleton" style={{ height: 80 }} /></Shell>;
-  if (q.isError) return <Shell title="Discussion"><p className="muted">{q.error instanceof ApiError && q.error.status === 410 ? "This discussion was removed." : "This discussion is not available."}</p><Link className="btn" to="/forum">All discussions</Link></Shell>;
+  if (q.isError) return <Shell title="Discussion"><p className="muted">{q.error instanceof ApiError && q.error.status === 410 ? "This discussion was removed." : "This discussion is not available. It may have been removed, or it may belong to another plan's board."}</p><Link className="btn" to="/forum">All discussions</Link></Shell>;
   const { thread, replies } = q.data;
   return (
     <Shell title={thread.title || "Discussion"}>
@@ -159,7 +174,7 @@ function Guidelines() {
       <h2 style={{ fontSize: 18 }}>What is not allowed</h2>
       <ul><li>Tips and calls: telling others to buy or sell, price targets, stop-losses, or promises of returns or "guaranteed" gains.</li><li>Promoting stocks, groups, channels, courses or paid services; pump-and-dump style hype.</li><li>Phone numbers, email addresses, WhatsApp/Telegram handles or invitations to move the conversation elsewhere.</li><li>Link shorteners, chat-group links, social profiles; abuse, harassment or personal attacks; repeating the same message.</li></ul>
       <h2 style={{ fontSize: 18 }}>How moderation works</h2>
-      <p>Posts that look like hype are held until a moderator reads them. Posts reported by 3 different members are hidden until a moderator decides. Moderators may remove posts and pause accounts. You can edit a post for 15 minutes and delete it at any time. Reading is open to everyone; posting needs a free FinLit account. Posts are public. We never show your email or account name.</p>
+      <p>Posts that look like hype are held until a moderator reads them. Posts reported by 3 different members are hidden until a moderator decides. Moderators may remove posts and pause accounts. You can edit a post for 15 minutes and delete it at any time. The forum has one board for each plan: Basic, Silver and Gold members each read and write on the board of their own plan, and cannot see the other boards. Posting needs a free FinLit account. We never show your email or account name.</p>
       <p className="muted">{DISCLAIMER}</p>
     </Shell>
   );
@@ -181,7 +196,7 @@ function Moderation() {
       {q.data && !q.data.items.length && <p className="muted">Nothing waiting.</p>}
       {q.data?.items.map((i) => (
         <div className="fo-q" key={i.id}>
-          <div className="fo-meta"><b>{i.status}</b><span>{i.symbol}</span><span>{i.author.handle} ({i.author.email}){i.author.banned && " · paused"}</span><Link to={`/forum/t/${i.threadId}`}>open</Link></div>
+          <div className="fo-meta"><b>{i.status}</b><span>{BOARD_NAME[i.plan]} board</span><span>{i.symbol}</span><span>{i.author.handle} ({i.author.email}){i.author.banned && " · paused"}</span><Link to={`/forum/t/${i.threadId}`}>open</Link></div>
           {i.title && <h3>{i.title}</h3>}<pre>{i.body}</pre>
           {i.flagReasons.length > 0 && <div className="fo-note">Held: {i.flagReasons.join("; ")}</div>}
           {i.reports.map((r, n) => <div key={n} className="fo-meta">Report by {r.by}: {r.reason}{r.note ? ` – ${r.note}` : ""}</div>)}

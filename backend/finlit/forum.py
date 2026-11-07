@@ -4,7 +4,11 @@ Where it lives: this is the research API (not the site API), because it needs me
 administrator two-step sign-in (`admin_ctx`, which honours ADMIN_REQUIRE_MFA). The site API has no member accounts.
 
 Rules enforced here, on the server, whatever the website does:
-* anyone may read; posting, voting and reporting need a signed-in, email-confirmed member of any plan (the forum is not a paid feature);
+* the forum is split into one board per plan (Basic, Silver, Gold): a member reads, posts, votes and reports only on the board of their own plan, so a
+  Gold member's message reaches Gold members only, a Silver member's reaches Silver members only, and Basic is for Basic members only. Visitors who are
+  not signed in see no board. The plan is the one the account holds right now (an expired plan counts as Basic) and is checked on every call;
+  moderators (administrators with two-step sign-in) can open any board;
+* every plan may take part (the forum is not a paid feature, each member simply stays among their own plan);
 * a public handle (never the email or account name) must be chosen once, with the guidelines accepted, before the first post;
 * every write is rate limited per member and per address, duplicates are refused, text is cleaned to plain text, contact details,
   buy/sell calls and bad links are refused, hype is held for a moderator;
@@ -42,6 +46,21 @@ RULES_PUBLIC = {"titleMin": rules.TITLE_MIN, "titleMax": rules.TITLE_MAX, "bodyM
 def out(body: Any, status: int = 200) -> Response:
     import json
     return Response(content=json.dumps(body), media_type="application/json", headers=NO_STORE, status_code=status)
+
+
+PLANS = ("basic", "silver", "gold")
+
+
+def board_of(ctx: Ctx) -> Optional[str]:
+    """The board the viewer belongs to: their current plan when signed in, none for a visitor."""
+    return ctx.plan if ctx.authed and ctx.plan in PLANS else None
+
+
+def view_board(ctx: Ctx, wanted: str = "") -> Optional[str]:
+    """The board to read. Members get their own; a moderator may ask for another one (wanted); a visitor has none."""
+    if is_mod(ctx) and wanted in PLANS:
+        return wanted
+    return board_of(ctx)
 
 
 def pool_of(request: Request):
@@ -84,7 +103,7 @@ class NoteIn(BaseModel):
 
 
 # ------------------------------------------------------------------ shaping
-POST_SELECT = """SELECT p.id, p.thread_id, p.symbol, c.name AS company, p.user_id, p.title, p.body, p.status, p.upvotes, p.created_at, p.edited_at, p.last_activity_at,
+POST_SELECT = """SELECT p.id, p.thread_id, p.symbol, p.plan, c.name AS company, p.user_id, p.title, p.body, p.status, p.upvotes, p.created_at, p.edited_at, p.last_activity_at,
                         p.flag_reasons, pr.handle, (u.role = 'admin') AS staff, extract(epoch FROM (now() - p.created_at)) AS age_s,
                         EXISTS (SELECT 1 FROM forum_votes v WHERE v.post_id = p.id AND v.user_id = $1::uuid) AS voted,
                         (SELECT count(*) FROM forum_posts r WHERE r.thread_id = p.id AND r.status = 'visible') AS replies
@@ -101,13 +120,18 @@ def post_json(r: Any, ctx: Ctx, *, preview: bool = False) -> Dict[str, Any]:
     if body is not None and preview and len(body) > 220:
         body = body[:217].rstrip() + "..."
     open_for_edit = mine and r["status"] in ("visible", "held") and r["age_s"] <= EDIT_WINDOW_SECONDS
-    return {"id": r["id"], "threadId": r["thread_id"] or r["id"], "kind": "reply" if r["thread_id"] else "thread", "symbol": r["symbol"], "company": r["company"],
+    return {"id": r["id"], "threadId": r["thread_id"] or r["id"], "kind": "reply" if r["thread_id"] else "thread", "symbol": r["symbol"], "company": r["company"], "plan": r["plan"],
             "title": r["title"] if shown else None, "body": body,
             "author": {"handle": r["handle"] or "member", "staff": bool(r["staff"])},
             "createdAt": r["created_at"].isoformat(), "editedAt": r["edited_at"].isoformat() if r["edited_at"] else None,
             "lastActivityAt": r["last_activity_at"].isoformat(), "upvotes": r["upvotes"], "voted": bool(r["voted"]), "replies": int(r["replies"]) if not r["thread_id"] else 0,
             "status": r["status"], "mine": mine, "note": None if shown and r["status"] == "visible" else TOMBSTONE.get(r["status"]),
             "canEdit": bool(open_for_edit), "editableSeconds": max(0, int(EDIT_WINDOW_SECONDS - r["age_s"])) if open_for_edit else 0}
+
+
+def on_board(ctx: Ctx, plan: str) -> bool:
+    """May this viewer see a post of this board? Only members of that plan, and moderators."""
+    return is_mod(ctx) or board_of(ctx) == plan
 
 
 def valid_uuid(raw: str) -> str:
@@ -168,7 +192,7 @@ async def judge(conn, ctx: Ctx, kind: str, title: Optional[str], body: str, *, e
 async def forum_me(request: Request):
     """Who the viewer is in the forum (always answerable, also for visitors) and the limits the writing forms should show."""
     ctx = await current(request)
-    base: Dict[str, Any] = {"signedIn": ctx.authed, "handle": None, "canPost": False, "banned": False, "moderator": is_mod(ctx), "rules": RULES_PUBLIC}
+    base: Dict[str, Any] = {"signedIn": ctx.authed, "plan": board_of(ctx), "board": board_of(ctx), "handle": None, "canPost": False, "banned": False, "moderator": is_mod(ctx), "rules": RULES_PUBLIC}
     if ctx.authed:
         async with pool_of(request).acquire() as conn:
             prof = await my_profile(conn, ctx)
@@ -211,41 +235,52 @@ async def known_symbol(request: Request, symbol: str) -> str:
 
 
 @router.get("/forum/threads")
-async def list_threads(request: Request, symbol: str = Query("", max_length=24), sort: Literal["active", "recent", "top"] = "active", q: str = Query("", max_length=60),
+async def list_threads(request: Request, symbol: str = Query("", max_length=24), board: str = Query("", max_length=8), sort: Literal["active", "recent", "top"] = "active", q: str = Query("", max_length=60),
                        page: int = Query(1, ge=1, le=2000), per: int = Query(20, ge=1, le=PER_PAGE_MAX)):
     ctx = await current(request)
     sym = await known_symbol(request, symbol) if symbol.strip() else None
     like = "%" + re.sub(r"([\\%_])", r"\\\1", q.strip().lower()) + "%" if q.strip() else None
+    where = view_board(ctx, board)
+    if where is None:       # a visitor has no board: nothing to list until they sign in
+        return out({"threads": [], "total": 0, "page": page, "per": per, "pages": 1, "sort": sort, "symbol": sym, "board": None})
     async with pool_of(request).acquire() as conn:
-        rows = await conn.fetch(f"""{POST_SELECT} WHERE p.thread_id IS NULL AND p.status = 'visible' AND ($2::text IS NULL OR p.symbol = $2)
-                                    AND ($3::text IS NULL OR lower(p.title) LIKE $3) ORDER BY {SORTS[sort]} LIMIT $4 OFFSET $5""", ctx.user_id, sym, like, per, (page - 1) * per)
-        total = await conn.fetchval("SELECT count(*) FROM forum_posts p WHERE p.thread_id IS NULL AND p.status = 'visible' AND ($1::text IS NULL OR p.symbol = $1) AND ($2::text IS NULL OR lower(p.title) LIKE $2)", sym, like)
-    return out({"threads": [post_json(r, ctx, preview=True) for r in rows], "total": total, "page": page, "per": per, "pages": max(1, -(-total // per)), "sort": sort, "symbol": sym})
+        rows = await conn.fetch(f"""{POST_SELECT} WHERE p.thread_id IS NULL AND p.status = 'visible' AND p.plan = $6 AND ($2::text IS NULL OR p.symbol = $2)
+                                    AND ($3::text IS NULL OR lower(p.title) LIKE $3) ORDER BY {SORTS[sort]} LIMIT $4 OFFSET $5""", ctx.user_id, sym, like, per, (page - 1) * per, where)
+        total = await conn.fetchval("SELECT count(*) FROM forum_posts p WHERE p.thread_id IS NULL AND p.status = 'visible' AND p.plan = $3 AND ($1::text IS NULL OR p.symbol = $1) AND ($2::text IS NULL OR lower(p.title) LIKE $2)", sym, like, where)
+    return out({"threads": [post_json(r, ctx, preview=True) for r in rows], "total": total, "page": page, "per": per, "pages": max(1, -(-total // per)), "sort": sort, "symbol": sym, "board": where})
 
 
 @router.get("/forum/companies")
-async def active_companies(request: Request, limit_: int = Query(12, ge=1, le=30, alias="limit")):
-    """Companies with discussion in the last 30 days, most recently active first. Real counts only: an empty forum returns an empty list."""
+async def active_companies(request: Request, limit_: int = Query(12, ge=1, le=30, alias="limit"), board: str = Query("", max_length=8)):
+    """Companies with discussion on the viewer's board in the last 30 days, most recently active first. Real counts only: an empty board returns an empty list."""
+    ctx = await current(request)
+    where = view_board(ctx, board)
+    if where is None:
+        return out({"companies": []})
     async with pool_of(request).acquire() as conn:
         rows = await conn.fetch(
             """SELECT p.symbol, c.name, count(*) AS threads, max(p.last_activity_at) AS last_at,
                       sum((SELECT count(*) FROM forum_posts r WHERE r.thread_id = p.id AND r.status = 'visible')) AS replies
                FROM forum_posts p JOIN companies c ON c.symbol = p.symbol
-               WHERE p.thread_id IS NULL AND p.status = 'visible' AND p.last_activity_at > now() - interval '30 days'
-               GROUP BY p.symbol, c.name ORDER BY max(p.last_activity_at) DESC LIMIT $1""", limit_)
+               WHERE p.thread_id IS NULL AND p.status = 'visible' AND p.plan = $2 AND p.last_activity_at > now() - interval '30 days'
+               GROUP BY p.symbol, c.name ORDER BY max(p.last_activity_at) DESC LIMIT $1""", limit_, where)
     return out({"companies": [{"symbol": r["symbol"], "name": r["name"], "threads": r["threads"], "replies": int(r["replies"] or 0), "lastActivityAt": r["last_at"].isoformat()} for r in rows]})
 
 
 @router.get("/forum/stats")
-async def company_stats(request: Request, symbol: str = Query(max_length=24)):
-    """Counts for the 'Discussion' link on a stock page."""
+async def company_stats(request: Request, symbol: str = Query(max_length=24), board: str = Query("", max_length=8)):
+    """Counts for the 'Discussion' link on a stock page, for the viewer's own board."""
+    ctx = await current(request)
     sym = await known_symbol(request, symbol)
+    where = view_board(ctx, board)
+    if where is None:
+        return out({"symbol": sym, "threads": 0, "replies": 0, "lastActivityAt": None, "board": None})
     async with pool_of(request).acquire() as conn:
         row = await conn.fetchrow(
             """SELECT count(*) AS threads, max(last_activity_at) AS last_at,
                       coalesce(sum((SELECT count(*) FROM forum_posts r WHERE r.thread_id = p.id AND r.status = 'visible')), 0) AS replies
-               FROM forum_posts p WHERE p.symbol = $1 AND p.thread_id IS NULL AND p.status = 'visible'""", sym)
-    return out({"symbol": sym, "threads": row["threads"], "replies": int(row["replies"]), "lastActivityAt": row["last_at"].isoformat() if row["last_at"] else None})
+               FROM forum_posts p WHERE p.symbol = $1 AND p.plan = $2 AND p.thread_id IS NULL AND p.status = 'visible'""", sym, where)
+    return out({"symbol": sym, "threads": row["threads"], "replies": int(row["replies"]), "lastActivityAt": row["last_at"].isoformat() if row["last_at"] else None, "board": where})
 
 
 @router.get("/forum/threads/{tid}")
@@ -255,8 +290,8 @@ async def get_thread(request: Request, tid: int, page: int = Query(1, ge=1, le=2
         raise fail(404, "not_found", "That discussion does not exist.")
     async with pool_of(request).acquire() as conn:
         root = await conn.fetchrow(f"{POST_SELECT} WHERE p.id = $2 AND p.thread_id IS NULL", ctx.user_id, tid)
-        if root is None:
-            raise fail(404, "not_found", "That discussion does not exist.")
+        if root is None or not on_board(ctx, root["plan"]):
+            raise fail(404, "not_found", "That discussion does not exist.")      # another plan's board is never acknowledged
         mine = ctx.authed and str(root["user_id"]) == ctx.user_id
         if root["status"] in ("deleted", "removed"):
             raise fail(410, "removed", TOMBSTONE[root["status"]])
@@ -283,12 +318,12 @@ async def write_limits(request: Request, ctx: Ctx, kind: str) -> None:
         await limit(request, "forum_reply_day", ctx.user_id, 80, 86400)
 
 
-async def store_post(conn, ctx: Ctx, symbol: str, thread_id: Optional[int], checked: Dict[str, Any]) -> int:
+async def store_post(conn, ctx: Ctx, symbol: str, thread_id: Optional[int], checked: Dict[str, Any], plan: str) -> int:
     status = "held" if checked["hold"] else "visible"
     pid = await conn.fetchval(
-        """INSERT INTO forum_posts (thread_id, symbol, user_id, title, body, content_hash, status, flag_reasons)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id""",
-        thread_id, symbol, ctx.user_id, checked["title"], checked["body"], checked["hash"], status, checked["hold"])
+        """INSERT INTO forum_posts (thread_id, symbol, user_id, title, body, content_hash, status, flag_reasons, plan)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id""",
+        thread_id, symbol, ctx.user_id, checked["title"], checked["body"], checked["hash"], status, checked["hold"], plan)
     if thread_id and status == "visible":
         await conn.execute("UPDATE forum_posts SET last_activity_at = now() WHERE id = $1", thread_id)
     return pid
@@ -302,7 +337,7 @@ async def create_thread(request: Request, body: ThreadIn, ctx: Ctx = Depends(sec
         await posting_member(request, conn, ctx)
         checked = await judge(conn, ctx, "thread", body.title, body.body)
         await write_limits(request, ctx, "thread")      # only posts that pass the rules use up the member's allowance
-        pid = await store_post(conn, ctx, symbol, None, checked)
+        pid = await store_post(conn, ctx, symbol, None, checked, board_of(ctx) or "basic")
         row = await conn.fetchrow(f"{POST_SELECT} WHERE p.id = $2", ctx.user_id, pid)
     return out({"status": "held" if checked["hold"] else "posted", "post": post_json(row, ctx),
                 **({"detail": "Thanks. A moderator will look at this before others can see it."} if checked["hold"] else {})}, 201)
@@ -313,14 +348,16 @@ async def create_reply(request: Request, tid: int, body: ReplyIn, ctx: Ctx = Dep
     if tid > 2**62:
         raise fail(404, "not_found", "That discussion does not exist.")
     async with pool_of(request).acquire() as conn:
-        root = await conn.fetchrow("SELECT id, symbol, status FROM forum_posts WHERE id = $1 AND thread_id IS NULL", tid)
+        root = await conn.fetchrow("SELECT id, symbol, status, plan FROM forum_posts WHERE id = $1 AND thread_id IS NULL", tid)
+        if root is not None and not on_board(ctx, root["plan"]):
+            root = None         # a thread on another plan's board does not exist for this member
         if root is None or root["status"] != "visible":
             raise fail(404 if root is None else 409, "not_found" if root is None else "thread_closed", "You can only reply to a discussion that is open.")
         await write_limits(request, ctx, "ip")
         await posting_member(request, conn, ctx)
         checked = await judge(conn, ctx, "reply", None, body.body)
         await write_limits(request, ctx, "reply")
-        pid = await store_post(conn, ctx, root["symbol"], tid, checked)
+        pid = await store_post(conn, ctx, root["symbol"], tid, checked, root["plan"])
         row = await conn.fetchrow(f"{POST_SELECT} WHERE p.id = $2", ctx.user_id, pid)
     return out({"status": "held" if checked["hold"] else "posted", "post": post_json(row, ctx),
                 **({"detail": "Thanks. A moderator will look at this before others can see it."} if checked["hold"] else {})}, 201)
@@ -368,11 +405,11 @@ async def delete_post(request: Request, pid: int, ctx: Ctx = Depends(secure_ctx)
     return out({"status": "deleted"})
 
 
-async def visible_post(conn, pid: int):
+async def visible_post(conn, pid: int, ctx: Ctx):
     if pid > 2**62:
         raise fail(404, "not_found", "That post does not exist.")
-    row = await conn.fetchrow("SELECT id, user_id, status FROM forum_posts WHERE id = $1", pid)
-    if row is None or row["status"] != "visible":
+    row = await conn.fetchrow("SELECT id, user_id, status, plan FROM forum_posts WHERE id = $1", pid)
+    if row is None or row["status"] != "visible" or not on_board(ctx, row["plan"]):
         raise fail(404, "not_found", "That post does not exist.")
     return row
 
@@ -381,7 +418,7 @@ async def visible_post(conn, pid: int):
 async def vote(request: Request, pid: int, ctx: Ctx = Depends(secure_ctx)):
     await limit(request, "forum_vote", ctx.user_id, 60, 60)
     async with pool_of(request).acquire() as conn:
-        row = await visible_post(conn, pid)
+        row = await visible_post(conn, pid, ctx)
         if str(row["user_id"]) == ctx.user_id:
             raise fail(403, "own_post", "You cannot upvote your own post.")
         await posting_member(request, conn, ctx, write="vote")
@@ -396,7 +433,7 @@ async def vote(request: Request, pid: int, ctx: Ctx = Depends(secure_ctx)):
 async def unvote(request: Request, pid: int, ctx: Ctx = Depends(secure_ctx)):
     await limit(request, "forum_vote", ctx.user_id, 60, 60)
     async with pool_of(request).acquire() as conn:
-        await visible_post(conn, pid)
+        await visible_post(conn, pid, ctx)
         async with conn.transaction():
             if await conn.fetchval("DELETE FROM forum_votes WHERE post_id = $1 AND user_id = $2 RETURNING 1", pid, ctx.user_id):
                 await conn.execute("UPDATE forum_posts SET upvotes = greatest(upvotes - 1, 0) WHERE id = $1", pid)
@@ -409,7 +446,7 @@ async def report(request: Request, pid: int, body: ReportIn, ctx: Ctx = Depends(
     """Any signed-in member may report a post once. After REPORT_HIDE_AT different members have, it is hidden until a moderator decides."""
     await limit(request, "forum_report", ctx.user_id, 10, 3600)
     async with pool_of(request).acquire() as conn:
-        row = await visible_post(conn, pid)
+        row = await visible_post(conn, pid, ctx)
         if str(row["user_id"]) == ctx.user_id:
             raise fail(403, "own_post", "You cannot report your own post. Delete it instead.")
         note = rules.clean_text(body.note or "")[:300] or None
@@ -425,7 +462,7 @@ async def report(request: Request, pid: int, body: ReportIn, ctx: Ctx = Depends(
 
 # ------------------------------------------------------------------ moderation (administrators, two-step sign-in required)
 def queue_json(r: Any, reports: List[Any]) -> Dict[str, Any]:
-    return {"id": r["id"], "threadId": r["thread_id"] or r["id"], "kind": "reply" if r["thread_id"] else "thread", "symbol": r["symbol"], "title": r["title"], "body": r["body"],
+    return {"id": r["id"], "threadId": r["thread_id"] or r["id"], "kind": "reply" if r["thread_id"] else "thread", "symbol": r["symbol"], "plan": r["plan"], "title": r["title"], "body": r["body"],
             "status": r["status"], "flagReasons": list(r["flag_reasons"]), "createdAt": r["created_at"].isoformat(), "moderationNote": r["moderation_note"],
             "author": {"userId": str(r["user_id"]), "handle": r["handle"] or "member", "banned": bool(r["banned"]), "email": r["email"]},
             "reports": [{"reason": x["reason"], "note": x["note"], "at": x["created_at"].isoformat(), "by": x["handle"] or "member"} for x in reports]}
@@ -438,7 +475,7 @@ async def mod_queue(request: Request, kind: Literal["open", "held", "hidden", "r
     per = 25
     async with pool_of(request).acquire() as conn:
         rows = await conn.fetch(
-            f"""SELECT p.id, p.thread_id, p.symbol, p.user_id, p.title, p.body, p.status, p.flag_reasons, p.created_at, p.moderation_note, pr.handle, u.email,
+            f"""SELECT p.id, p.thread_id, p.symbol, p.plan, p.user_id, p.title, p.body, p.status, p.flag_reasons, p.created_at, p.moderation_note, pr.handle, u.email,
                        (pr.banned_until IS NOT NULL AND pr.banned_until > now()) AS banned
                 FROM forum_posts p JOIN users u ON u.id = p.user_id LEFT JOIN forum_profiles pr ON pr.user_id = p.user_id
                 WHERE {cond} ORDER BY p.created_at {'DESC' if kind == 'recent' else 'ASC'}, p.id LIMIT $1 OFFSET $2""", per, (page - 1) * per)  # nosec B608 - cond and order are fixed values, input is bound

@@ -8,24 +8,29 @@ export const BODY_MIN = 20, BODY_MAX = 4000;
 export const REPLY_MIN = 2, REPLY_MAX = 2000;
 export const MAX_LINKS = 2;
 
+/** One board per plan: a member reads and writes only on the board of the plan they hold now (the server decides; the site only shows it). */
+export type Plan = "basic" | "silver" | "gold";
+export const PLANS: Plan[] = ["basic", "silver", "gold"];
+export const BOARD_NAME: Record<Plan, string> = { basic: "Basic", silver: "Silver", gold: "Gold" };
+
 export type Author = { handle: string; staff: boolean };
 export type Post = {
-  id: number; threadId: number; kind: "thread" | "reply"; symbol: string; company: string; title: string | null; body: string | null; author: Author;
+  id: number; threadId: number; kind: "thread" | "reply"; plan: Plan; symbol: string; company: string; title: string | null; body: string | null; author: Author;
   createdAt: string; editedAt: string | null; lastActivityAt: string; upvotes: number; voted: boolean; replies: number;
   status: "visible" | "held" | "hidden" | "deleted" | "removed"; mine: boolean; note: string | null; canEdit: boolean; editableSeconds: number;
 };
 export type Page<T> = { total: number; page: number; per: number; pages: number } & T;
-export type ForumMe = { signedIn: boolean; handle: string | null; canPost: boolean; banned: boolean; moderator: boolean };
+export type ForumMe = { signedIn: boolean; plan: Plan | null; board: Plan | null; handle: string | null; canPost: boolean; banned: boolean; moderator: boolean };
 export type QueueItem = {
   id: number; threadId: number; kind: string; symbol: string; title: string | null; body: string; status: string; flagReasons: string[]; createdAt: string;
-  author: { userId: string; handle: string; banned: boolean; email: string }; reports: { reason: string; note: string | null; at: string; by: string }[];
+  plan: Plan; author: { userId: string; handle: string; banned: boolean; email: string }; reports: { reason: string; note: string | null; at: string; by: string }[];
 };
 
 export const DISCLAIMER = "Discussion is for information and opinion only. It is not investment advice, a recommendation or a solicitation to buy or sell any security. "
   + "Members are not SEBI-registered advisers unless they say so. Do your own research and consult a registered adviser before you invest.";
 
 export const forumMe = () => useQuery<ForumMe>({ queryKey: ["forum", "me"], queryFn: () => apiGet("/api/forum/me"), staleTime: 60_000 });
-export const useStats = (symbol: string) => useQuery<{ threads: number; replies: number; lastActivityAt: string | null }>({
+export const useStats = (symbol: string) => useQuery<{ threads: number; replies: number; lastActivityAt: string | null; board: Plan | null }>({
   queryKey: ["forum", "stats", symbol], queryFn: () => apiGet(`/api/forum/stats?symbol=${encodeURIComponent(symbol)}`), staleTime: 60_000, retry: false });
 export const send = apiSend;
 
