@@ -224,6 +224,7 @@ async def drain_prism(store: Any, settings: Any, *, max_n: Optional[int] = None,
     redis = store.redis
     started = clock()
     out: Dict[str, Any] = {"status": "ok", "calculated": 0, "alreadyCurrent": 0, "failed": [], "pausedForMembers": 0, "skippedRecently": 0}
+    out["foundBehind"] = await enqueue_behind(store)          # ratings behind a filed quarter that no one queued (see behind_members)
     try:
         members = [m.decode() if isinstance(m, bytes) else m for m in await redis.zrange(PRISM_Q, 0, max_n * 3 - 1)]
     except Exception:
@@ -282,7 +283,7 @@ async def drain_prism(store: Any, settings: Any, *, max_n: Optional[int] = None,
 
 async def has_work(store: Any) -> bool:
     """The supervisor's probe: is a company waiting for a recalculation?"""
-    return await queue_depth(store.redis) > 0
+    return await queue_depth(store.redis) > 0 or bool(await behind_members(store, 1))
 
 
 # ------------------------------------------------------------------ opening a company
@@ -370,6 +371,49 @@ async def report_behind_filing(store: Any, symbol: str, statement: str, made: da
         return False
 
 
+# ------------------------------------------------------------------ companies behind a filed quarter (found by the job itself, not only queued by the results job)
+BEHIND_FROM_WHERE = (
+    "FROM scores s JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = s.statement "
+    "WHERE s.model = 'v1' AND s.metrics->>'q_period_end' ~ '^[0-9]{8}(\\.0+)?$' AND p.report #>> '{inputMeta,quarterlyAsOf}' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' "
+    "AND (p.report #>> '{inputMeta,quarterlyAsOf}')::date < to_date(left(s.metrics->>'q_period_end', 8), 'YYYYMMDD') - $1::int "
+    "AND s.updated_at < now() - interval '2 hours'")
+
+
+async def behind_members(store: Any, limit: int = 100) -> list:
+    """Companies whose Prism rating is behind a quarter the FinLit IQ already holds, longest waiting first, as queue members ("SYMBOL|statement"). Companies the
+    last attempt already showed the rating's own data cannot catch up for (prism:pre:fail) or that were tried within TRY_SECONDS are left out, so a company the
+    provider has not updated yet is not asked again and again.
+    Why this exists: the results job queues a company only when it stores that company's results. A company whose IQ reached the new quarter any other way (the
+    slim score batch, a reload) was never queued, and the nightly job takes only ratings older than a week, so it waited for ever (7 Nov 2026: 149 companies, oldest 70 h)."""
+    try:
+        async with store.pool.acquire() as conn:
+            rows = await conn.fetch(f"SELECT s.symbol, s.statement {BEHIND_FROM_WHERE} ORDER BY s.updated_at LIMIT $2", QUARTER_SLACK_DAYS, max(1, limit) * 3)  # nosec B608 - fixed SQL
+        out = []
+        for r in rows:
+            member = f"{r['symbol'].upper()}|{r['statement']}"
+            if await store.redis.exists(f"prism:pre:fail:{r['statement']}:{r['symbol']}") or await store.redis.exists(PRISM_TRY + member):
+                continue
+            out.append(member)
+            if len(out) >= limit:
+                break
+        return out
+    except Exception as exc:
+        log.warning("behind-a-quarter lookup failed: %s", type(exc).__name__)
+        return []
+
+
+async def enqueue_behind(store: Any, limit: int = 100) -> int:
+    """Put the companies found by behind_members() into the recalculation queue (de-duplicated, bounded by QUEUE_MAX). Returns how many were added."""
+    added = 0
+    try:
+        room = QUEUE_MAX - await store.redis.zcard(PRISM_Q)
+        for member in await behind_members(store, min(limit, max(0, room))):
+            added += int(await store.redis.zadd(PRISM_Q, {member: time.time()}, nx=True))
+    except Exception:
+        log.warning("companies behind a quarter not queued")
+    return added
+
+
 # ------------------------------------------------------------------ what the status page shows
 async def facts(store: Any, now: Optional[datetime] = None) -> Dict[str, Any]:
     """Score-lag facts for jobs/freshness.py: how many Prism ratings are behind a quarter the IQ already holds (and for how long), and when the last
@@ -377,11 +421,7 @@ async def facts(store: Any, now: Optional[datetime] = None) -> Dict[str, Any]:
     out: Dict[str, Any] = {"prism_behind": 0, "prism_behind_since": None, "live_newest": None, "queue": await queue_depth(store.redis)}
     try:
         async with store.pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT count(*) AS n, min(s.updated_at) AS since FROM scores s JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = s.statement "
-                "WHERE s.model = 'v1' AND s.metrics->>'q_period_end' ~ '^[0-9]{8}(\\.0+)?$' AND p.report #>> '{inputMeta,quarterlyAsOf}' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' "
-                "AND (p.report #>> '{inputMeta,quarterlyAsOf}')::date < to_date(left(s.metrics->>'q_period_end', 8), 'YYYYMMDD') - $1::int "
-                "AND s.updated_at < now() - interval '2 hours'", QUARTER_SLACK_DAYS)
+            row = await conn.fetchrow(f"SELECT count(*) AS n, min(s.updated_at) AS since {BEHIND_FROM_WHERE}", QUARTER_SLACK_DAYS)  # nosec B608 - fixed SQL
             out["prism_behind"], out["prism_behind_since"] = int(row["n"] or 0), row["since"]
             out["live_newest"] = await conn.fetchval("SELECT max(live_at) FROM scores")
     except Exception as exc:

@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { Icon } from "../lib/icons";
+import "../styles/chartsays.css";
 import { CHART_SAYS_HEADING, chartSaysSubtitle, type ChartSaysTopic } from "../lib/chartSays";
 
 /** The collapsible reading under a chart. The heading never changes; the subtitle names the kind of analysis; the body is the chart's own reading.

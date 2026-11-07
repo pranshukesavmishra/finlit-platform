@@ -2,6 +2,7 @@ import { PageHeader } from "../components/PageHeader";
 import { titleOf } from "../lib/companyLabel";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
+import { SIDE, SplitDivider, useSideWidth } from "../components/SplitDivider";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { useAuth } from "../lib/auth";
@@ -224,8 +225,9 @@ export function QuarterResultsPage() {
   const silver = plan !== "basic";
   const [f, setF] = useState<QParams>({ scope: "all", sort: "date", dir: "desc" });
   const [offset, setOffset] = useState(0);
-  const [wide, setWide] = useState<boolean>(() => { try { return localStorage.getItem("qr-wide") === "1"; } catch { return false; } });
-  const toggleWide = () => setWide((w) => { const n = !w; try { localStorage.setItem("qr-wide", n ? "1" : "0"); } catch { /* the choice just is not remembered */ } return n; });
+  const [sideW, setSide] = useSideWidth("results-quarter");   // the draggable divider: the width is remembered; dragged to the edge it hides the filters
+  const wide = sideW === 0;                                   // filters hidden, table at full width
+  const toggleWide = () => setSide(wide ? SIDE.def : 0);
   // The enlarge arrow on the results panel: the whole panel opens big over the page; Esc, a click outside or the same arrow brings it back.
   const [zoom, setZoom] = useState(false);
   useEffect(() => {
@@ -345,7 +347,7 @@ export function QuarterResultsPage() {
           <button type="button" className="btn primary" onClick={() => need("Quarter results figures are part of the Silver plan.")}>See Silver</button></div>
       )}
 
-      <div className={"qr-split" + (wide ? " qr-wide" : "")}>
+      <div className={"qr-split" + (wide ? " qr-wide" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
       <aside className="qr-side card" aria-label="Filters" id="qr-filters" hidden={wide}>
         <div className="qr-side-h">
           <h2>Filters</h2>
@@ -395,6 +397,7 @@ export function QuarterResultsPage() {
         </FilterGroup>
       <GrowthPanel state={growth} onChange={setGrowth} summary={d?.growth} loading={res.isFetching} price={price} onPrice={setPrice} priceSummary={d?.price} onBoth={setBoth} onReset={() => setBoth(DEFAULT_GROWTH, DEFAULT_PRICE)} />
       </aside>
+      <SplitDivider width={sideW} set={setSide} />
       <div className="qr-main">
       <div className="qr-toolbar" role="group" aria-label="Sort and export">
           <button type="button" className="btn qr-widebtn" aria-pressed={wide} aria-controls="qr-filters" onClick={toggleWide}><Icon name="table" /> {wide ? "Show filters" : "Hide filters, widen table"}</button>

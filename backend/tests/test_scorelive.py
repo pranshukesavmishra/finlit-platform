@@ -132,3 +132,66 @@ def test_score_lag_dataset_judges_prism_behind_a_filing():
     assert judge_score_lag({"prism_behind": 0, "queue": 0}, now, False).status == "fresh"
     assert judge_score_lag({"prism_behind": 3, "prism_behind_since": now - timedelta(hours=8), "queue": 3}, now, False).status == "late"
     assert judge_score_lag({"prism_behind": 3, "prism_behind_since": now - timedelta(hours=40), "queue": 3}, now, False).status == "stale"
+
+
+async def _rate_behind(store, symbol, prism_quarter, iq_quarter, hours_old=5):
+    """A company with a stored Prism rating (built from `prism_quarter`) and a FinLit IQ that holds `iq_quarter` (YYYYMMDD)."""
+    import json
+    import uuid
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM prism_reports WHERE symbol = $1", symbol)
+        await conn.execute("DELETE FROM scores WHERE symbol = $1", symbol)
+        await conn.execute("INSERT INTO scores (symbol, statement, model, sector, metrics, updated_at) VALUES ($1, 'consolidated', 'v1', 'Test', $2::jsonb, now() - make_interval(hours => $3))",
+                           symbol, json.dumps({"q_period_end": float(iq_quarter)}), hours_old)
+        await conn.execute("INSERT INTO prism_reports (symbol, statement, id, report, final, label, status) VALUES ($1, 'consolidated', $2, $3::jsonb, 60, 'AVERAGE', 'RATED')",
+                           symbol, uuid.uuid4().hex, json.dumps({"inputMeta": {"quarterlyAsOf": prism_quarter}}))
+
+
+async def _clean(store, *symbols):
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM prism_reports WHERE symbol = ANY($1::text[])", list(symbols))
+        await conn.execute("DELETE FROM scores WHERE symbol = ANY($1::text[])", list(symbols))
+    await store.redis.delete(scorelive.PRISM_Q, *[f"prism:pre:fail:consolidated:{x}" for x in symbols], *[scorelive.PRISM_TRY + f"{x}|consolidated" for x in symbols])
+
+
+@pytest.mark.asyncio
+async def test_a_rating_behind_a_filed_quarter_is_found_and_queued_even_when_the_results_job_never_queued_it(store):
+    await _clean(store, "BHA1", "BHA2", "BHA3")
+    try:
+        await _rate_behind(store, "BHA1", "2026-06-30", "20260930")            # behind the quarter the IQ holds: found
+        await _rate_behind(store, "BHA2", "2026-09-30", "20260930")            # current: left alone
+        await _rate_behind(store, "BHA3", "2026-06-30", "20260930", hours_old=0)   # the IQ changed under 2 hours ago: the live job has had no turn yet, same rule as the status page
+        assert await scorelive.behind_members(store, 10) == ["BHA1|consolidated"]
+        assert await scorelive.has_work(store) is True                          # the probe wakes the job although the queue is empty
+        assert await scorelive.queue_depth(store.redis) == 0
+        assert await scorelive.enqueue_behind(store) == 1
+        assert await scorelive.enqueue_behind(store) == 0                        # not twice
+        assert await scorelive.queue_depth(store.redis) == 1
+    finally:
+        await _clean(store, "BHA1", "BHA2", "BHA3")
+
+
+@pytest.mark.asyncio
+async def test_a_company_the_data_cannot_catch_up_for_is_not_asked_again_and_again(store):
+    await _clean(store, "BHB1", "BHB2")
+    try:
+        await _rate_behind(store, "BHB1", "2026-06-30", "20260930")
+        await _rate_behind(store, "BHB2", "2026-06-30", "20260930")
+        await store.redis.set("prism:pre:fail:consolidated:BHB1", "quarter-not-available", ex=600)     # the provider is behind: left for the nightly job
+        await store.redis.set(scorelive.PRISM_TRY + "BHB2|consolidated", "filing", ex=600)              # tried a moment ago
+        assert await scorelive.behind_members(store, 10) == []
+        assert await scorelive.has_work(store) is False                          # nothing to do: the job does not start for nothing
+    finally:
+        await _clean(store, "BHB1", "BHB2")
+
+
+@pytest.mark.asyncio
+async def test_the_status_page_and_the_job_count_the_same_companies(store):
+    await _clean(store, "BHC1")
+    try:
+        await _rate_behind(store, "BHC1", "2026-06-30", "20260930")
+        facts = await scorelive.facts(store)
+        assert facts["prism_behind"] >= 1
+        assert "BHC1|consolidated" in await scorelive.behind_members(store, 500)
+    finally:
+        await _clean(store, "BHC1")

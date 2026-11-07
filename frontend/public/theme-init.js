@@ -8,6 +8,8 @@
   root.setAttribute("data-theme", t);
   root.setAttribute("data-plan", p);
   if (d === "compact") root.setAttribute("data-density", d);
+  // The opening logo animation plays once per browser session: a visitor who has already seen it this session goes straight in.
+  try { if (sessionStorage.getItem("finlit-splash") === "1") root.setAttribute("data-splash", "seen"); } catch (e) {}
   // The member's palette, saved as ready-made variables by the app, so the first paint is already in their colours.
   try {
     var v = pv && JSON.parse(pv);

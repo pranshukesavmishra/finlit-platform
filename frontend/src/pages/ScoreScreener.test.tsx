@@ -112,13 +112,10 @@ describe("Basic score screener page", () => {
     await waitFor(() => expect(loc()).toContain("cap=Large"));
     fireEvent.click(within(screen.getByRole("group", { name: "Quality Score" })).getByRole("button", { name: "Quality Score 78 and above" }));
     await waitFor(() => expect(loc()).toContain("qual=high"));
-    expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);
-    expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("0"); expect(count("IT")).toBe("0"); expect(count("Pharma")).toBe("1");
+    await waitFor(() => { expect(symbols()).toEqual(["AAA", "BBB", "HHH"]); expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("0"); expect(count("IT")).toBe("0"); expect(count("Pharma")).toBe("1"); });   // the table follows the address a moment later (a deferred update), most visibly on a busy machine
     fireEvent.click(within(screen.getByLabelText("Active filters")).getByRole("button", { name: "Clear all" }));
     await waitFor(() => expect(loc()).toBe("/score-screener"));
-    expect(count("Metals")).toBe("14");
-    expect(within(screen.getByLabelText("Summary")).getByText("Companies found").previousSibling?.textContent).toBe("22");
-    expect(within(screen.getByLabelText("Summary")).getByText("Active filters").previousSibling?.textContent).toBe("0");
+    await waitFor(() => { expect(count("Metals")).toBe("14"); expect(within(screen.getByLabelText("Summary")).getByText("Companies found").previousSibling?.textContent).toBe("22"); expect(within(screen.getByLabelText("Summary")).getByText("Active filters").previousSibling?.textContent).toBe("0"); });
   });
 
   it("filters that match nothing show zeros above, and an empty state with removable chips", async () => {

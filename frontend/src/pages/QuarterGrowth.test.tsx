@@ -243,4 +243,19 @@ describe("the filter box of Latest results", () => {
     fireEvent.click(screen.getByRole("button", { name: /Show filters/ }));
     expect(document.getElementById("qr-filters")?.hasAttribute("hidden")).toBe(false);
   });
+  it("has a drag-and-pull bar between the filters and the results: arrow keys resize it, and Enter, a double-click or pulling it to the edge hides the filters", () => {
+    open();
+    const bar = screen.getByRole("separator", { name: /Resize the filters panel/ });
+    expect(bar.getAttribute("aria-valuenow")).toBe("330");
+    fireEvent.keyDown(bar, { key: "ArrowRight" });
+    expect(bar.getAttribute("aria-valuenow")).toBe("360");
+    for (let i = 0; i < 12; i++) fireEvent.keyDown(bar, { key: "ArrowLeft" });                 // the arrow keys stop at the narrowest useful width
+    expect(bar.getAttribute("aria-valuenow")).toBe("240");
+    fireEvent.keyDown(bar, { key: "Enter" });                                                   // Enter (or a double-click, or pulling it to the edge) hides the filters
+    expect(bar.getAttribute("aria-valuenow")).toBe("0");
+    expect(document.getElementById("qr-filters")?.hasAttribute("hidden")).toBe(true);
+    fireEvent.doubleClick(bar);                                                                 // and a double-click brings them back
+    expect(bar.getAttribute("aria-valuenow")).toBe("330");
+    expect(document.getElementById("qr-filters")?.hasAttribute("hidden")).toBe(false);
+  });
 });

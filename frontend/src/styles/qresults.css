@@ -235,7 +235,8 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 .qr-t thead tr.qr-grp th:first-child { position: sticky; left: 0; z-index: 4; }
 
 /* Latest results: the filters live in a left panel (the same collapsible groups as the score screeners), the results on the right */
-.qr-split { display: grid; grid-template-columns: minmax(300px, 372px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.qr-split { display: grid; grid-template-columns: min(var(--side-w, 330px), max(240px, calc(100% - 448px))) 28px minmax(0, 1fr); gap: 0; align-items: start; }
+.qr-split > .qr-side { grid-column: 1; grid-row: 1; } .qr-split > .scr-split { grid-column: 2; grid-row: 1; } .qr-split > .qr-main { grid-column: 3; grid-row: 1; min-width: 0; }
 .qr-side { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; padding: 14px 16px 18px; scrollbar-width: thin; min-width: 0; }
 .qr-side-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .qr-side-h h2 { margin: 0; font: 600 var(--fs-18)/1.3 var(--serif); }
@@ -255,10 +256,10 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 .qg-side .qg-row { grid-template-columns: 1fr; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border); } .qg-side .qg-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .qg-side .qg-set { padding: 10px; } .qg-side .qg-cl { display: block; }
 .qg-side .qg-psets { grid-template-columns: 1fr; }
-@media (max-width: 1000px) { .qr-split { grid-template-columns: minmax(0, 1fr); } .qr-side { position: static; max-height: none; } }
+@media (max-width: 1000px) { .qr-split, .qr-split.qr-wide { grid-template-columns: minmax(0, 1fr); gap: 18px; } .qr-split > .qr-side, .qr-split > .qr-main, .qr-split.qr-wide > .qr-main { grid-column: 1; grid-row: auto; } .qr-split > .scr-split { display: none; } .qr-side { position: static; max-height: none; } }
 
 /* Wide table: the filter panel can be tucked away so the results have the whole width */
-.qr-split.qr-wide { grid-template-columns: minmax(0, 1fr); }
+.qr-split.qr-wide { grid-template-columns: 28px minmax(0, 1fr); } .qr-split.qr-wide > .scr-split { grid-column: 1; } .qr-split.qr-wide > .qr-main { grid-column: 2; }
 .qr-widebtn { white-space: nowrap; }
 .qr-find { display: inline-flex; gap: 8px; align-items: center; flex: 1 1 240px; max-width: 420px; min-width: 0; }
 .qr-find input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s2); color: var(--text); font-size: 14px; }

@@ -7,7 +7,11 @@ html[data-theme="dark"] .ll { --ll-ink: #F4F2EC; --ll-gold: #D9B96C; }
 .ll-ink { fill: var(--ll-ink); } .ll-gold { fill: var(--ll-gold); } .ll-grad { fill: url(#ll-grad); }
 .ll-stack { display: flex; flex-direction: column; align-items: center; }
 .ll-full { display: grid; place-items: center; min-height: 46vh; padding: 24px; }
-.ll-splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg, #F7F3EA); }
+.ll-splash { position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center; background: var(--bg, #F7F3EA); }
+/* the opening animation: it covers the page until it has played to its end (lib/splash.tsx), then fades away; a session that has seen it goes straight in */
+#ll-boot { transition: opacity .4s ease; } #ll-boot.ll-out { opacity: 0; pointer-events: none; }
+html[data-splash="seen"] #ll-boot { display: none; }
+@media (prefers-reduced-motion: reduce) { #ll-boot { transition: none; } }
 .ll-inline { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
 .ll-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
