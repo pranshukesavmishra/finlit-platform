@@ -22,6 +22,7 @@ import { EarningsCash, useEarningsFindings } from "./EarningsCash";
 import { SegmentCard } from "./Sections2";
 import { PeerRanking } from "./Leadership";
 import { useLeadership } from "../lib/leadership";
+import { ChartZoom } from "../components/ChartZoom";
 
 const v = (n: string) => `var(${n})`;
 
@@ -129,6 +130,7 @@ function ValuationHistory({ r }: { r: Ratios }) {
   const name = { pe: "P/E", pb: "P/B", ps: "P/S" }[k];
   return (
     <div className="vh">
+      <ChartZoom label="Valuation history" className="cz-r">
       <div className="tools"><div><div className="label" style={{ display: "flex", alignItems: "center", gap: 8 }}>Valuation history<ChartHelp id="valuation-history" /></div><p className="faint" style={{ margin: "4px 0 0", fontSize: 13 }}>How much investors paid over the years</p></div><div className="seg">{(["pe", "pb", "ps"] as const).map((x) => <button key={x} aria-pressed={k === x} onClick={() => setK(x)}>{x === "pe" ? "P/E" : x === "pb" ? "P/B" : "P/S"}</button>)}</div></div>
       <div className="vh-top">
         <div className="vh-k"><span className="label">{name} in {vh.periods[vh.periods.length - 1]}</span><b>{nf(now, 1)}×</b></div>
@@ -136,6 +138,7 @@ function ValuationHistory({ r }: { r: Ratios }) {
         <div className={"vh-k " + (diff > 10 ? "hi" : diff < -10 ? "lo" : "")}><span className="label">Versus its history</span><b>{diff >= 0 ? "▲ " : "▼ "}{nf(Math.abs(diff), 0)}% {diff >= 0 ? "above" : "below"}</b></div>
       </div>
       <LineChart periods={vh.periods} series={[{ key: k, label: name, color: "var(--c4)", values: vals }]} fmt={(x) => nf(x, 1) + "×"} area avg={mean} height={250} />
+      </ChartZoom>
       <Plain tone={diff > 10 ? "warn" : diff < -10 ? "good" : "info"}>{diff > 10 ? `Investors are paying more than usual for each rupee of ${k === "pe" ? "profit" : k === "pb" ? "book value" : "sales"} — about ${nf(Math.abs(diff), 0)}% above this company's own average.` : diff < -10 ? `Investors are paying less than usual — about ${nf(Math.abs(diff), 0)}% below this company's own average.` : "The price is close to what investors have usually paid for this company."}</Plain>
     </div>
   );
@@ -230,6 +233,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
       <Plain>Comparing a company with its closest rivals is the quickest way to tell whether a number is good or just normal for the industry. {s.profile.sector ? `These ${N} companies work in ${s.profile.sector}.` : ""}</Plain>
       <div className="pr2">
         <div className="card acc orbit-card" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
+          <ChartZoom label="Peer map: companies in the same industry">
           <svg viewBox="0 0 380 380" role="group" aria-label="Map of companies in the same industry">
             <defs><radialGradient id="orb" cx=".5" cy=".5" r=".5"><stop offset="0" stopColor="var(--gold)" stopOpacity=".22" /><stop offset="1" stopColor="var(--gold)" stopOpacity="0" /></radialGradient>
               <linearGradient id="orbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--gold-2)" /><stop offset="1" stopColor="var(--gold-deep)" /></linearGradient></defs>
@@ -248,6 +252,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
             <g transform={`translate(${CX} ${CY})`}><circle r="58" fill="var(--gold)" opacity=".16" /><circle r="46" fill="url(#orbg)" /><text textAnchor="middle" dy="-.15em" fontSize="12" fontWeight="700" fill="#2a1c00" fontFamily="IBM Plex Mono, monospace">{self}</text><text textAnchor="middle" dy="1.5em" fontSize="11" fill="#2a1c00" opacity=".75">THIS COMPANY</text></g>
           </svg>
           <p className="orb-cap">{hov ? <><b>{hov.name || hov.symbol}</b> · click to open its report</> : hasData ? "Bubble size shows market value. Hover or click a company." : "Hover or click a company to open its report."}</p>
+          </ChartZoom>
         </div>
         <div className="pr-list">
           <div className="pr-row me"><span className="av" style={{ background: "linear-gradient(140deg,var(--gold-2),var(--gold-deep))", color: "#2a1c00" }}>{initials(s.profile.name)}</span><span className="pr-nm"><b>{s.profile.name}</b><span className="tk">{self} · this company</span></span>
