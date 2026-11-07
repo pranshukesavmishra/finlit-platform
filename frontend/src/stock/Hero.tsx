@@ -95,7 +95,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
         </Gate>
         <PrismCompare symbol={s.profile.symbol} name={p.name} statement={s.meta.statement} />
         </div>
-        {two && <p className="faint hs-two">FinLit IQ and FinLit Prism are two different models, built differently on purpose: IQ averages five pillars (including the price trend); Prism weighs four parts and adds valuation and risk. They can disagree; the reason is in the report.</p>}
+        {two && <p className="faint hs-two">FinLit IQ and FinLit Prism are two different models, built differently on purpose. They can disagree; the reason is in the report.</p>}
         <DashToggle open={dashOpen} onToggle={setDashOpen} controls="dk-full" />
         <div id="dk-full" className="dk-full" hidden={!dashOpen}>
           {dashOpen && <>

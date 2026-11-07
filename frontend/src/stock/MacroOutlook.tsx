@@ -1,11 +1,11 @@
-// MACRO & SECTOR OUTLOOK on every company page (PRD section 2): A backdrop bar, B sector impact, C indicator signals, D interpretation (+ history), E how it works.
+// MACRO & SECTOR OUTLOOK on every company page (PRD section 2): A backdrop bar, B sector impact, C indicator signals, D interpretation (+ history).
 // Reads stored results only. Describes the sector's macroeconomic backdrop, never the company and never a recommendation.
-import { useId, useState } from "react";
+import { useState } from "react";
 import { Icon } from "../lib/icons";
 import { dateIN } from "../lib/format";
 import { SectionHead } from "./Sections";
 import "../styles/macro-outlook.css";
-import { PERIODS, GROUP_ICON, arrow, driverText, insufficientText, pct, shortName, signed, useCompanyMacro, useMacroHistory, useMacroMethod, useSectorImpact,
+import { PERIODS, GROUP_ICON, arrow, driverText, insufficientText, pct, shortName, signed, useCompanyMacro, useMacroHistory, useSectorImpact,
   type CompanyMacro, type Driver, type History, type Indicator, type Item, type SectorRow, type Tone } from "../lib/macroOutlook";
 
 
@@ -21,7 +21,7 @@ function Meta({ c }: { c: CompanyMacro }) {
 }
 
 /* A: the backdrop bar */
-function Backdrop({ c, onHow }: { c: CompanyMacro; onHow: () => void }) {
+function Backdrop({ c }: { c: CompanyMacro }) {
   const ok = c.status === "ok";
   return (
     <div className="mo-bar-a" role="group" aria-label="Macro backdrop summary">
@@ -30,7 +30,6 @@ function Backdrop({ c, onHow }: { c: CompanyMacro; onHow: () => void }) {
       <span className="mo-sector"><Icon name="layers" />{c.mapping?.sectorName}</span>
       <span className="mo-score"><b>{ok && c.score != null ? Math.round(c.score) : "—"}</b><small>/100</small><Bar score={ok ? c.score ?? null : null} tone={c.tone ?? "none"} /></span>
       <span className="mo-drivers">{ok ? (c.drivers?.length ? c.drivers.map((d) => <Pill key={d.code} d={d} />) : <span className="faint">No dominant driver</span>) : <span className="faint">{insufficientText(c)}</span>}</span>
-      <button type="button" className="mo-link" onClick={onHow}>How it works</button>
     </div>
   );
 }
@@ -143,35 +142,12 @@ function HistoryPanel({ c }: { c: CompanyMacro }) {
     </div>);
 }
 
-/* E: how it works */
-function How({ open }: { open: boolean }) {
-  const m = useMacroMethod(open);
-  const d = m.data;
-  return (
-    <div className="mo-how">
-      {!d ? <p className="faint">{m.isError ? "The methodology could not be loaded." : "Loading…"}</p> : (
-        <>
-          <p>{d.scoreMeaning}</p>
-          <div className="mo-bands">{d.bands.map((b, i) => <span key={b.label}><Chip label={b.label} tone={(["up2", "up", "flat", "down", "down2"] as Tone[])[i]} /> <small>{b.min}{i === 0 ? "–100" : `–${d.bands[i - 1].min - 1}`}</small></span>)}</div>
-          <h5>Formula</h5><ol className="mo-f">{d.formula.map((f) => <li key={f}>{f}</li>)}</ol>
-          <h5>Indicators and sources</h5><ul className="mo-src2">{d.indicators.map((i) => <li key={i.code}><b>{i.name}</b> <span className="faint">{i.frequency} · {i.source}</span></li>)}</ul>
-          <h5>Normalisation</h5><p>{d.normalisation}</p><h5>Sensitivities</h5><p>{d.sensitivities}</p><h5>Top drivers</h5><p>{d.drivers}</p>
-          <h5>Sources and updates</h5><p>{d.sources} {d.updates}</p>
-          <h5>Limitations</h5><ul>{d.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
-          <p className="mo-assume"><Icon name="info" />{d.assumptionsNote}</p>
-        </>)}
-    </div>);
-}
-
 export function MacroOutlookSection({ symbol }: { symbol: string }) {
   const q = useCompanyMacro(symbol);
   const c = q.data;
   const showImpact = !!c && (c.status === "ok" || c.status === "insufficient_data");
   const imp = useSectorImpact(showImpact);
   const [all, setAll] = useState(false);
-  const [how, setHow] = useState(false);
-  const hid = useId();
-  const openHow = () => { setHow(true); requestAnimationFrame(() => document.getElementById(hid)?.scrollIntoView?.({ block: "nearest", behavior: "smooth" })); };
   const head = <SectionHead id="macro" no="Macro" icon="globe" title="MACRO & SECTOR OUTLOOK" sub="How the economy is moving for this company's sector." color="--p-growth" />;
   let body: React.ReactNode;
   if (q.isLoading) body = <div className="mo-skel" aria-busy="true">Loading the macro outlook…</div>;
@@ -181,14 +157,13 @@ export function MacroOutlookSection({ symbol }: { symbol: string }) {
     body = (
       <>
         {c.stale.isStale && <p className="mo-stale" role="alert"><Icon name="alert" /><span><b>Stale data.</b> {c.stale.message}</span></p>}
-        <Backdrop c={c} onHow={openHow} />
+        <Backdrop c={c} />
         <Meta c={c} />
         {c.mapping && <p className="mo-map"><Icon name="layers" />{c.mapping.note} {c.segments && <span>{c.segments.map((s) => `${s.name} ${Math.round(s.weight * 100)}%`).join(" · ")}</span>}</p>}
         {c.status === "insufficient_data" && <p className="mo-note" role="status"><Icon name="info" />{insufficientText(c)}. No score is shown rather than a guess.</p>}
         {imp.data && c.mapping && <SectorTable rows={imp.data.sectors} current={c.mapping.sector} all={all} setAll={setAll} />}
         <Indicators c={c} />
         <div className="mo-two"><Interpretation c={c} /><HistoryPanel c={c} /></div>
-        <details className="mo-det" id={hid} open={how} onToggle={(e) => setHow((e.target as HTMLDetailsElement).open)}><summary><Icon name="info" />How it works</summary>{how && <How open={how} />}</details>
         <p className="mo-disc">{c.disclaimer}</p>
       </>);
   }

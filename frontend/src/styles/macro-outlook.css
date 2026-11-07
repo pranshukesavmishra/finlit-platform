@@ -17,11 +17,10 @@
 /* A */
 .mo-bar-a { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--s1); }
 .mo-k { font: 700 11px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
-.mo-sector { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; } .mo-sector .ico, .mo-h .ico, .mo-grp h4 .ico, .mo-col h4 .ico, .mo-map .ico, .mo-note .ico, .mo-stale .ico, .mo-miss .ico, .mo-det .ico, .mo-assume .ico { width: 16px; height: 16px; flex: none; }
+.mo-sector { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; } .mo-sector .ico, .mo-h .ico, .mo-grp h4 .ico, .mo-col h4 .ico, .mo-map .ico, .mo-note .ico, .mo-stale .ico, .mo-miss .ico { width: 16px; height: 16px; flex: none; }
 .mo-score { display: inline-flex; align-items: baseline; gap: 4px; min-width: 150px; } .mo-score b { font: 700 24px var(--sans); font-variant-numeric: tabular-nums; } .mo-score small { color: var(--muted); margin-right: 8px; } .mo-score .mo-bar { align-self: center; width: 90px; }
 .mo-drivers { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; flex: 1 1 160px; min-width: 0; }
-.mo .mo-link { min-height: 0; padding: 4px 2px; background: none; border: 0; color: var(--gold); font: 600 13px var(--sans); text-decoration: underline; cursor: pointer; margin-left: auto; }
-.mo .mo-link:focus-visible, .mo .mo-more:focus-visible, .mo .mo-seg button:focus-visible, .mo-det summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.mo .mo-more:focus-visible, .mo .mo-seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .mo-meta, .mo-map, .mo-disc, .mo-foot { margin: 0; font-size: var(--fs-13); color: var(--muted); } .mo-meta b { color: var(--text); }
 .mo-map { display: flex; gap: 6px; align-items: flex-start; }
 .mo-stale, .mo-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 14px; border-radius: 12px; font-size: 14px; border: 1px solid var(--border-strong); background: var(--s2); }
@@ -59,13 +58,9 @@
 .mo-delta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; font-size: 13px; color: var(--muted); } .mo-delta b { font-variant-numeric: tabular-nums; color: var(--text); } .mo-delta .pos b { color: var(--mo-up2); } .mo-delta .neg b { color: var(--mo-down2); }
 .mo-dot { vertical-align: middle; display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--gold); } .mo-dot.lv { background: var(--gold); }
 /* E */
-.mo-det { border: 1px solid var(--border); border-radius: 14px; background: var(--s1); padding: 0 16px; } .mo-det summary { display: flex; align-items: center; gap: 8px; min-height: 44px; font: 700 14px var(--sans); cursor: pointer; }
-.mo-how { padding: 0 0 14px; font-size: 14px; } .mo-how h5 { margin: 14px 0 4px; font: 700 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); } .mo-how p { margin: 4px 0; }
-.mo-bands { display: flex; flex-wrap: wrap; gap: 8px 14px; } .mo-f { font-family: ui-monospace, monospace; font-size: var(--fs-13); padding-left: 18px; } .mo-src2 { columns: 2; list-style: none; padding: 0; margin: 0; } .mo-src2 li { break-inside: avoid; margin-bottom: 4px; }
-.mo-assume { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--s2); }
-@media (max-width: 860px) { .mo-two { grid-template-columns: 1fr; } .mo-cols { grid-template-columns: 1fr; } .mo-src2 { columns: 1; } }
+@media (max-width: 860px) { .mo-two { grid-template-columns: 1fr; } .mo-cols { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {
-  .mo-bar-a { padding: 12px; } .mo .mo-link { margin-left: 0; }
+  .mo-bar-a { padding: 12px; }
   .mo-t thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .mo-t tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 8px 6px; border-bottom: 1px solid var(--border); } .mo-t th, .mo-t td { border: 0; padding: 0; } .mo-t tbody th { grid-column: 1 / -1; }
   .mo-t td:nth-child(2) { grid-column: 1; width: auto; } .mo-t td.num { grid-column: 2; grid-row: 2; width: auto; } .mo-t td:nth-child(4) { grid-column: 1; } .mo-t td:nth-child(5) { grid-column: 1 / -1; }

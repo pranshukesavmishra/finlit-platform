@@ -22,11 +22,11 @@ beforeEach(() => { st.calls = []; st.fail = false; st.company = ok; });
 afterEach(cleanup);
 
 describe("Macro & Sector Outlook section", () => {
-  it("shows the backdrop bar: sentiment, sector, score out of 100, the two drivers with signs, and the how-it-works link", async () => {
+  it("shows the backdrop bar: sentiment, sector, score out of 100, the two drivers with signs, and no how-it-works block", async () => {
     wrap();
     const bar = await screen.findByRole("group", { name: "Macro backdrop summary" });
     expect(within(bar).getByText("Tailwind")).toBeTruthy(); expect(within(bar).getByText("Private banks")).toBeTruthy(); expect(within(bar).getByText("74")).toBeTruthy(); expect(within(bar).getByText("/100")).toBeTruthy();
-    expect(within(bar).getByText("Credit +")).toBeTruthy(); expect(within(bar).getByText("Deposits +")).toBeTruthy(); expect(within(bar).getByRole("button", { name: "How it works" })).toBeTruthy();
+    expect(within(bar).getByText("Credit +")).toBeTruthy(); expect(within(bar).getByText("Deposits +")).toBeTruthy(); expect(screen.queryByText("How it works")).toBeNull(); expect(screen.queryByRole("button", { name: "How it works" })).toBeNull();
     expect(screen.getByText("MACRO & SECTOR OUTLOOK")).toBeTruthy();
   });
   it("highlights the viewed company's sector, marks 50 on every bar and expands to all sectors", async () => {
@@ -67,18 +67,15 @@ describe("Macro & Sector Outlook section", () => {
     wrap(); expect(await screen.findByText(/no label-map rule matches/)).toBeTruthy(); cleanup();
     st.fail = true; wrap(); expect(await screen.findByText(/unavailable right now/)).toBeTruthy();
   });
-  it("How it works loads the methodology only when opened and carries the disclaimer and the not-validated note", async () => {
-    wrap();
-    const bar = await screen.findByRole("group", { name: "Macro backdrop summary" });
+  it("has no How it works block, never loads the methodology, and still carries the disclaimer and the not-validated note", async () => {
+    wrap(); await screen.findByRole("group", { name: "Macro backdrop summary" });
+    expect(screen.queryByText("How it works")).toBeNull(); expect(screen.queryByText("Formula")).toBeNull();
     expect(st.calls.some((c) => c.includes("methodology"))).toBe(false);
-    fireEvent.click(within(bar).getByRole("button", { name: "How it works" }));
-    expect(await screen.findByText("Formula")).toBeTruthy();
-    expect(screen.getAllByText(/tanh/).length).toBeGreaterThan(0); expect(screen.getAllByText(/not validated/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/not validated/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/not a company-specific assessment, forecast, or investment recommendation/)).toBeTruthy();
   });
   it("never uses advice wording", async () => {
     const { container } = wrap(); await screen.findByText("Sector impact");
-    fireEvent.click(screen.getByRole("button", { name: "How it works" })); await screen.findByText("Formula");
     expect(container.textContent).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target|best|multibagger|top pick)\b/i);
   });
 });

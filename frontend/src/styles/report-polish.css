@@ -49,6 +49,10 @@ section.block { padding-block: var(--section-gap) 0; }
 }
 .sh p, .sh-r p { font-size: var(--fs-body); line-height: var(--lh-body); max-width: 64ch; }
 .sh p { margin-top: var(--sp-2); }
+/* The counts line and the one-line summary under a section title: same font and size, left-aligned. Wrapped under the title they start at the section's left edge, not floating at the right of a narrow box. */
+.sh-r { align-items: flex-start; text-align: left; gap: var(--sp-2); }
+.sh-r .sh-counts { font: 600 var(--fs-body)/var(--lh-body) var(--sans); color: var(--muted); white-space: normal; }
+.sh-r p { margin: 0; text-wrap: pretty; }
 
 /* blocks that follow each other inside a section */
 section.block > .card + .card,
