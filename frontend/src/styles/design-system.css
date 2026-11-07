@@ -21,10 +21,11 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg-page: #0B192C; --bg-surface: #172E48; --bg-subtle: #203A56; --bg-elevated: #29445F; --bg-selected: #1E3D66; --overlay: rgba(0, 0, 0, 0.60);
+  /* The site's own near-black dark palette (the same as finlit.css), not navy: every component that reads these tokens gets the same dark as the rest of the site. */
+  --bg-page: #0B0C0F; --bg-surface: #121317; --bg-subtle: #181A1F; --bg-elevated: #21242A; --bg-selected: #2A2D35; --overlay: rgba(0, 0, 0, 0.60);
   --text-primary: #F8F6F1; --text-body: #D5DEE8; --text-secondary: #B5BFCC; --text-muted: #A5B1C2; --text-disabled: #6B7F98; --text-link: #93C5FD;
-  --border-subtle: #526780; --border-control: #8196AC; --focus-ring: #A78BFA;
-  --action-primary: #C6A76A; --action-primary-hover: #D4B97F; --action-primary-pressed: #B39257; --action-on-primary: #0B192C; --action-disabled-bg: #1E3550; --brand-accent: #C6A76A;
+  --border-subtle: #3B3F49; --border-control: #6B7080; --focus-ring: #A78BFA;
+  --action-primary: #C6A76A; --action-primary-hover: #D4B97F; --action-primary-pressed: #B39257; --action-on-primary: #0B0C0F; --action-disabled-bg: #2A2D35; --brand-accent: #C6A76A;
   --financial-positive: #4ADE80; --financial-negative: #FCA5A5; --financial-neutral: #A5B1C2; --status-warning: #FDBA74; --status-info: #93C5FD; --form-error: #FDA4AF;
   --financial-positive-bg: #0F3A2A; --financial-negative-bg: #4A1D24; --status-warning-bg: #4A2A12; --status-info-bg: #172F55; --form-error-bg: #4C1426;
   --chart-1: #60A5FA; --chart-2: #2DD4BF; --chart-3: #D58BC0; --chart-4: #FBBF24; --chart-5: #F472B6; --chart-6: #CBD5E1;
