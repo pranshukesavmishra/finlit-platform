@@ -30,6 +30,7 @@ import { ScoreCompare } from "../mf/ScoreCompare";
 import { FundHeadToHead } from "./FundHeadToHead";
 import "../styles/mf.css";
 import "../styles/etfvs.css";
+import { ChartZoom } from "../components/ChartZoom";
 
 const HEAD = (title: string, lead: string, stats?: PageHeaderProps["stats"]) => (
   <PageHeader wrap plan="free" title={title} description={lead} stats={stats} art="funds" links={[{ to: "/fund-score-screener", primary: true }, "/funds/compare", "/etfs"]}
@@ -221,11 +222,13 @@ function NavChart({ d }: { d: FundDetail }) {
   const change = (p.v[p.v.length - 1] / p.v[0] - 1) * 100;
   return (
     <div className="card mf-card">
+      <ChartZoom label="NAV chart" className="cz-r">
       <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>NAV chart</h3>
         <div className="seg" role="group" aria-label="Chart range">{keys.map((k) => <button key={k} aria-pressed={k === range} onClick={() => setRange(k)}>{k === "MAX" ? "Since launch" : k}</button>)}</div></div>
       <FundChart series={[{ key: String(d.code), label: d.name, t: p.t, v: p.v }]} format={axisFmt} label={`NAV of ${d.name}, ${range === "MAX" ? "since the first NAV on file" : "last " + range}`} />
       <p className="faint mf-fine">Total change over this range: <b className={tone(change)}>{pctText(change)}</b> (NAV of {dateIN(p.t[0])} to NAV of {dateIN(p.t[p.t.length - 1])}).
         The chart shows NAV in rupees; the line is thinned to at most a few hundred points for long periods.</p>
+      </ChartZoom>
     </div>
   );
 }
@@ -425,6 +428,7 @@ function FundMultiCompare() {
         {ids.length >= 2 && data && (
           <>
             <div className="card mf-card" aria-busy={isFetching}>
+              <ChartZoom label="NAV, every scheme starting at 100" className="cz-r">
               <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>NAV, every scheme starting at 100</h3>
                 <div className="seg" role="group" aria-label="Chart range">{RANGE_BUTTONS.map((k) => <button key={k} aria-pressed={k === range} onClick={() => put(ids, k)}>{k === "MAX" ? "Since launch" : k}</button>)}</div></div>
               {data.chart ? (
@@ -433,6 +437,7 @@ function FundMultiCompare() {
                     series={data.chart.series.map((s) => ({ key: String(s.code), label: shortName(data.funds.find((f) => f.code === s.code)!), t: s.t, v: s.v }))} />
                   <p className="faint mf-fine">Each line starts at 100 on {dateIN(data.chart.from)} (the latest start date among the schemes for this range) and follows that scheme's NAV. It is a picture of past NAVs, not a forecast.</p>
                 </>) : <p className="muted mf-pad">{data.chartNote}</p>}
+              </ChartZoom>
             </div>
             <div className="card mf-card"><div className="card-h"><h3><span className="ci"><Icon name="table" /></span>The numbers</h3></div><CompareTable funds={data.funds} />
               <p className="faint mf-fine">1 year is the total change in NAV over the year; 5 year is a yearly rate (CAGR), not the five-year total. Only Growth options have returns, because payouts change the NAV of IDCW options. Different plans of one fund differ only by cost. Fund size, costs and holdings are on each scheme's own page.</p></div>
