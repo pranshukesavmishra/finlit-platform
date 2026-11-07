@@ -1,4 +1,4 @@
-"""/api/me/mf-portfolio: a member's mutual fund holdings (Silver and Gold; Basic is refused as for My portfolio).
+"""/api/me/mf-portfolio: a member's mutual fund holdings (Silver and Gold; Basic is refused as for Equity portfolio).
 
     GET     ""                 the holdings, valued with the latest NAV, with the summary, allocation and concentration note
     POST    ""                 add a holding (or a purchase to the same fund and folio)

@@ -131,6 +131,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/finlit/caddy-extra:/etc/caddy/extra:ro
       - caddy_data:/data             # certificates: keep this volume, or Let's Encrypt limits are hit again
       - caddy_config:/config
     depends_on: [app]

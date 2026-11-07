@@ -4,7 +4,6 @@
 import { Link } from "react-router";
 import { nf } from "../../lib/format";
 import type { ScreenFacets } from "../../lib/mfScreen";
-import { ChartZoom } from "../../components/ChartZoom";
 
 /** About `count` round tick values covering [lo, hi]. */
 export function niceTicks(lo: number, hi: number, count = 4): number[] {
@@ -24,7 +23,6 @@ export function RiskReturn({ data }: { data?: ScreenFacets["scatter"] }) {
   const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - R), Y = (v: number) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
   const xt = niceTicks(x0, x1, 4), yt = niceTicks(y0, y1, 4);
   return (
-    <ChartZoom label={"Fund return against risk"}>
     <figure className="mfs-fig">
       <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`Volatility and 3-year return of ${pts.length} funds in the result`} className="mfs-sc">
         {yt.map((v) => <g key={"y" + v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className={v === 0 ? "ax0" : "gr"} /><text x={L - 6} y={Y(v) + 3.5} textAnchor="end">{nf(v, 0)}%</text></g>)}
@@ -38,7 +36,6 @@ export function RiskReturn({ data }: { data?: ScreenFacets["scatter"] }) {
       </svg>
       <figcaption className="faint">Each dot is a fund{data && data.eligible > data.shown ? `: the ${nf(data.shown, 0)} largest of the ${nf(data.eligible, 0)} that have both figures` : ` (${nf(pts.length, 0)} funds with both figures)`}. Past figures from month-end NAVs; the picture describes the result, it does not rank it.</figcaption>
     </figure>
-    </ChartZoom>
   );
 }
 

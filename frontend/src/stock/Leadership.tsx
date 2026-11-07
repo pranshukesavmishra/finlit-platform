@@ -10,7 +10,6 @@ import {
   LABEL_WORD, groupSourceLine, monthYear, ordinal, pts, rankStory, relativeSentence, sectorBench, tone, useLeadership, useLeadershipHistory,
   type Direction, type LeadHistory, type LeadLabel, type LeadPeer, type LeadRun, type LeadershipOn, type Reliability,
 } from "../lib/leadership";
-import { ChartZoom } from "../components/ChartZoom";
 
 /** Leader / In line / Laggard. Describes past relative price performance only; never a recommendation. */
 export const LEAD_NOTE = "Describes past performance; not a recommendation.";
@@ -286,7 +285,6 @@ function RelativeStrength({ name, lead, hist, loading }: { name: string; lead: L
   const f1 = (v: number | null | undefined) => (v == null ? "—" : v.toFixed(1));
   return (
     <div className="card acc ld-card ld-ca" style={{ "--ac": "var(--ld-blue)" } as React.CSSProperties}>
-      <ChartZoom label={"Relative strength against the index"} className="cz-r">
       <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>Relative strength</h3>
         <div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r[0]} type="button" className={r === range ? "on" : ""} aria-pressed={r === range} onClick={() => setRange(r)}>{r[0]}</button>)}</div></div>
       <p className="ld-cap">Price divided by the index, set to 100 at the start. Above 100 means ahead of the index.</p>
@@ -321,7 +319,6 @@ function RelativeStrength({ name, lead, hist, loading }: { name: string; lead: L
       </div>
       {calc && lines.length > 0 && <div className="ld-foot2"><span className="ld-key"><i className="up" />Ahead of the index</span><span className="ld-key"><i className="dn" />Behind the index</span><ShowTable on={table} set={setTable} /></div>}
       {table && calc && <ChartTable caption={concl} head={["Date", ...lines.map((l) => `Against ${l[2]} (100 at start)`)]} rows={sample.map((i) => [dShort(calc.dates[i]), ...lines.map((l) => f1((l[1] as (number | null)[])[i]))])} />}
-      </ChartZoom>
     </div>
   );
 }
@@ -353,7 +350,6 @@ function RankHistory({ name, lead, hist, loading }: { name: string; lead: Leader
   const h = hover != null ? rows[hover] : null;
   return (
     <div className="card acc ld-card ld-cb" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-      <ChartZoom label={"Rank history in the peer group"} className="cz-r">
       <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Rank history</h3><span className="s">1 is the top of {lead.peerGroup.short} peers</span></div>
       {loading ? <div className="skeleton" style={{ height: H }} aria-hidden="true" /> : rows.length < 2 ? <p className="ld-empty">The rank history builds up week by week. It will appear here after a few weekly runs.</p> : (
         <>
@@ -379,7 +375,6 @@ function RankHistory({ name, lead, hist, loading }: { name: string; lead: Leader
           {table && <ChartTable caption={concl} head={["Date", "Rank", "Status", "vs sector, 12M"]} rows={[...rows].reverse().slice(0, 24).map((r: LeadRun) => [dShort(r.date), `${r.rank} of ${r.ranked}`, LABEL_WORD[r.label], `${pts(r.rel52)} pts`])} />}
         </>
       )}
-      </ChartZoom>
     </div>
   );
 }
@@ -440,7 +435,6 @@ function StripPlot({ self, lead }: { self: string; lead: LeadershipOn }) {
   const sh = hot ? peers.find((p) => p.symbol === hot) : null;
   return (
     <div className="card acc ld-card ld-cd" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-      <ChartZoom label={"Where the stock sits among its peers today"} className="cz-r">
       <div className="card-h"><h3><span className="ci"><Icon name="bars" /></span>Where it sits today</h3><span className="s">12 months vs {lead.benchmarks.sector.name}</span></div>
       <div ref={box} className="ld-chart ld-strip">
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={concl}>
@@ -460,7 +454,6 @@ function StripPlot({ self, lead }: { self: string; lead: LeadershipOn }) {
       </ol>
       <div className="ld-foot2"><span className="ld-sm">Each dot is one peer. Dots to the right are further ahead of {lead.benchmarks.sector.name}.</span><ShowTable on={table} set={setTable} /></div>
       {table && <ChartTable caption={concl} head={["Rank", "Company", "Status", "vs sector, 12M"]} rows={lead.peers.map((p) => [p.rank, p.name || p.symbol, LABEL_WORD[p.label], `${pts(p.rel52)} pts`])} />}
-      </ChartZoom>
     </div>
   );
 }

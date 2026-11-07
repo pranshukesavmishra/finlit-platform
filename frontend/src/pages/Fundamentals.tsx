@@ -16,7 +16,6 @@ import { ProfitReality } from "../stock/ProfitReality";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 import { ChartHelp } from "../components/ChartHelp";
-import { ChartZoom } from "../components/ChartZoom";
 
 type Pt = { period: string; value: number | null; change?: number | null };
 type HRow = { category?: string; label?: string; unit?: string; history?: Pt[]; children?: HRow[] };
@@ -62,7 +61,7 @@ function Statement({ rows, limit, unit, file, growth = true, chart = true }: { r
       {chart && vals.some((v) => v != null) && (
         <div className="pm-chart card">
           <div className="pm-chart-h"><div><small>Charting</small><b>{name(row)} <ChartHelp id="fund-statement" /></b></div><span className="faint">{unit ? `In ${unit} · ` : ""}Click any line below to chart it</span></div>
-          <MiniBars labels={asc} series={[{ key: "v", label: name(row), values: vals, color: "var(--gold)" }]} fmt={short} height={190} w={720} highlight={asc.length - 1} zoomLabel={`${name(row)} by period`} />
+          <MiniBars labels={asc} series={[{ key: "v", label: name(row), values: vals, color: "var(--gold)" }]} fmt={short} height={190} w={720} highlight={asc.length - 1} />
         </div>)}
       <div className="pm-tools"><button className="alx-link" onClick={csv}><Icon name="table" /> Export CSV</button></div>
       <HScroll className="" label="table"><table className="pm-t pm-pick"><thead><tr><th>Item</th>{periods.map((p) => <th key={p} className="n">{p}</th>)}{growth && periods.length > 1 && <th className="n">Change</th>}</tr></thead>
@@ -121,8 +120,8 @@ function Snapshot({ d, limit }: { d: Fund; limit: number }) {
         <div className="pm-two">
           <div className="pm-chart card"><div className="pm-chart-h"><div><small>Growth</small><b>Revenue and net profit <ChartHelp id="fund-growth" /></b></div><span className="faint">{unit ? `In ${unit}` : ""}{cagr != null ? ` · revenue ${signed(cagr, 1)} a year` : ""}</span></div>
             <div className="pm-duo">
-              <div><p className="pm-sub">Revenue</p><MiniBars labels={asc} series={[{ key: "r", label: "Revenue", values: r, color: "var(--c1)" }]} fmt={short} height={170} w={360} highlight={asc.length - 1} zoomLabel="Revenue by period" /></div>
-              <div><p className="pm-sub">Net profit</p><MiniBars labels={asc} series={[{ key: "p", label: "Net profit", values: p, color: "var(--gold)" }]} fmt={short} height={170} w={360} highlight={asc.length - 1} zoomLabel="Net profit by period" /></div>
+              <div><p className="pm-sub">Revenue</p><MiniBars labels={asc} series={[{ key: "r", label: "Revenue", values: r, color: "var(--c1)" }]} fmt={short} height={170} w={360} highlight={asc.length - 1} /></div>
+              <div><p className="pm-sub">Net profit</p><MiniBars labels={asc} series={[{ key: "p", label: "Net profit", values: p, color: "var(--gold)" }]} fmt={short} height={170} w={360} highlight={asc.length - 1} /></div>
             </div></div>
           <div className="pm-chart card"><div className="pm-chart-h"><div><small>Quality</small><b>Net margin <ChartHelp id="fund-margin" /></b></div><span className="faint">Profit kept from each ₹100 of sales</span></div>
             <LineChart periods={asc} series={[{ key: "m", label: "Net margin", color: "var(--c3)", values: margin }]} fmt={(x) => nf(x, mSpan < 0.05 ? 3 : mSpan < 1 ? 2 : 1) + "%"} height={200} area /></div>
@@ -191,10 +190,10 @@ function Owners({ d, limit }: { d: Fund; limit: number }) {
       {parts.length > 0 && (
         <div className="pm-two">
           <div className="pm-chart card"><div className="pm-chart-h"><div><small>Today</small><b>Who owns the company <ChartHelp id="fund-own-donut" /></b></div><span className="faint">{periods[0]}</span></div>
-            <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}><div style={{ width: 190 }}><ChartZoom label="Who owns the company"><Donut slices={parts.map((x) => ({ v: x.value, color: x.color.replace(/^var\((.*)\)$/, "$1") }))} centerValue={nf(parts[0].value, 1) + "%"} centerLabel={parts[0].label} /></ChartZoom></div>
+            <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}><div style={{ width: 190 }}><Donut slices={parts.map((x) => ({ v: x.value, color: x.color.replace(/^var\((.*)\)$/, "$1") }))} centerValue={nf(parts[0].value, 1) + "%"} centerLabel={parts[0].label} /></div>
               <ul className="pm-keys">{parts.map((p) => <li key={p.label}><i style={{ background: p.color }} />{p.label}<b>{nf(p.value, 2)}%</b></li>)}</ul></div></div>
           {asc.length > 1 && <div className="pm-chart card"><div className="pm-chart-h"><div><small>Trend</small><b>How ownership has moved <ChartHelp id="fund-own-trend" /></b></div><span className="faint">{asc[0]} to {asc[asc.length - 1]}</span></div>
-            <ChartZoom label="How ownership has moved"><StackArea periods={asc} series={rows.map((r, i) => ({ key: r.category || String(i), label: name(r), values: series(r, periods).reverse(), color: PALETTE[i % PALETTE.length] }))} w={620} /></ChartZoom></div>}
+            <StackArea periods={asc} series={rows.map((r, i) => ({ key: r.category || String(i), label: name(r), values: series(r, periods).reverse(), color: PALETTE[i % PALETTE.length] }))} w={620} /></div>}
         </div>)}
       <div className="pm-sec"><h2>Shareholding pattern</h2><Statement rows={rows} limit={limit} file={`${d.instrument?.symbol}-shareholding`} growth={false} chart={false} /></div>
       <div className="pm-sec"><h2>Structure summary and promoter pledge</h2><Statement rows={d.ownershipStructure || []} limit={limit} file={`${d.instrument?.symbol}-structure`} growth={false} chart={false} /></div>

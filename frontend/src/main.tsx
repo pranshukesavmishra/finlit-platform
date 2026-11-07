@@ -41,7 +41,6 @@ import { installSvgTextFit } from "./lib/svgText";
 import "./styles/sidebar.css";
 import "./styles/earnings.css";
 import "./styles/calm.css";
-import "./styles/chartzoom.css";
 import "./styles/overlay.css";
 import { purgeLegacy } from "./lib/persist";
 

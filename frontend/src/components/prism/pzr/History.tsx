@@ -8,7 +8,6 @@ import {
 } from "../../../lib/prism";
 import { periodLabel, ratioPct, yoy, type Series } from "../../../lib/prismReport";
 import { ChartTable, ShowTable, useWidth } from "../PrismCharts";
-import { ChartZoom } from "../../../components/ChartZoom";
 
 type Basis = "annual" | "quarterly";
 type Pt = { period: string; value: number | null; growth?: number | null };
@@ -62,7 +61,6 @@ function Chart({ kind, title, unitNote, data, color, concl, valueText, tableHead
   pts.forEach((p) => { if (!p) { pen = false; return; } path += (pen ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); pen = true; });
   return (
     <figure className="pzr-ch" style={{ "--c": color } as React.CSSProperties}>
-      <ChartZoom label={title} className="cz-r">
       <figcaption><b>{title}</b><span>{last ? <>{valueText(last.value)} <small>{periodLabel(last.period)}</small></> : "No data"}</span></figcaption>
       <div ref={box} className="pzr-ch-b" tabIndex={enough ? 0 : -1} role="group" aria-label={`${title}. Use the left and right arrow keys to read each ${basis === "annual" ? "year" : "quarter"}.`} {...(enough ? scrub.props : {})}>
         {!enough ? <p className="pzr-empty">Not enough reported {basis === "annual" ? "years" : "quarters"} for a chart.</p> : (
@@ -97,7 +95,6 @@ function Chart({ kind, title, unitNote, data, color, concl, valueText, tableHead
           </>
         )}
       </div>
-      </ChartZoom>
       <div className="pzr-cfoot"><span>{unitNote}</span>{enough && <ShowTable on={table} set={setTable} />}</div>
       {table && <ChartTable caption={concl} head={tableHead} rows={data.map((d) => [periodLabel(d.period), valueText(d.value), ...(growthLabel ? [growthPercent(d.growth)] : [])])} />}
     </figure>

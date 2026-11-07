@@ -15,7 +15,6 @@ import {
 } from "../lib/mfInsights";
 import "../styles/mf.css";
 import "../styles/mfinsights.css";
-import { ChartZoom } from "../components/ChartZoom";
 
 const LEAD = "Where India's fund money actually sits and where it moved last month — total assets, net flows by scheme category, the equity/debt/hybrid split, and folio growth. Straight from AMFI's monthly category report.";
 
@@ -142,7 +141,6 @@ function Trend({ d }: { d: InsightsOk }) {
   const tabId = useId();
   return (
     <section className="card mfi-card mfi-trend" aria-labelledby="mfi-trend-h">
-      <ChartZoom label={"Industry trend"} className="cz-r">
       <div className="mfi-card-h">
         <h3 id="mfi-trend-h"><span className="ci"><Icon name="line" /></span>Industry trend</h3>
         <div className="mfi-ctl">
@@ -157,7 +155,6 @@ function Trend({ d }: { d: InsightsOk }) {
         <TrendChart key={key + range} s={s} kind={def.kind} text={def.text} axis={def.axis} label={`${def.label}, monthly, ${monthLabel(s.t[0] || d.month)} to ${monthLabel(d.month)}`} />
         <p className="faint mf-fine">{def.caption}</p>
       </div>
-      </ChartZoom>
     </section>
   );
 }
@@ -271,7 +268,6 @@ function Split({ d }: { d: InsightsOk }) {
   const sel = d.groups.find((g) => g.key === hot);
   return (
     <section className="card mfi-card" aria-labelledby="mfi-split-h">
-      <ChartZoom label={"Where the money sits"} className="cz-r">
       <div className="mfi-card-h"><h3 id="mfi-split-h"><span className="ci"><Icon name="pie" /></span>Where the money sits</h3></div>
       <div className="mfi-donut-wrap">
         <svg className="mfi-donut" viewBox="0 0 200 200" role="img" aria-label={"Share of net assets: " + d.groups.map((g) => `${g.label} ${nf(g.share ?? 0, 1)}%`).join(", ")}>
@@ -296,7 +292,6 @@ function Split({ d }: { d: InsightsOk }) {
         </ul>
       </div>
       <p className="faint mf-fine">Share of {money(d.kpis.aum.value)} of net assets at the end of {monthLabel(d.month)}. Other: index funds, ETFs (gold and silver too) and funds of funds investing overseas.</p>
-      </ChartZoom>
     </section>
   );
 }
@@ -305,9 +300,8 @@ function FlowsByGroup({ d }: { d: InsightsOk }) {
   const max = Math.max(1, ...d.groups.map((g) => Math.abs(g.netFlow ?? 0)));
   return (
     <section className="card mfi-card" aria-labelledby="mfi-flow-h">
-      <ChartZoom label={"Net flows by fund group"} className="cz-r">
       <div className="mfi-card-h"><h3 id="mfi-flow-h"><span className="ci"><Icon name="bars" /></span>Net flows in {monthLabel(d.month)}</h3></div>
-      <ul className="mfi-flows" data-chart>
+      <ul className="mfi-flows">
         {d.groups.map((g) => {
           const w = (Math.abs(g.netFlow ?? 0) / max) * 50;
           return (
@@ -318,7 +312,6 @@ function FlowsByGroup({ d }: { d: InsightsOk }) {
         })}
       </ul>
       <p className="faint mf-fine">Money put in minus money taken out during the month: right and green, more came in; left and red, more went out.</p>
-      </ChartZoom>
     </section>
   );
 }

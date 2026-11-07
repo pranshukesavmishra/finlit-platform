@@ -69,7 +69,7 @@ async def test_sample_list_through_the_endpoint(app):  # noqa: F811
         r = await c.post(URL, json={"symbols": [s.lower() for s in SAMPLE], "benchmark": "NIF50"})
         assert r.status_code == 200, r.text
         j = r.json()
-        # one score on the site: the card shows the My portfolio engine's score (104 weeks, plain correlations); calc's own 156-week figure is in expected_output.json
+        # one score on the site: the card shows the Equity portfolio engine's score (104 weeks, plain correlations); calc's own 156-week figure is in expected_output.json
         assert j["score"] == {**EXPECTED["score"], "value": 68, "unrounded": 68.0, "coMovement": 66, "effectiveSectors": 4.4} and j["scoreVersion"] == "1" and j["horizon"] == "weekly"
         assert j["headline"] == {**EXPECTED["headline"], "effectiveStocks": 5.9, "effectiveStocksRounded": 6} and j["clusters"] == EXPECTED["clusters"]
         assert j["asOf"]["fromWeek"] == "2023-W45" and j["asOf"]["toWeek"] == "2026-W44" and j["asOf"]["label"] == "Nov 2023 – Oct 2026"

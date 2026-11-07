@@ -1,4 +1,4 @@
-/* My portfolio page. Scoped to .pfx; reads the site's tokens (finlit.css), defines none globally. Sizes: 11 12 13 14 16 18 20 24 28 32 40 only.
+/* Equity portfolio page. Scoped to .pfx; reads the site's tokens (finlit.css), defines none globally. Sizes: 11 12 13 14 16 18 20 24 28 32 40 only.
    Heat and score colours are mixed from the site's own palette, so light and dark both follow the theme. */
 .pfx { --pfx-line: var(--border); --pfx-soft: var(--s2); --pfx-ink: var(--text); --pfx-ink2: var(--muted); --pfx-acc: var(--k3); --pfx-risk: var(--k2); --pfx-gold: var(--gold);
   --h1: color-mix(in srgb, var(--k2) 12%, var(--s1)); --h2: color-mix(in srgb, var(--k2) 28%, var(--s1)); --h3: color-mix(in srgb, var(--k2) 48%, var(--s1));

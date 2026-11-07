@@ -5,7 +5,6 @@ import { axisDay, barSpan, dayDomain, dayTicks, hhmm, istDay, istMinutes, sessio
 import { labelEvery } from "../lib/chartAxis";
 import { useChart } from "./useChart";
 import type { Intraday } from "../lib/api";
-import { ChartZoom } from "../components/ChartZoom";
 
 /** Intraday close line with volume bars, drawn like the daily price chart. 1D runs on a clock axis (09:15 to 15:30 IST) so a session in
  *  progress fills only the time that has passed; 5D and 1M put bars side by side with one label and a faint divider per session, so nights
@@ -88,5 +87,5 @@ export function IntradayChart({ data, showVol }: { data: Intraday; showVol: bool
     svgEl.onpointerleave = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); if (tip.current) tip.current.hidden = true; };
   }, [data, showVol]);
   const last = s.c[s.c.length - 1];
-  return <ChartZoom label="Intraday price chart"><div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label={`Intraday price, ${data.range}: from ₹${nf(s.o[0])} at the open to ₹${nf(last)} at ${barSpan(s.t[s.t.length - 1], data.interval)} IST`} /><div className="tip" ref={tip} hidden /></div></ChartZoom>;
+  return <div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label={`Intraday price, ${data.range}: from ₹${nf(s.o[0])} at the open to ₹${nf(last)} at ${barSpan(s.t[s.t.length - 1], data.interval)} IST`} /><div className="tip" ref={tip} hidden /></div>;
 }

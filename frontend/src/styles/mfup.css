@@ -37,3 +37,10 @@
 .mfu-list { margin: 0 0 8px; padding-left: 18px; font-size: var(--fs-14); }
 @media (max-width: 860px) { .mfu-layout, .mfu-bdtop, .mfu-cmptop { grid-template-columns: 1fr; } .mfu-filters { position: static; } .mfu-lb-list li { grid-template-columns: 26px 1fr 40px 50px; } .mfu-lb-list li small { display: none; } }
 .mfu-alert svg { width: 16px; height: 16px; } .mfu-alert .btn { display: inline-flex; gap: 6px; align-items: center; }
+
+/* Fund score screener: "Score & analytics filters" (overall score + the four parts in one panel) */
+.fss-sec { display: grid; gap: 4px; padding: 10px 12px; margin: 4px 0 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--s2); }
+.fss-h { display: flex; gap: 8px; align-items: center; margin: 0 0 4px; font: 600 14px/1.3 var(--sans); } .fss-h .ico, .fss-h svg { width: 16px; height: 16px; color: var(--gain); }
+.fss-sub { margin: -2px 0 4px; font-size: 12px; color: var(--faint); line-height: 1.4; }
+.fss-act { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 2px; } .fss-act .btn { min-height: 38px; justify-content: center; } .fss-act .btn svg { width: 14px; height: 14px; } .fss-act .btn[disabled] { opacity: .55; cursor: not-allowed; }
+.fss-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }

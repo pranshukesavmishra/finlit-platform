@@ -10,7 +10,6 @@ import { OpenAccess } from "../components/Gate";
 import { toWeekly, usePrismHistory, valueOf, withValue, type HistPoint, type Series } from "../lib/prismHistory";
 import { BUSINESS, NAME, PERIODS, TECHNICAL, inPeriod, moveSentence, movesOf, readingNow, reRated, seriesFor, type Period, type Show } from "../lib/scoreMoves";
 import "../styles/scoremoves.css";
-import { ChartZoom } from "../components/ChartZoom";
 
 const COLOR: Record<Series, string> = { final: "var(--text)", ["fundamental"]: "var(--p-growth)", valuation: "var(--p-quality)", quality: "var(--p-profit)", risk: "var(--p-balance)", shortTerm: "var(--gold)", longTerm: "var(--info)" };
 const W = 720, L = 42, R = 16;
@@ -53,7 +52,6 @@ export function ScoreMoves({ points: all }: { points: HistPoint[] }) {
   const pick = (k: Show) => { setShow(k); setOff([]); };
   return (
     <div className="scm">
-      <ChartZoom label={"Score moves"} className="cz-r">
       <div className="scm-ctl">
         <div className="seg" role="group" aria-label="Show">{([["all", "All six"], ["business", "Business only"], ["technical", "Technical only"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={show === k} onClick={() => pick(k)}>{l}</button>)}</div>
         <div className="seg" role="group" aria-label="Points">{([["day", "Daily"], ["week", "Weekly"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={step === k} onClick={() => setStep(k)}>{l}</button>)}</div>
@@ -75,7 +73,6 @@ export function ScoreMoves({ points: all }: { points: HistPoint[] }) {
             <thead><tr><th>Score</th><th className="num">Start</th><th className="num">Now</th><th className="num">Change</th><th>Reading now</th></tr></thead>
             <tbody>{moves.map((m) => <tr key={m.s}><td><i style={{ background: COLOR[m.s] }} />{NAME[m.s]}</td><td className="num">{fmt(m.from, m.s === "shortTerm" || m.s === "longTerm")}</td><td className="num">{fmt(m.to, m.s === "shortTerm" || m.s === "longTerm")}</td><td className="num">{fmt(m.delta, true)}</td><td>{readingNow(m.s, m.to)}</td></tr>)}</tbody></table></div>}
         </>)}
-      </ChartZoom>
     </div>);
 }
 

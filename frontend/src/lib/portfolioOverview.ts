@@ -1,4 +1,4 @@
-// My portfolio tabs (Overview, Ratios, Financials): the bulk API's types and hook, and the pure logic behind the table: tab state in the address,
+// Equity portfolio tabs (Overview, Ratios, Financials): the bulk API's types and hook, and the pure logic behind the table: tab state in the address,
 // the columns of each tab for each plan, sorting and filtering values, formatting, summary figures and the CSV. No React here (the table is
 // components/PortfolioTabs.tsx). Information only, not investment advice: scores are descriptive, never a recommendation.
 import { useQuery } from "@tanstack/react-query";

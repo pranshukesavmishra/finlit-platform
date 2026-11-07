@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { CHARTED, WINDOWS, at, chartFor, chartLabel, chartNote, csvText, fmt2, groupsOf, NAME, pc, signedPts, windowIndexes, type ChartModel, type OwnSeries } from "../../lib/ownView";
-import { ChartZoom } from "../../components/ChartZoom";
 
 function download(name: string, text: string) {
   try {
@@ -63,7 +62,6 @@ export function OwnCharts({ series, symbol }: { series: OwnSeries; symbol: strin
   );
   return (
     <section className="ow-card ow-mt" id="own-history" aria-labelledby="ow-trend">
-      <ChartZoom label="How the shareholding pattern changed" className="cz-r">
       <div className="ow-sec-h ow-center-v">
         <div>
           <h3 id="ow-trend" className="ow-h2">How the shareholding pattern changed</h3>
@@ -73,8 +71,7 @@ export function OwnCharts({ series, symbol }: { series: OwnSeries; symbol: strin
           {WINDOWS.map((o) => <button key={o.w} type="button" aria-pressed={o.w === w} disabled={!enabled.includes(o)} onClick={() => setW(o.w)}>{o.label}</button>)}
         </div>
       </div>
-      <div className="ow-panels" data-chart>{models.map((m) => <Panel key={`${m.key}-${win}`} m={m} />)}</div>
-      </ChartZoom>
+      <div className="ow-panels">{models.map((m) => <Panel key={`${m.key}-${win}`} m={m} />)}</div>
       <div className="ow-foot-row">
         <span className="ow-small ow-muted">{chartNote(series)} Hover, tap or use the arrow keys on a chart for a quarter.</span>
         <span className="ow-actions">

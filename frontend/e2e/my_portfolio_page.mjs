@@ -1,6 +1,6 @@
-// My portfolio page in a real browser with the API answered from the pack samples (src/portfolio/__fixtures__).
+// Equity portfolio page in a real browser with the API answered from the pack samples (src/portfolio/__fixtures__).
 //   npx vite --port 5199 &   node e2e/my_portfolio_page.mjs sample_12 gold 1440 light   (sample_12|sample_40, silver|gold, width, light|dark)
-// Real-browser check of the My portfolio page with the API answered from the pack's stored samples.
+// Real-browser check of the Equity portfolio page with the API answered from the pack's stored samples.
 // usage: node shoot.mjs <sample_12|sample_40> <silver|gold> <w> <light|dark> <outname> [action]
 import { chromium } from "playwright";
 import fs from "node:fs";
@@ -40,7 +40,7 @@ const p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.pu
 let fails = 0; const check = (n, ok, x = "") => { if (!ok) fails++; console.log((ok ? "PASS " : "FAIL ") + n + (x ? " — " + String(x).slice(0, 140) : "")); };
 await p.goto("http://127.0.0.1:5199/holdings", { waitUntil: "networkidle" }); await p.waitForTimeout(900);
 const long = D.page.layout === "long";
-check("page title and h1", (await p.locator("h1").innerText()) === "My portfolio");
+check("page title and h1", (await p.locator("h1").innerText()) === "Equity portfolio");
 check("summary shows the pack's score", (await p.locator(".pfx-sum").innerText()).includes(String(D.page.score.score)));
 const eqText = await p.locator("#pfx-wtm").locator("xpath=..").innerText();
 await p.getByRole("button", { name: /company value/ }).first().click(); await p.waitForTimeout(300);

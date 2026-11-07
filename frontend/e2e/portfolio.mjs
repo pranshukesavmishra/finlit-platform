@@ -1,4 +1,4 @@
-// My portfolio: add shares by name (ticker, company name, BSE code, pasted list, CSV), see each one's FinLit score, no quantities or prices asked.
+// Equity portfolio: add shares by name (ticker, company name, BSE code, pasted list, CSV), see each one's FinLit score, no quantities or prices asked.
 //   PM_PASSWORD=... node e2e/portfolio.mjs http://localhost:4173   (needs member pm-silver@example.com)
 import { chromium } from "playwright";
 import fs from "node:fs";

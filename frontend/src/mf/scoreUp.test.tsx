@@ -128,6 +128,22 @@ describe("screener", () => {
   });
   const setup = () => { st.routes["/api/mf/score-screener/facets"] = { locked: false, categories: [{ sub: "large-cap", label: "Large Cap", group: "EQ-LARGE", n: { Direct: 40, Regular: 40 } }], runDate: "2026-10-23" };
     st.routes["/api/mf/score-screener?"] = { locked: false, total: 120, runDate: "2026-10-23", items: [item(1), item(2), item(3, { final: null, label: null, ter: null })] }; };
+  it("puts the overall score and the four parts in one panel, with Reset and Apply filters", async () => {
+    setup(); wrap(<FundScoreScreenerPage />, "/fund-score-screener?perf_min=60");
+    await screen.findByText("Fund 1");
+    expect(document.querySelector("[data-fgx=parts]")).toBeNull();
+    const panel = document.querySelector("[data-fgx=score]") as HTMLElement;
+    expect(panel.querySelector(".fgx-hb")!.textContent).toMatch(/Score & analytics filters.*1 active/);
+    for (const t of ["Overall Health Score", "Score Breakdown Filters"]) expect(within(panel).getByText(t)).toBeTruthy();
+    for (const g of ["Total Score", "Performance", "Risk", "Cost", "Quality"]) expect(within(panel).getByRole("group", { name: `${g}, exact range` })).toBeTruthy();
+    expect((within(panel).getByRole("button", { name: "Apply filters" }) as HTMLButtonElement).disabled).toBe(true);
+    const q = within(panel).getByRole("group", { name: "Quality, exact range" });
+    fireEvent.click(within(q).getByRole("checkbox")); fireEvent.change(within(q).getByLabelText("Min"), { target: { value: "50" } });
+    fireEvent.click(within(panel).getByRole("button", { name: "Apply filters" }));
+    expect(screen.getByTestId("loc").textContent).toMatch(/perf_min=60/); expect(screen.getByTestId("loc").textContent).toMatch(/quality_min=50/);
+    fireEvent.click(within(panel).getByRole("button", { name: "Reset" }));
+    expect(screen.getByTestId("loc").textContent).not.toMatch(/perf_min|quality_min/);
+  });
   it("lists funds, filters through the address, pages, and offers CSV and compare", async () => {
     setup(); wrap(<FundScoreScreenerPage />);
     expect(await screen.findByText("Fund 1")).toBeTruthy();
@@ -136,9 +152,11 @@ describe("screener", () => {
     fireEvent.click(screen.getByRole("button", { name: "Strong" }));
     expect(screen.getByTestId("loc").textContent).toContain("labels=Strong");
     fireEvent.click(document.querySelector("[data-fgx=score] .fgx-hb")!);
-    const sg = screen.getByRole("group", { name: "Score, exact range" });
+    const sg = screen.getByRole("group", { name: "Total Score, exact range" });
     fireEvent.click(within(sg).getByRole("checkbox"));
     fireEvent.change(within(sg).getByLabelText("Min"), { target: { value: "60" } });
+    expect(screen.getByTestId("loc").textContent).not.toContain("min=60");   // a draft until Apply
+    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
     expect(screen.getByTestId("loc").textContent).toContain("min=60");
     expect(screen.getByText("Score 60 to ∞")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /High Risk part/ }));
@@ -156,7 +174,7 @@ describe("screener", () => {
   it("groups the filters: collapse, active badge, Min and Max enabled by the tick, same address as before", async () => {
     setup(); wrap(<FundScoreScreenerPage />, "/fund-score-screener?labels=Strong&cost_min=70&plan=Regular&sub=large-cap&full=1");
     await screen.findByText("Fund 1");
-    const ids: Record<string, string> = { "Fund label": "label", "Component scores": "parts", Plan: "plan", Category: "category", Status: "status" };
+    const ids: Record<string, string> = { "Fund label": "label", "Component scores": "score", Plan: "plan", Category: "category", Status: "status" };
     const head = (t: string) => document.querySelector(`[data-fgx=${ids[t]}] .fgx-hb`) as HTMLButtonElement;
     expect(head("Fund label").textContent).toMatch(/1 active/);
     expect(head("Component scores").textContent).toMatch(/1 active/);
@@ -174,9 +192,11 @@ describe("screener", () => {
     fireEvent.click(box);
     expect((within(risk).getByLabelText("Min") as HTMLInputElement).disabled).toBe(false);
     fireEvent.change(within(risk).getByLabelText("Max"), { target: { value: "90" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
     const loc = screen.getByTestId("loc").textContent!;
     expect(loc).toContain("risk_max=90"); expect(loc).toContain("cost_min=70"); expect(loc).toContain("plan=Regular"); expect(loc).toContain("sub=large-cap"); expect(loc).toContain("full=1"); expect(loc).toContain("labels=Strong");
     fireEvent.click(box);
+    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
     expect(screen.getByTestId("loc").textContent).not.toContain("risk_max");
     expect(screen.getByRole("button", { name: /Active filters: 5/ })).toBeTruthy();
     fireEvent.click(screen.getByLabelText("Only funds with full data"));

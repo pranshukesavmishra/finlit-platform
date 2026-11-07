@@ -7,7 +7,6 @@ import { MINUS } from "../lib/format";
 import { useUI } from "../lib/ui";
 import { basisNote, fmtCr, fmtPct, isLenderLike, revenueCash, type Basis, type RevenueCash as Model, type Severity, type Status, type Warning, type Year } from "../lib/revenueCash";
 import "../styles/revenue-cash.css";
-import { ChartZoom } from "../components/ChartZoom";
 
 export const DISCLAIMER = "Describes cash conversion from the company's filings; not a recommendation. Information only, not investment advice.";
 const SEV_MARK: Record<Severity, string> = { Critical: "■", High: "◆", Moderate: "◇", Positive: "●" };
@@ -193,7 +192,6 @@ export function Trend({ years }: { years: Year[] }) {
   const act = on != null ? years[on] : null;
   const aria = "Revenue growth and operating cash flow margin by financial year: " + years.map((yr) => `${yr.period} revenue growth ${fmtPct(yr.revenueGrowth, 1, true)}, OCF margin ${fmtPct(yr.ocfMargin)}`).join("; ") + ".";
   return (
-    <ChartZoom label={"Revenue growth and operating cash flow margin"}>
     <div className="rcx-chart" ref={ref}>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="group" aria-label={aria}>
         {ticks.map((t) => <g key={t}><line className={t === 0 ? "rcx-zero" : "rcx-gl"} x1={ml} x2={ml + pw} y1={y(t)} y2={y(t)} /><text className="rcx-ax" x={ml - 8} y={y(t) + 4} textAnchor="end">{t === 0 ? "0%" : fmtPct(t, Math.abs(t) < 10 && t % 1 !== 0 ? 1 : 0)}</text></g>)}
@@ -234,6 +232,5 @@ export function Trend({ years }: { years: Year[] }) {
           <tbody>{years.map((yr) => <tr key={yr.period}><th scope="row">{yr.period}</th><td>{fmtPct(yr.revenueGrowth, 1, true)}</td><td>{fmtPct(yr.ocfMargin)}</td><td>{fmtCr(yr.revenue)}</td><td>{fmtCr(yr.ocf)}</td></tr>)}</tbody></table></div>
       )}
     </div>
-    </ChartZoom>
   );
 }

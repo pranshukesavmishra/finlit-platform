@@ -10,7 +10,6 @@ import { dateIN, MINUS, nf, signed } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import { Link } from "react-router";
 import { ChartHelp } from "../components/ChartHelp";
-import { ChartZoom } from "../components/ChartZoom";
 
 const inr = (n: number) => (n < 0 ? MINUS : "") + "₹" + nf(Math.abs(n), 0);
 
@@ -28,12 +27,12 @@ function CumulativeLine({ data }: { data: PortfolioReport["charts"]["cumulativeR
     [0, Math.floor(n / 2), n - 1].forEach((i, k) => el("text", { x: x(i), y: H - 6, fill: css("--faint"), "font-size": 11, "text-anchor": k === 0 ? "start" : k === 2 ? "end" : "middle", "font-family": "IBM Plex Mono, monospace" }, s).textContent = dateIN(data[i].date, { day: "numeric", month: "short" }));
     el("circle", { cx: x(n - 1), cy: y(v[n - 1]), r: 5, fill: css("--gold"), stroke: css("--s1"), "stroke-width": 2 }, s);
   }, [data]);
-  return <ChartZoom label="Cumulative realised P&L"><div className="chart-box" ref={wrap}><svg ref={svg} role="img" aria-label="Cumulative realised profit over the period" /></div></ChartZoom>;
+  return <div className="chart-box" ref={wrap}><svg ref={svg} role="img" aria-label="Cumulative realised profit over the period" /></div>;
 }
 
-function HBars({ rows, color, label }: { rows: { label: string; value: number }[]; color?: boolean; label: string }) {
+function HBars({ rows, color }: { rows: { label: string; value: number }[]; color?: boolean }) {
   const max = Math.max(...rows.map((r) => Math.abs(r.value)), 1);
-  return <ChartZoom label={label} className="cz-top"><div data-chart>{rows.map((r) => <div className="hbar" key={r.label} style={{ "--bc": r.value >= 0 ? "var(--gain)" : "var(--loss)" } as React.CSSProperties}><span>{r.label}</span><span className="tr"><b style={{ width: `${(Math.abs(r.value) / max) * 100}%`, background: color ? undefined : "var(--bc)" }} /></span><span className="num">{color === false ? r.value : inr(r.value)}</span></div>)}</div></ChartZoom>;
+  return <div>{rows.map((r) => <div className="hbar" key={r.label} style={{ "--bc": r.value >= 0 ? "var(--gain)" : "var(--loss)" } as React.CSSProperties}><span>{r.label}</span><span className="tr"><b style={{ width: `${(Math.abs(r.value) / max) * 100}%`, background: color ? undefined : "var(--bc)" }} /></span><span className="num">{color === false ? r.value : inr(r.value)}</span></div>)}</div>;
 }
 
 export function Portfolio() {
@@ -53,10 +52,10 @@ export function Portfolio() {
         <Reveal delay={60}><div className="kpis-p" style={{ marginTop: 14 }}>{[["Trades", String(data.summary.tradeCount)], ["Win rate", ((data.summary.winningTrades / data.summary.tradeCount) * 100).toFixed(1) + "%"], ["Winners / losers", `${data.summary.winningTrades} / ${data.summary.losingTrades}`], ["Charges", data.charges.totalFormatted]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}</div></Reveal>
         <Reveal><div className="card acc" style={{ marginTop: 16 }}><div className="card-h"><h3>Cumulative realised P&L<ChartHelp id="pf-cumulative" /></h3><span className="s">Gross, ₹</span></div><CumulativeLine data={c.cumulativeRealizedPnl} /></div></Reveal>
         <div className="grid g2" style={{ marginTop: 16 }}>
-          <Reveal><div className="card acc"><div className="card-h"><h3>Monthly realised P&L<ChartHelp id="pf-monthly" /></h3></div><HBars label="Monthly realised P&L" rows={c.monthlyRealizedPnl.map((m) => ({ label: m.month, value: m.realizedPnl }))} /></div></Reveal>
-          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Top contributors<ChartHelp id="pf-contrib" /></h3><span className="s">By stock</span></div><HBars label="Top contributors" rows={c.pnlAttribution.map((m) => ({ label: m.stock, value: m.realizedPnl }))} /></div></Reveal>
-          <Reveal><div className="card acc"><div className="card-h"><h3>Trade outcomes<ChartHelp id="pf-outcomes" /></h3></div><HBars label="Trade outcomes" color={false} rows={c.outcomes.map((o) => ({ label: o.outcome, value: o.trades }))} /></div></Reveal>
-          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Holding period<ChartHelp id="pf-holding" /></h3><span className="s">Trades</span></div><HBars label="Holding period" color={false} rows={c.holdingPeriodDistribution.map((o) => ({ label: o.bucket, value: o.trades }))} /></div></Reveal>
+          <Reveal><div className="card acc"><div className="card-h"><h3>Monthly realised P&L<ChartHelp id="pf-monthly" /></h3></div><HBars rows={c.monthlyRealizedPnl.map((m) => ({ label: m.month, value: m.realizedPnl }))} /></div></Reveal>
+          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Top contributors<ChartHelp id="pf-contrib" /></h3><span className="s">By stock</span></div><HBars rows={c.pnlAttribution.map((m) => ({ label: m.stock, value: m.realizedPnl }))} /></div></Reveal>
+          <Reveal><div className="card acc"><div className="card-h"><h3>Trade outcomes<ChartHelp id="pf-outcomes" /></h3></div><HBars color={false} rows={c.outcomes.map((o) => ({ label: o.outcome, value: o.trades }))} /></div></Reveal>
+          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Holding period<ChartHelp id="pf-holding" /></h3><span className="s">Trades</span></div><HBars color={false} rows={c.holdingPeriodDistribution.map((o) => ({ label: o.bucket, value: o.trades }))} /></div></Reveal>
         </div>
         <Reveal><div className="card acc" style={{ marginTop: 16 }}><div className="card-h"><h3>Charges breakdown<ChartHelp id="pf-charges" /></h3><span className="s">Total {data.charges.totalFormatted}</span></div>
           <div className="kpis-p">{Object.entries(data.charges.breakdown).map(([k, v]) => <div className="kp" key={k}><div className="k">{k.replace(/([A-Z])/g, " $1").trim()}</div><div className="v" style={{ fontSize: 20 }}>₹{nf(v)}</div></div>)}</div></div></Reveal>

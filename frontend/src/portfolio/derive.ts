@@ -1,4 +1,4 @@
-// Pure helpers behind the My portfolio page: number text, sector colours, the readings picked for a section, the treemap layout, the sentences that are only
+// Pure helpers behind the Equity portfolio page: number text, sector colours, the readings picked for a section, the treemap layout, the sentences that are only
 // a count or a range of the page's own figures. No React here. Information only, not investment advice.
 import { ordinal } from "../components/diversification/wording";
 import type { Meta, Mode, PageObject, Reading, SizeCode } from "./types";

@@ -74,7 +74,7 @@ Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` a
 - Dashboard widgets: results dates, news for my stocks, open and upcoming IPOs.
 
 ## Portfolio, saved-screen alerts and the weekly email
-- **My portfolio** (`/holdings`, Silver 30 holdings / Gold 500): add, edit, import (paste or CSV) and export holdings; value, profit and loss, today's move, a value-weighted FinLit IQ, allocation by stock, sector and band, a health read (single-stock, sector and Watch-band concentration) and a per-stock table with signals. Saved to the account (`PUT /api/me/portfolio`, validated and plan-limited on the server).
+- **Equity portfolio** (`/holdings`, Silver 30 holdings / Gold 500): add, edit, import (paste or CSV) and export holdings; value, profit and loss, today's move, a value-weighted FinLit IQ, allocation by stock, sector and band, a health read (single-stock, sector and Watch-band concentration) and a per-stock table with signals. Saved to the account (`PUT /api/me/portfolio`, validated and plan-limited on the server).
 - **Saved-screen alerts:** `python -m finlit.worker check-screens` (daily on weekdays). Emails only companies that *newly* match a saved screen; the first check just remembers what matches. The filter rules mirror the website screener; model filters are never evaluated for Basic members.
 - **Weekly "week ahead" email:** `python -m finlit.worker send-digest` (Sunday evening), opt-in per member, at most one per ISO week.
 

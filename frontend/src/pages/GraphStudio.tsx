@@ -18,7 +18,6 @@ import { Icon } from "../lib/icons";
 import { useUI, useThemeKey } from "../lib/ui";
 import { useDocTitle } from "../lib/title";
 import { Candles, Heat, HBars, Pie, Scatter, TimeChart, useWidth, type Colors, type PS } from "../components/GraphCharts";
-import { ZoomGlyph } from "../components/ChartZoom";
 import { alignSeries, changes, corrMatrix, csvRow, pearson, rebase, RANGES, strength, windowPts } from "../lib/graphData";
 import { BY_ID, extract, GROUPS, IDX, indexCode, isIndexSym, metricFor, metricsIn, unsupportedWhy, UNITS, type Bundle, type Extracted, type Metric, type UnitId } from "../lib/graphMetrics";
 import { graphLimits, chartTier, type ChartKind } from "../lib/graphLimits";
@@ -148,7 +147,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, onRe
         <select aria-label={`Chart ${i + 1} type`} value={cell.chart} onChange={(e) => { const v = e.target.value as ChartKind; if (!lim.charts.includes(v)) upgrade(chartTier(v), `The ${CHART_LABEL[v]} chart`); else asSet({ chart: v }); }}>
           {CHARTS.map((k) => { const r = chartCheck(k, facts, plan); return <option key={k} value={k} disabled={!r.ok && k !== cell.chart && !!r.why && r.why !== "Not in your plan"}>{CHART_LABEL[k]}{!r.ok && r.why ? ` — ${r.why}` : ""}</option>; })}
         </select>
-        <button className="gx-x gx-zoom" aria-label={zoomed ? `Restore chart ${i + 1}` : `Enlarge chart ${i + 1}`} aria-pressed={zoomed} title={zoomed ? "Back to the grid (Esc)" : "Enlarge this chart"} onClick={(e) => { e.stopPropagation(); onZoom(); }}><ZoomGlyph zoomed={zoomed} /></button>
+        <button className="gx-x gx-zoom" aria-label={zoomed ? `Restore chart ${i + 1}` : `Enlarge chart ${i + 1}`} aria-pressed={zoomed} title={zoomed ? "Back to the grid (Esc)" : "Enlarge this chart"} onClick={(e) => { e.stopPropagation(); onZoom(); }}><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{zoomed ? <path d="M6 2v4H2M10 14v-4h4M6 6 2 2M10 10l4 4" /> : <path d="M10 2h4v4M6 14H2v-4M14 2 9.5 6.5M2 14l4.5-4.5" />}</svg></button>
         <button className="gx-x" aria-label={`Remove chart ${i + 1}`} title="Remove this chart" onClick={(e) => { e.stopPropagation(); onRemove(); }}>×</button></header>
       <div className="gx-legend">{rs.map((r, n) => <span key={r.sp.s + r.sp.m} className="gx-chip"><i style={{ background: r.color }} />{r.label} <small>{UNITS[r.mt.unit].label}</small>
         {cell.chart === "combo" && r.mt.grain !== "price" && <button className="gx-mini" title="Switch between bars and line" onClick={() => onChange({ ...cell, series: cell.series.map((s, m) => (m === n ? { ...s, as: (s.as ?? (n === 0 ? "bar" : "line")) === "bar" ? "line" : "bar" } : s)) })}>{(r.sp.as ?? (n === 0 ? "bar" : "line")) === "bar" ? "bars" : "line"}</button>}

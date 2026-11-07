@@ -1,4 +1,4 @@
-// The fixed words of the My portfolio page. Every sentence about the user's list comes from the server's readings (never from here); this file holds only labels,
+// The fixed words of the Equity portfolio page. Every sentence about the user's list comes from the server's readings (never from here); this file holds only labels,
 // method notes and the FAQ. One test (portfolio/wording.test.tsx) scans these and every sentence on the rendered page for advice wording.
 import type { Mode } from "./types";
 

@@ -1,7 +1,6 @@
 import { dateText, pct, readingsFor, sectorOrder, signedPct1 } from "./derive";
 import { MODE_NOTE, NIFTY_NOTE } from "./words";
 import type { Mode, PageObject } from "./types";
-import { ChartZoom } from "../components/ChartZoom";
 
 const secName = (s: string) => s.replace(/ \(not classified\)$/, "");
 
@@ -28,14 +27,12 @@ export function RiskShare({ page, mode, colors }: { page: PageObject; mode: Mode
   const max = Math.max(1, ...xs.map((s) => Math.max(rs[s], ws[s] ?? 0)));
   return (
     <section className="pfx-card pfx-wide" id="pf-risk" aria-labelledby="pfx-rk">
-      <ChartZoom label={"Share of the risk, share by share"} className="cz-r">
       <div className="pfx-h"><h2 id="pfx-rk">Share of the risk, share by share</h2><p className="pfx-note">{MODE_NOTE[mode]}</p></div>
       <p className="pfx-legend"><span><i className="risk" />Share of the ups and downs (risk)</span><span><i className="line" />Share of the amount</span><span className="pfx-note">A bar above its line carries more risk than its amount.</span></p>
       <div className="pfx-vbars" role="img" aria-label="Each share's share of the risk against its share of the amount">{xs.map((s) => (
         <span key={s} title={`${s}: ${pct(rs[s])} of the risk, ${pct(ws[s] ?? 0)} of the amount`}>
           <span className="col"><i style={{ height: `${(rs[s] / max) * 100}%` }} /><em className="v" style={{ bottom: `${(rs[s] / max) * 100}%` }}>{rs[s].toFixed(1)}</em><u style={{ bottom: `${((ws[s] ?? 0) / max) * 100}%` }} /></span><em className="n">{s}</em></span>))}</div>
       <p className="pfx-line">{text}</p>
-      </ChartZoom>
     </section>
   );
 }

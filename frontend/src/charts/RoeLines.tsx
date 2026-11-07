@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { labelEvery } from "../lib/chartAxis";
-import { ChartZoom } from "../components/ChartZoom";
 
 /** Width of the element in px (a default before it is measured, and where ResizeObserver does not exist). */
 export function useWidth(initial = 600) {
@@ -39,7 +38,6 @@ export function RoeLines({ labels, series, fmt, flags, notes, height = 230, aria
   const every = labelEvery(n, W - pl - pr, Math.max(...labels.map((l) => l.length), 1));
   const runs = (s: LineSeries) => { const out: [number, number][][] = []; let cur: [number, number][] = []; s.values.forEach((v, i) => { if (v == null) { if (cur.length) out.push(cur); cur = []; } else cur.push([X(i), Y(v)]); }); if (cur.length) out.push(cur); return out; };
   return (
-    <ChartZoom label={"Return on equity by year"}>
     <div className="mb dp-chart" ref={wrap} onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={ariaLabel}>
         {ticks.map((t) => <g key={t}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.4 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(t)}</text></g>)}
@@ -66,6 +64,5 @@ export function RoeLines({ labels, series, fmt, flags, notes, height = 230, aria
           {notes?.[hv] && <small className="faint">{notes[hv]}</small>}
         </div>)}
     </div>
-    </ChartZoom>
   );
 }

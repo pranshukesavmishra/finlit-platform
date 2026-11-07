@@ -1,11 +1,11 @@
-"""POST /api/portfolio/page: the figures behind the new My portfolio page (docs/PORTFOLIO-PAGE.md).
+"""POST /api/portfolio/page: the figures behind the new Equity portfolio page (docs/PORTFOLIO-PAGE.md).
 
 The body carries share names only (extra='forbid': quantity, amount, price, date or any other field gives a 422). The answer is the handover pack's
 page object (metrics.build_page: score, co-movement grid, groups, share of risk, NIFTY 50 measures, readings and summary) worked out from the stored
 adjusted weekly closes of the last 105 complete weeks and the NIFTY 50 closes on the same weeks, plus each share's name, sector, size band and market
 value. It is kept in Redis by sorted names + the unfinished week, so it is recomputed when the list changes or a new week completes.
 
-Plans: Silver and Gold (Basic is refused with 403 plan_required, as the other My portfolio tools). The style tilt is built from FinLit Prism ratings and
+Plans: Silver and Gold (Basic is refused with 403 plan_required, as the other Equity portfolio tools). The style tilt is built from FinLit Prism ratings and
 goes to Gold only, exactly as on the Diversification card; Silver gets a locked block with the reason. Price, today's change and the score columns come
 from POST /api/portfolio/overview (they are live and plan specific), not from here.
 Information only, not investment advice.
@@ -59,7 +59,7 @@ class PageIn(BaseModel):
 
 async def member_ctx(request: Request, ctx: Ctx = Depends(secure_ctx)) -> Ctx:
     if ctx.role != "admin" and not has(ctx.plan, "silver"):
-        raise fail(403, "plan_required", "My portfolio is part of the Silver plan.", plan="silver")
+        raise fail(403, "plan_required", "Equity portfolio is part of the Silver plan.", plan="silver")
     return ctx
 
 

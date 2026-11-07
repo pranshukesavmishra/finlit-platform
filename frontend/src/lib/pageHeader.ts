@@ -9,7 +9,7 @@ const SHORT: Record<string, string> = {
   "/premium/report": "Premium Reports", "/eps-calculator": "EPS Calculator", "/dcf": "DCF Calculator", "/sip-calculator": "SIP Calculator",
   "/graphs": "Chart Builder", "/graphs/advanced": "Correlation Charts", "/fii-dii": "FII & DII", "/macro": "India Economy", "/commodities": "Commodities",
   "/results": "Results Calendar", "/results/quarter": "Latest Results", "/ipo": "IPO Calendar", "/news": "News & Filings",
-  "/funds/screener": "MF Screener", "/funds": "Mutual Funds", "/etfs": "ETFs", "/holdings": "My Portfolio", "/mf-portfolio": "MF Portfolio", "/watchlist": "Watchlists",
+  "/funds/screener": "MF Screener", "/funds": "Mutual Funds", "/etfs": "ETFs", "/holdings": "Equity Portfolio", "/mf-portfolio": "MF Portfolio", "/watchlist": "Watchlists",
 };
 /** Pages that exist but are not in the menus. */
 const EXTRA: Record<string, string> = {

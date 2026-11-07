@@ -183,7 +183,7 @@ main#main { min-height: 90vh; }
 /* the pinned company column keeps a solid background on hover, so numbers scrolled under it never show through */
 .scr-t tbody tr:hover .stick { background: color-mix(in srgb, var(--gold) 7%, var(--s1)); }
 
-/* My portfolio: add shares by name */
+/* Equity portfolio: add shares by name */
 .pf-add { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.4fr); gap: 18px; align-items: start; margin-top: 12px; }
 .pf-one { display: flex; gap: 10px; } .pf-one input { flex: 1; min-width: 0; }
 .pf-bulk { display: grid; gap: 10px; }

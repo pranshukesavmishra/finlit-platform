@@ -1,5 +1,5 @@
-/* Shared round tool badge (components/ToolIcon.tsx). Dark theme: navy disc, white strokes. Light theme: ivory disc, navy strokes. One gold accent in both. */
-.ti { --ti-disc: #12263f; --ti-ink: #f8f6f1; --ti-accent: #e2bd6b; --ti-ring: #4f74b8; --ti-glow: transparent; display: inline-grid; place-items: center; flex: none; border-radius: 50%; background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--ti-disc) 82%, #fff), var(--ti-disc)); color: var(--ti-ink); border: 2px solid var(--ti-ring); box-shadow: 0 0 14px var(--ti-glow); }
+/* Shared round tool badge (components/ToolIcon.tsx). Dark theme: the site's own dark surface for the disc, white strokes. Light theme: ivory disc, navy strokes. One gold accent in both. */
+.ti { --ti-disc: var(--s2, #171c19); --ti-ink: #f8f6f1; --ti-accent: #e2bd6b; --ti-ring: #4f74b8; --ti-glow: transparent; display: inline-grid; place-items: center; flex: none; border-radius: 50%; background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--ti-disc) 82%, #fff), var(--ti-disc)); color: var(--ti-ink); border: 2px solid var(--ti-ring); box-shadow: 0 0 14px var(--ti-glow); }
 :root[data-theme="light"] .ti { --ti-disc: #f5f3ed; --ti-ink: #0b192c; --ti-accent: #9a6b00; --ti-ring: #2f5fb3; background: var(--ti-disc); }
 .ti-gold { --ti-ring: #d9a93f; --ti-glow: rgba(226, 189, 107, .38); }
 .ti-silver { --ti-ring: #aeb8c6; --ti-glow: rgba(174, 184, 198, .18); }

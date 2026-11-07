@@ -14,22 +14,29 @@ await p.locator(".nt-btn").click();
 check("bell panel lists the RSI alert", /RSI \(14\) is now 29\.4, below your target of 30/.test(await p.locator(".nt-p").innerText()));
 await p.keyboard.press("Escape");
 
-// create an alert through the form
+// create an alert through the form (in the side drawer)
+await p.locator(".alx-new-btn").click(); await p.waitForTimeout(200);
+check("drawer opens from the header button", (await p.locator(".alx-drawer #alx-stock").count()) === 1);
 await p.locator("#alx-stock").fill("RELI"); await p.waitForTimeout(300);
 await p.locator(".alx-dd button").first().click();
 await p.locator("#alx-metric").selectOption("pe"); await p.locator("#alx-op").selectOption("below"); await p.locator("#alx-val").fill("5");
 check("preview sentence reads back the rule", /P\/E falls to or below 5/.test(await p.locator(".alx-sentence").innerText()));
-await p.getByRole("button", { name: /Create alert/ }).click(); await p.waitForTimeout(300);
+await p.locator(".alx-drawer").getByRole("button", { name: /Create alert/ }).click(); await p.waitForTimeout(300);
 check("create: saved message", await p.locator(".alx-ok").count() === 1);
 check("create: list grows to 5", (await p.locator(".alx-c").count()) === 5);
-await p.getByRole("button", { name: /Create alert/ }).click(); await p.waitForTimeout(200);
+await p.waitForTimeout(1800); check("drawer closes after saving", (await p.locator(".alx-drawer").count()) === 0);
+await p.locator(".alx-new-btn").click(); await p.waitForTimeout(200);
+await p.locator("#alx-stock").fill("RELI"); await p.waitForTimeout(300); await p.locator(".alx-dd button").first().click();
+await p.locator("#alx-metric").selectOption("pe"); await p.locator("#alx-op").selectOption("below"); await p.locator("#alx-val").fill("5");
+await p.locator(".alx-drawer").getByRole("button", { name: /Create alert/ }).click(); await p.waitForTimeout(200);
 check("duplicate is refused", /already have this alert/.test(await p.locator(".alx-warn").innerText()));
+await p.keyboard.press("Escape"); check("drawer closes on Escape", (await p.locator(".alx-drawer").count()) === 0);
 
 // fire everything
 await p.getByRole("button", { name: "Make my alerts fire" }).click(); await p.waitForTimeout(500);
 check("toast pops: Alert triggered / View stock", (await p.locator(".alx-toast").count()) >= 1 && /View stock/.test(await p.locator(".alx-toast").first().innerText()));
 check("bell count grew", Number(await p.locator(".nt-n").innerText().then((t) => t.replace("+", ""))) > 1);
-await p.getByRole("tab", { name: /Triggered/ }).click();
+await p.getByRole("tab", { name: /History/ }).click();
 check("history lists notices", (await p.locator(".alx-hist li").count()) >= 3);
 await p.getByRole("button", { name: "Mark all read" }).first().click(); await p.waitForTimeout(200);
 check("mark all read clears the badge", (await p.locator(".nt-n").count()) === 0);
@@ -49,9 +56,10 @@ check("no page errors (gold)", p.errs.length === 0, p.errs.join("|"));
 // Basic: silver metrics are locked, basic ones work, limit of 3
 p = await mk("basic");
 await p.goto(base + "/alerts", { waitUntil: "networkidle" }); await p.waitForTimeout(500);
+await p.locator(".alx-new-btn").click(); await p.waitForTimeout(200);
 await p.locator("#alx-stock").fill("RELI"); await p.waitForTimeout(300); await p.locator(".alx-dd button").first().click();
 await p.locator("#alx-metric").selectOption("overall");
-check("basic: Silver metric shows the lock message and disables create", (await p.locator(".alx-warn").count()) === 1 && await p.getByRole("button", { name: /Create alert/ }).isDisabled());
+check("basic: Silver metric shows the lock message and disables create", (await p.locator(".alx-warn").count()) === 1 && await p.locator(".alx-drawer").getByRole("button", { name: /Create alert/ }).isDisabled());
 await p.close();
 
 // phone width: no sideways scroll

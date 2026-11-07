@@ -10,7 +10,6 @@ import { ChartHelp } from "../components/ChartHelp";
 import { ScoreMovesCard } from "./ScoreMoves";
 import { SegmentHistory } from "./SegmentMix";
 import { OTHERS_COLOR, segmentColors, segmentNames } from "../lib/segmentMix";
-import { ChartZoom } from "../components/ChartZoom";
 
 const v = (n: string) => `var(${n})`;
 
@@ -94,12 +93,10 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
       <div className="div3">
         <div className="card acc" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
           <div className="card-h"><h3><span className="ci"><Icon name="bars" /></span>Dividend per share<ChartHelp id="div-dps" /></h3><span className="s">₹ per financial year</span></div>
-          <ChartZoom label="Dividend per share by year" className="cz-top">
-          <div className="dbars" data-chart style={{ "--avg": `${(avg / max) * 150}px` } as React.CSSProperties}>
+          <div className="dbars" style={{ "--avg": `${(avg / max) * 150}px` } as React.CSSProperties}>
             {fy.periods.map((p, i) => { const prv = fy.dps[i - 1], g = i && prv ? ((fy.dps[i] - prv) / prv) * 100 : null; return <div className="dcol" key={p}>{g != null && <b className={"yoy " + (g >= 0 ? "up" : "down")}>{g >= 0 ? "▲" : "▼"}{nf(Math.abs(g), 0)}%</b>}<span>₹{nf(fy.dps[i], 2)}</span><i style={{ height: Math.max(6, (fy.dps[i] / max) * 150), animationDelay: `${i * 90}ms` }} /><em>{p}</em></div>; })}
             <u className="avgline"><b>average</b></u>
           </div>
-          </ChartZoom>
           <p className="faint" style={{ fontSize: 12, margin: "14px 0 0" }}>{fy.basis}.</p>
         </div>
         <div className="card acc" style={{ "--ac": "var(--c2)" } as React.CSSProperties}>

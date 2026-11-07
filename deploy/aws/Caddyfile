@@ -33,3 +33,6 @@
 		header_up X-Real-IP {remote_host}
 	}
 }
+
+# Extra sites on this server (e.g. the team workspace). Empty folder = nothing changes.
+import /etc/caddy/extra/*.caddy

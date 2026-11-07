@@ -1,6 +1,6 @@
 // /fund-score-screener (Gold): every scored fund with the FinLit Mutual Fund Health Score, its four parts and the facts beside them; filters, quick views,
 // sorting, CSV, compare tick-boxes, and a category leaderboard tab. Plans below Gold get the upgrade page and no request is made for any score.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Gate } from "../components/Gate";
 import { Icon } from "../lib/icons";
@@ -58,6 +58,38 @@ const SORTS: [string, "asc" | "desc", string][] = [["final", "desc", "Score (hig
   ["aum", "desc", "AUM (high to low)"], ["age", "desc", "Age (old to young)"], ["ter", "asc", "Expense % (low to high)"], ["r1y", "desc", "1Y return (high to low)"], ["r3y", "desc", "3Y return (high to low)"], ["r5y", "desc", "5Y return (high to low)"]];
 const nz = (...v: string[]) => (v.some(Boolean) ? 1 : 0);
 const PARTS = ["perf", "risk", "cost", "quality"] as const;
+const PART_ROWS: [typeof PARTS[number], string, string][] = [["perf", "Performance", "bars"], ["risk", "Risk", "alert"], ["cost", "Cost", "coins"], ["quality", "Quality", "medal"]];
+type ScoreDraft = Pick<SQuery, "min" | "max" | "perf" | "risk" | "cost" | "quality">;
+const scoreDraft = (q: SQuery): ScoreDraft => ({ min: q.min, max: q.max, perf: q.perf, risk: q.risk, cost: q.cost, quality: q.quality });
+const sameDraft = (a: ScoreDraft, b: ScoreDraft) => JSON.stringify(a) === JSON.stringify(b);
+
+/** "Score & analytics filters": the overall score and its four parts in one panel. Typing changes a draft; Apply filters puts it in the address (and the list). */
+function ScorePanel({ q, set }: { q: SQuery; set: (p: Partial<SQuery>) => void }) {
+  const applied = scoreDraft(q), key = JSON.stringify(applied);
+  const [d, setD] = useState<ScoreDraft>(applied);
+  useEffect(() => { setD(JSON.parse(key)); }, [key]);   // a quick view, a removed chip or Clear all changes the address: start from it again
+  const dirty = !sameDraft(d, applied);
+  const active = nz(q.min, q.max) + PARTS.reduce((n, k) => n + nz(q[k][0], q[k][1]), 0);
+  const empty: ScoreDraft = { min: "", max: "", perf: ["", ""], risk: ["", ""], cost: ["", ""], quality: ["", ""] };
+  return (
+    <FilterGroup id="score" title="Score & analytics filters" icon="gauge" active={active} hint={`Filter funds by the overall ${MF_SCORE_NAME} and by each of its four parts.`}>
+      <div className="fss-sec">
+        <h4 className="fss-h"><Icon name="gauge" />Overall Health Score</h4>
+        <RangeRow label="Total Score" group="Total Score, exact range" min={d.min} max={d.max} onChange={(end, v) => setD((o) => ({ ...o, [end]: v }))} />
+      </div>
+      <div className="fss-sec">
+        <h4 className="fss-h"><Icon name="layers" />Score Breakdown Filters</h4>
+        <p className="fss-sub">Filter by each part of the score, on its own.</p>
+        {PART_ROWS.map(([k, name, icon]) => <RangeRow key={k} icon={icon} label={name} min={d[k][0]} max={d[k][1]} onChange={(end, v) => setD((o) => ({ ...o, [k]: end === "min" ? [v, o[k][1]] : [o[k][0], v] }))} />)}
+      </div>
+      <div className="fss-act">
+        <button type="button" className="btn" onClick={() => { setD(empty); if (!sameDraft(applied, empty)) set(empty); }}><Icon name="refresh" />Reset</button>
+        <button type="button" className="btn primary" disabled={!dirty} onClick={() => set(d)}>Apply filters</button>
+      </div>
+      {dirty && <p className="fss-note" role="status">Press Apply filters to update the list.</p>}
+    </FilterGroup>
+  );
+}
 
 function Screener() {
   const [sp, setSp] = useSearchParams();
@@ -88,7 +120,7 @@ function Screener() {
   };
   const clearAll = () => setSp(new URLSearchParams());
   const th = (k: string, label: string, num = true) => <th scope="col" className={num ? "num" : ""} aria-sort={q.sort === k ? (q.dir === "asc" ? "ascending" : "descending") : "none"}><button className="mf-sort" onClick={() => sortBy(k)}>{label}{q.sort === k && <i aria-hidden="true">{q.dir === "asc" ? "▲" : "▼"}</i>}</button></th>;
-  const pair = (k: "perf" | "risk" | "cost" | "quality" | "aum" | "age", name: string) =>
+  const pair = (k: "aum" | "age", name: string) =>
     <RangeRow key={k} label={name} min={q[k][0]} max={q[k][1]} onChange={(end, v) => set({ [k]: end === "min" ? [v, q[k][1]] : [q[k][0], v] })} />;
   const catRows = cats.filter((c) => c.label.toLowerCase().includes(catQ.trim().toLowerCase()));
   const sortVal = `${q.sort}:${q.dir}`;
@@ -147,12 +179,7 @@ function Screener() {
               <FilterGroup id="status" title="Status" active={q.status ? 1 : 0}>
                 <div role="group" aria-label="Status" style={{ display: "grid", gap: 8 }}>{STATUSES.map(([v, l]) => <QuickRow key={v || "any"} label={l} on={q.status === v} onClick={() => set({ status: v })} />)}</div>
               </FilterGroup>
-              <FilterGroup id="score" title="Score filters" active={nz(q.min, q.max)}>
-                <RangeRow label="Score" min={q.min} max={q.max} onChange={(end, v) => set(end === "min" ? { min: v } : { max: v })} />
-              </FilterGroup>
-              <FilterGroup id="parts" title="Component scores" active={PARTS.reduce((n, k) => n + nz(q[k][0], q[k][1]), 0)}>
-                {pair("perf", "Performance")}{pair("risk", "Risk")}{pair("cost", "Cost")}{pair("quality", "Quality")}
-              </FilterGroup>
+              <ScorePanel q={q} set={set} />
               <FilterGroup id="size" title="Size and age" active={nz(...q.aum) + nz(...q.age) + nz(q.terMax)}>
                 {pair("aum", "AUM ₹ Cr")}{pair("age", "Age, years")}
                 <RangeRow label="Expense ratio, up to %" maxOnly min="" max={q.terMax} step="any" onChange={(_e, v) => set({ terMax: v })} />

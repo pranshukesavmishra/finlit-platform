@@ -4,13 +4,11 @@ import { Link } from "react-router";
 import { CornerBadge, RankMove } from "./Parts";
 import { cornerName, failureText, mapGeometry, pts, shortDate, useRotationCard, useRotationMap, weeksText, type RotationCard as Card } from "../../lib/rotation";
 import { pct } from "../../lib/sectors";
-import { ChartZoom } from "../../components/ChartZoom";
 
 function PathMap({ c }: { c: Card }) {
   const w = 300, h = 220, g = mapGeometry([c], w, h, 8, null, { left: 8, right: 8, top: 8, bottom: 8 });
   const d = g.dots[0], last = c.tail[c.tail.length - 1], first = c.tail[0];
   return (
-    <ChartZoom label={"Path of the group on the rotation map"}>
     <figure className="rt-pm">
       <svg width="100%" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Path of ${c.name} over the last ${c.tail.length} weekly closes, ending in ${c.corner_name}${c.this_week_reading_name ? `; this week reads ${c.this_week_reading_name}` : ""}`}>
         <rect className="rt-q bg" x={g.left} y={g.top} width={g.x0 - g.left} height={g.y0 - g.top} /><rect className="rt-q ag" x={g.x0} y={g.top} width={g.right - g.x0} height={g.y0 - g.top} />
@@ -24,7 +22,6 @@ function PathMap({ c }: { c: Card }) {
       </svg>
       <figcaption className="rt-note">The last {c.tail.length} weekly closes{first && last ? ` (${shortDate(first.date)} to ${shortDate(last.date)})` : ""}. Across: 6-month return against the average industry. Up: last month.</figcaption>
     </figure>
-    </ChartZoom>
   );
 }
 
@@ -37,7 +34,6 @@ function RankLine({ c }: { c: Card }) {
   const mid = Math.round((1 + worst) / 2);
   const worstPoint = h.find((p) => p.rank === c.rank_worst_26w);
   return (
-    <ChartZoom label={"Rank of the group by week"}>
     <div className="rt-rl">
       <h3>Rank over {h.length} weeks</h3>
       <svg width="100%" viewBox={`0 0 ${w} ${ht}`} role="img" aria-label={`Rank of ${c.name} at each of the last ${h.length} weekly closes: best ${c.rank_best_26w}, worst ${c.rank_worst_26w}, now ${c.rank}. Rank 1 is at the top.`}>
@@ -48,7 +44,6 @@ function RankLine({ c }: { c: Card }) {
       </svg>
       <p className="rt-note">Best in {h.length} weeks: {c.rank_best_26w ?? "—"}{c.rank_best_26w === c.rank ? " (now)" : ""} · worst: {c.rank_worst_26w ?? "—"}{worstPoint ? ` (${shortDate(worstPoint.date)})` : ""}</p>
     </div>
-    </ChartZoom>
   );
 }
 

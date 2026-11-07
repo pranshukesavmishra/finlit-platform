@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Every word the My portfolio page shows about a list comes from the server's readings or from the fixed words here; this scans all of it for advice wording,
+// Every word the Equity portfolio page shows about a list comes from the server's readings or from the fixed words here; this scans all of it for advice wording,
 // in both amount modes, for the 12-share and the 40-share sample.
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router";

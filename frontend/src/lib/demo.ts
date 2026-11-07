@@ -15,7 +15,7 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
 
   if (method !== "GET") {
     if (path === "/api/contact" || path === "/api/service-enquiry") return json({ id: "demo" }, 201);
-    if (path === "/api/chat") return json({ response: "This is a demo preview, so the live assistant is switched off. Use the guided menu above to explore services and pricing." });
+    if (path === "/api/chat") return json({ response: "This is a demo preview, so the live assistant is switched off. Open the Services page to explore services and pricing." });
     if (path === "/api/content/admin/login") return json({ detail: "Admin sign-in is disabled in the demo." }, 401);
     return json({ detail: "Not available in the demo." }, 405);
   }

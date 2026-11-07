@@ -4,7 +4,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { MINUS, nf } from "../lib/format";
 import { axisDate, dateTicks, day, frameOf, linePath, nearest, niceTicks, px, py, rupee, spanDays, type Frame, type Point } from "../lib/etf";
-import { ChartZoom } from "../components/ChartZoom";
 
 export type ChartSeries = { key: string; label: string; points: Point[]; color: string; dash?: string };
 
@@ -51,7 +50,6 @@ export function EtfChart({ series, mode, summary, caption }: { series: ChartSeri
   const tipLeft = f && cur ? Math.min(Math.max(px(f, cur[0]), 90), w - 90) : 0;
 
   return (
-    <ChartZoom label={mode === "price" ? "ETF price chart" : "ETF comparison chart"}>
     <div className="etf-chart" ref={box}>
       <div className="etf-chart-focus" tabIndex={0} role="group" aria-roledescription="chart" aria-label={caption + ". Use the left and right arrow keys to move through the dates."} onKeyDown={onKey} onBlur={() => setActive(null)}>
         {f && (
@@ -97,7 +95,6 @@ export function EtfChart({ series, mode, summary, caption }: { series: ChartSeri
         </table></div>
       </details>
     </div>
-    </ChartZoom>
   );
 }
 

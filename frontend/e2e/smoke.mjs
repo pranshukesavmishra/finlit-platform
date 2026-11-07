@@ -89,11 +89,12 @@ await page.locator("form button.primary").click();
 await page.waitForSelector(".done", { timeout: 8000 });
 check("contact: message saved by site backend", true);
 
-// 9. Assistant guided menu
+// 9. Assistant: opens with the greeting and the free-text box; the eight service buttons (task #18) are gone
 await page.goto(base, { waitUntil: "networkidle" });
 await page.locator(".ai-fab").click();
-await page.locator(".chips button", { hasText: "Explore Services" }).click();
-check("assistant: guided menu answers", await page.locator(".bub.bot", { hasText: "five services" }).count().then((n) => n > 0));
+check("assistant: opens with the greeting", await page.locator(".bub.bot", { hasText: "FinLit assistant" }).count().then((n) => n > 0));
+check("assistant: has the question box", await page.locator(".ai form input").count().then((n) => n === 1));
+check("assistant: no service buttons", await page.locator(".ai .chips button", { hasText: /Explore Services|Portfolio Review|Contact the Team/ }).count().then((n) => n === 0));
 
 // 10. Blog list + article from site backend
 await page.goto(base + "/blog", { waitUntil: "networkidle" });

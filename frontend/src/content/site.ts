@@ -98,7 +98,9 @@ export const WHY = {
   ],
 };
 
-// Guided assistant: same menu tree as today's FinLit AI widget.
+// Guided assistant: the menu tree of the FinLit AI widget. The main menu is empty on purpose (the eight service buttons were removed from the chat,
+// task #18), so the chat opens with the greeting, the page's own questions and the free-text box. The nodes below are only reachable from a
+// menu button; to bring the buttons back, list them in main.options again.
 type Action = { type: "navigate"; to: string } | { type: "enquire"; service?: string } | { type: "menu"; target: string };
 export type AssistantNode = { greeting?: string; prompt?: string; answer?: string; backLabel?: string; options: { label: string; action: Action }[]; additionalOptions?: { label: string; action: Action }[] };
 const nav = (to: string): Action => ({ type: "navigate", to });
@@ -108,14 +110,7 @@ export const ASSISTANT: Record<string, AssistantNode> = {
   main: {
     greeting: "Hi, this is the FinLit assistant.\nI can point you to the right page. I cannot give investment advice.",
     prompt: "What are you looking for?",
-    options: [
-      { label: "Explore Services", action: menu("services") }, { label: "Portfolio Review", action: menu("portfolio-review") },
-      { label: "Financial Planning", action: menu("financial-planning") }, { label: "Global Investing", action: menu("global-investing") },
-    ],
-    additionalOptions: [
-      { label: "Performance", action: menu("performance") }, { label: "About FinLit", action: menu("about") },
-      { label: "Pricing & Consultation", action: menu("pricing") }, { label: "Contact the Team", action: menu("contact") },
-    ],
+    options: [],
   },
   "financial-planning": { answer: "We offer two planning services: Wealth Planning (your own money and goals) and Family Financial Planning (the whole household). Pick one to read more.", backLabel: "Back to Main Menu",
     options: [{ label: "Wealth Planning", action: menu("wealth-planning") }, { label: "Family Financial Planning", action: menu("family-planning") }] },

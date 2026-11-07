@@ -5,7 +5,6 @@ import { niceTicks } from "../lib/etf";
 import { MINUS, dateIN, nf } from "../lib/format";
 import { calendar, diiGap, grp, inr, level, type Cal, type Pt, type SideKey } from "../lib/flowsMath";
 import type { FlowDay } from "../lib/flows";
-import { ChartZoom } from "./ChartZoom";
 
 export function useWidth(min = 300): [React.RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement>(null), [w, setW] = useState(900);
@@ -63,7 +62,6 @@ export function LineChart({ series, height = 320, label, zero = true }: { series
     else if (e.key === "Home") { e.preventDefault(); setHover(X(base[0][0])); } else if (e.key === "End") { e.preventDefault(); setHover(X(base[base.length - 1][0])); } else if (e.key === "Escape") setHover(null);
   };
   return (
-    <ChartZoom label={label}>
     <div className="fl-chart" ref={box}>
       <svg ref={svg} viewBox={`0 0 ${W} ${H}`} role="img" tabIndex={0} aria-label={`${label}. Use the left and right arrow keys to read each session.`} onPointerMove={move} onPointerLeave={() => setHover(null)} onKeyDown={key} onBlur={() => setHover(null)}>
         {m.l!.ticks.map((v) => <g key={v} className="fl-grid"><line x1={L} x2={W - R} y1={Y(v, "l")} y2={Y(v, "l")} className={v === 0 ? "zero" : ""} /><text x={L - 8} y={Y(v, "l") + 4} textAnchor="end">{compact(v)}</text></g>)}
@@ -79,7 +77,6 @@ export function LineChart({ series, height = 320, label, zero = true }: { series
         </div>
       )}
     </div>
-    </ChartZoom>
   );
 }
 
@@ -103,7 +100,6 @@ export function BarChart({ rows, ma, maLabel, name, height = 300, none }: { rows
   const xOf = (ms: number) => L + ((ms - t(rows[0].d)) / ((t(rows[n - 1].d) - t(rows[0].d)) || 1)) * (pw - step) + step / 2;
   const r = hover == null ? null : rows[hover];
   return (
-    <ChartZoom label={`Daily net ${name} flow`}>
     <div className="fl-chart" ref={box}>
       <svg ref={svg} viewBox={`0 0 ${W} ${H}`} role="img" tabIndex={0} aria-label={`Daily net ${name} flow in rupees crore, green for buying and red for selling${ma ? `, with a ${maLabel} line` : ""}. Use the left and right arrow keys to read each session.`} onPointerMove={move} onPointerLeave={() => setHover(null)} onKeyDown={key} onBlur={() => setHover(null)}>
         {ticks.map((v) => <g key={v} className="fl-grid"><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className={v === 0 ? "zero" : ""} /><text x={L - 8} y={Y(v) + 4} textAnchor="end">{compact(v)}</text></g>)}
@@ -120,7 +116,6 @@ export function BarChart({ rows, ma, maLabel, name, height = 300, none }: { rows
         </div>
       )}
     </div>
-    </ChartZoom>
   );
 }
 
@@ -165,7 +160,7 @@ export function CalendarHeat({ days, side, selected, onSelect, name, publishedFr
   };
   const tabbable = selected && byDate.has(selected) ? selected : dates[dates.length - 1];
   return (
-    <ChartZoom label={`${name} flow calendar`} className="cz-top"><div className="fl-cal" data-chart>
+    <div className="fl-cal">
       <div className="fl-cal-sc" ref={scroller}>
         <div className="fl-cal-in" role="group" aria-label={`${name} flow by day for the last year. Press a day to read its figures. Arrow keys move between days.`}>
           <div className="fl-cal-m" style={{ gridTemplateColumns: `repeat(${cal.cols}, minmax(0, 1fr))` }}>{cal.months.map((m) => <span key={m.col} style={{ gridColumn: `${m.col + 1} / span 4` }}>{m.label}</span>)}</div>
@@ -182,7 +177,7 @@ export function CalendarHeat({ days, side, selected, onSelect, name, publishedFr
           </div>
         </div>
       </div>
-    </div></ChartZoom>
+    </div>
   );
 }
 export const CAL_LEGEND = [-4, -3, -2, -1, 0, 1, 2, 3, 4];

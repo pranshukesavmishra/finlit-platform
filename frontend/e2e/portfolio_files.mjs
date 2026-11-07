@@ -1,4 +1,4 @@
-// My portfolio: importing real broker-style files (xlsx, xls BIFF, Zerodha/Groww/ICICI layouts, CSV) takes ONLY share names.
+// Equity portfolio: importing real broker-style files (xlsx, xls BIFF, Zerodha/Groww/ICICI layouts, CSV) takes ONLY share names.
 //   PM_PASSWORD=... node e2e/portfolio_files.mjs http://localhost:4173   (members pm-silver / pm-gold; fixtures built by /tmp/claude-0/pf-fixtures/gen.mjs)
 const { chromium } = await import("playwright").catch(() => import("/opt/node22/lib/node_modules/playwright/index.mjs"));
 const B = process.argv[2] || "http://localhost:4173", F = "/tmp/claude-0/pf-fixtures/";

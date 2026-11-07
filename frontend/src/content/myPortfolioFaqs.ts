@@ -1,9 +1,9 @@
-// Hand-written set for /holdings (the new My portfolio page): the six questions of the design. It takes the place of the PDF-built set for this route
+// Hand-written set for /holdings (the new Equity portfolio page): the six questions of the design. It takes the place of the PDF-built set for this route
 // (lib/pageFaqs.ts lists hand-written sets first). Descriptive only; information, not investment advice.
 import type { PageFaq } from "./pageFaqs";
 
 export const MY_PORTFOLIO_FAQ: PageFaq = {
-  id: "my-portfolio", title: "My portfolio", section: "Your workspace", routes: ["/holdings"],
+  id: "my-portfolio", title: "Equity portfolio", section: "Your workspace", routes: ["/holdings"],
   items: [
     { q: "Why does FinLit not ask for quantities?", a: "The page describes how your shares are made up and how they have moved together, which needs only the names. Not asking for amounts keeps your holdings private, and nothing here depends on them. Where an amount would change a figure, the page shows two neutral cases: equal amounts and amounts sized by company value." },
     { q: "What do \"equal amounts\" and \"company value\" mean?", a: "Equal amounts counts every share the same, as if the same rupee amount sat in each. Sized by company value counts each share in proportion to the company's market value, so bigger companies weigh more. They are two ways to read the same names; neither is your actual split." },

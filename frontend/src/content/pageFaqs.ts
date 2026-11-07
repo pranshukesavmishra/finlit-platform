@@ -1037,7 +1037,7 @@ export const PAGE_FAQS: PageFaq[] = [
  },
  {
   "id": "my-portfolio",
-  "title": "My portfolio",
+  "title": "Equity portfolio",
   "section": "Your workspace",
   "routes": [
    "/holdings"

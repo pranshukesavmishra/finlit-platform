@@ -226,6 +226,16 @@ export function QuarterResultsPage() {
   const [offset, setOffset] = useState(0);
   const [wide, setWide] = useState<boolean>(() => { try { return localStorage.getItem("qr-wide") === "1"; } catch { return false; } });
   const toggleWide = () => setWide((w) => { const n = !w; try { localStorage.setItem("qr-wide", n ? "1" : "0"); } catch { /* the choice just is not remembered */ } return n; });
+  // The enlarge arrow on the results panel: the whole panel opens big over the page; Esc, a click outside or the same arrow brings it back.
+  const [zoom, setZoom] = useState(false);
+  useEffect(() => {
+    if (!zoom) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setZoom(false); };
+    const was = document.body.style.overflow;
+    document.body.style.overflow = "hidden";   // the page behind does not scroll while the panel is enlarged
+    window.addEventListener("keydown", k);
+    return () => { window.removeEventListener("keydown", k); document.body.style.overflow = was; };
+  }, [zoom]);
   const [query, setQuery] = useState("");
   const quarter = sp.get("quarter") || undefined;
   const sel = useMemo(() => dateFromParams(sp), [sp]);
@@ -359,7 +369,7 @@ export function QuarterResultsPage() {
         <FilterGroup id="qr-co" title="Companies" defaultOpen>
         <div className="qr-f1">
           <div className="chips" role="group" aria-label="Whose results">
-            {([["all", "All companies"], ["watchlist", "My watchlist"], ["portfolio", "My portfolio"]] as const).map(([k, l]) => <button key={k} type="button" className={f.scope === k ? "on" : ""} aria-pressed={f.scope === k} onClick={() => setScope(k)}>{l}</button>)}
+            {([["all", "All companies"], ["watchlist", "My watchlist"], ["portfolio", "Equity portfolio"]] as const).map(([k, l]) => <button key={k} type="button" className={f.scope === k ? "on" : ""} aria-pressed={f.scope === k} onClick={() => setScope(k)}>{l}</button>)}
             <span className="qr-sep" aria-hidden="true" />
             {INDICES.map(([k, l]) => <button key={k} type="button" className={f.index === k ? "on" : ""} aria-pressed={f.index === k} onClick={() => set({ index: f.index === k ? "" : k })}>{l}</button>)}
           </div>
@@ -396,9 +406,13 @@ export function QuarterResultsPage() {
       {f.q && d && !dateErr && !res.isFetching && <p className="qr-findnote" role="status">{total ? <><b>{nf(total, 0)}</b> {total === 1 ? "company matches" : "companies match"} “{f.q}” among the filtered results.</> : <>“{f.q}” is not in the filtered results. <button type="button" className="alx-link" onClick={() => { setQuery(""); set({ q: "" }); }}>Clear the search</button></>}</p>}
       <GrowthCharts summary={d?.growth} dist={d?.distribution} locked={!silver} />
 
-      <section className="card qr-card">
+      {zoom && <div className="qr-backdrop" onClick={() => setZoom(false)} aria-hidden="true" />}
+      <section className={"card qr-card" + (zoom ? " qr-zoomed" : "")}>
         <div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>{q ? `${q.label}` : "Results"}<span className="muted qr-count"> · {nf(total, 0)} {total === 1 ? "company" : "companies"}</span></h3>
-          <span className="muted qr-unit">Rs crore, except EPS (Rs) and per cent</span></div>
+          <span className="muted qr-unit">Rs crore, except EPS (Rs) and per cent</span>
+          <button type="button" className="qr-zoom" aria-pressed={zoom} aria-label={zoom ? "Back to the page" : "Enlarge the results table"} title={zoom ? "Back to the page (Esc)" : "Enlarge the results table"} onClick={() => setZoom((z) => !z)}>
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{zoom ? <path d="M6 2v4H2M10 14v-4h4M6 6 2 2M10 10l4 4" /> : <path d="M10 2h4v4M6 14H2v-4M14 2 9.5 6.5M2 14l4.5-4.5" />}</svg>
+          </button></div>
         {d?.priceStrip && d.priceStrip.have52 + d.priceStrip.haveAth > 0 && !dateErr && (
           <p className="qr-strip" role="status"><b>{nf(d.priceStrip.near52, 0)}</b> of {nf(d.priceStrip.have52, 0)} companies are within 5% of their 52-week high; <b>{nf(d.priceStrip.nearAth, 0)}</b> of {nf(d.priceStrip.haveAth, 0)} are within 5% of their all-time high.
             {d.priceStrip.companies - d.priceStrip.have52 > 0 && <> {nf(d.priceStrip.companies - d.priceStrip.have52, 0)} have no 52-week high figure and {nf(d.priceStrip.companies - d.priceStrip.haveAth, 0)} no all-time high figure.</>}</p>

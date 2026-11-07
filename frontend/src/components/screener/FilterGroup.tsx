@@ -45,8 +45,8 @@ export function CheckRow({ label, count, checked, onChange, disabled }: { label:
 }
 
 /** A checkbox followed by Min and Max boxes. The boxes are off until the row is ticked; unticking clears them. */
-export function RangeRow({ label, group, min, max, onChange, error, minPh = "Min", maxPh = "Max", step = 1, maxOnly = false, maxExcl = false, chips }: {
-  label: string; group?: string; min: number | string | null; max: number | string | null; onChange: (end: "min" | "max", v: string) => void; error?: string; minPh?: string; maxPh?: string; step?: number | string; maxOnly?: boolean; maxExcl?: boolean; chips?: ReactNode }) {
+export function RangeRow({ label, group, min, max, onChange, error, minPh = "Min", maxPh = "Max", step = 1, maxOnly = false, maxExcl = false, chips, icon }: {
+  icon?: string; label: string; group?: string; min: number | string | null; max: number | string | null; onChange: (end: "min" | "max", v: string) => void; error?: string; minPh?: string; maxPh?: string; step?: number | string; maxOnly?: boolean; maxExcl?: boolean; chips?: ReactNode }) {
   const has = (min != null && min !== "") || (max != null && max !== "");
   const [ticked, setTicked] = useState(has);
   useEffect(() => { if (has) setTicked(true); }, [has]);
@@ -54,7 +54,7 @@ export function RangeRow({ label, group, min, max, onChange, error, minPh = "Min
   const toggle = () => { if (on) { onChange("min", ""); onChange("max", ""); setTicked(false); } else setTicked(true); };
   return (
     <div className={"fgx-rr" + (on ? " is-on" : "")} role="group" aria-label={group ?? `${label}, exact range`}>
-      <label className={"fgx-row" + (on ? " is-on" : "")}><input type="checkbox" checked={on} onChange={toggle} aria-controls={id} /><span className="fgx-lab">{label}</span></label>
+      <label className={"fgx-row" + (on ? " is-on" : "")}><input type="checkbox" checked={on} onChange={toggle} aria-controls={id} />{icon && <span className="fgx-ri" aria-hidden="true"><Icon name={icon} /></span>}<span className="fgx-lab">{label}</span></label>
       {chips}
       <div className={"fgx-mm" + (maxOnly ? " fgx-mx" : "")} id={id}>
         {!maxOnly && <><input type="number" inputMode="decimal" step={step} placeholder={minPh} aria-label="Min" disabled={!on} value={min ?? ""} onChange={(e) => onChange("min", e.target.value)} aria-invalid={!!error} />

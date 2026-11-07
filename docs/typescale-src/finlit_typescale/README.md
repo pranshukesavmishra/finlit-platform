@@ -142,7 +142,7 @@ Font sizes used in each page's main area (default view), the share of text under
 | News and filings | /news | 13 | 0% | 11 |
 | Mutual fund screener | /funds/screener | 13 | 11% | 10 |
 | Services | /services | 13 | 6% | 11 |
-| My portfolio | /holdings | 12 | 2% | 11 |
+| Equity portfolio | /holdings | 12 | 2% | 11 |
 | Company search | /research | 12 | 2% | 11 |
 | Prism | /prism | 12 | 6% | 11 |
 | Outlook | /outlook | 12 | 6% | 11 |

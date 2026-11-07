@@ -1,4 +1,4 @@
-"""The My portfolio page engine against the handover pack: its 7 tests, the two stored sample pages reproduced from the pack's CSVs, and the wording check."""
+"""The Equity portfolio page engine against the handover pack: its 7 tests, the two stored sample pages reproduced from the pack's CSVs, and the wording check."""
 import json
 import math
 from pathlib import Path

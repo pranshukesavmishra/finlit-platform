@@ -8,7 +8,7 @@ import "./diversification.css";
 export type DiversificationProps = {
   /** Share names only. The card never asks for or sends amounts, quantities, prices or dates. */
   symbols: string[];
-  /** A short name for the list ("Sample list", "My portfolio"); shown beside the score. */
+  /** A short name for the list ("Sample list", "Equity portfolio"); shown beside the score. */
   listLabel?: string;
   /** Names the person may search to ADD to the what-if list: [symbol, company name]. The card never proposes one. */
   candidates?: [string, string][];

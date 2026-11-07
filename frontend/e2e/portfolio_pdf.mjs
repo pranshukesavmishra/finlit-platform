@@ -1,4 +1,4 @@
-// My portfolio: importing a holdings statement saved as a PDF. The PDF is read in the browser (pdf.js), a REVIEW lists each PDF text -> company,
+// Equity portfolio: importing a holdings statement saved as a PDF. The PDF is read in the browser (pdf.js), a REVIEW lists each PDF text -> company,
 // "please check" rows are unticked, and only the ticked ones are added. A wrong company added, or a held company missed, is a failure.
 //   PM_PASSWORD=... node e2e/portfolio_pdf.mjs http://localhost:4173     (members pm-gold / pm-silver; start the stack with dev/run_stack.sh, see docs/LAUNCH-RUNBOOK.md)
 //   Fixtures and their exact expected companies: src/lib/fixtures/pdf/*.pdf + manifest.json (made by a reportlab generator, one PDF per broker / depository layout).

@@ -5,7 +5,6 @@
 import { useId, useMemo, useRef, useState } from "react";
 import { EVENT_WORD, chartGeometry, chartSummary, fullDate, pct, type IndustryPage } from "../../lib/sectors";
 import { HScroll } from "../HScroll";
-import { ChartZoom } from "../../components/ChartZoom";
 
 const W = 920, H = 340, L = 44, R = 40, T = 30, B = 34;
 const PATTERN: Record<string, string> = { washout: "w", thrust_c: "t", thrust_cap: "t", confirmed: "c", fading: "f" };
@@ -39,7 +38,6 @@ export function BreadthChart({ page }: { page: IndustryPage }) {
   const stateName = page.bands.find((b) => b.from <= h.dates[i] && h.dates[i] <= b.to)?.state ?? (state ? state.replace("_", " ") : "No reading");
   const last = n - 1;
   return (
-    <ChartZoom label={"Breadth over the past year"}>
     <div className="sx-chart">
       <svg ref={svg} viewBox={`0 0 ${W} ${H}`} tabIndex={0} role="group" aria-roledescription="chart" aria-label={chartSummary(page) + " Use the left and right arrow keys to move through the sessions."}
         onKeyDown={key} onPointerMove={pointer} onPointerDown={pointer}>
@@ -83,6 +81,5 @@ export function BreadthChart({ page }: { page: IndustryPage }) {
         </HScroll>
       </details>
     </div>
-    </ChartZoom>
   );
 }

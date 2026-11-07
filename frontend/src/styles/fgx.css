@@ -139,3 +139,5 @@ button.fgx-kpi { cursor: pointer; } button.fgx-kpi:hover { border-color: var(--g
 .pzf .fgx-rr .fgx-mm { padding-left: 33px; max-width: 280px; gap: 5px; } .pzf .fgx-rr .fgx-mm input { height: 34px; padding: 0 6px; font-size: 13px; }
 .pzf .fgx-rr .fgx-err { grid-column: 1 / -1; }
 .pzf .fgx-lab { overflow-wrap: normal; word-break: normal; hyphens: none; min-width: 0; }
+/* optional icon before a RangeRow label */
+.fgx-ri { display: inline-grid; place-items: center; width: 18px; color: var(--gain); } .fgx-ri svg, .fgx-ri .ico { width: 15px; height: 15px; }

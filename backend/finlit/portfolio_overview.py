@@ -1,4 +1,4 @@
-"""POST /api/portfolio/overview: one bulk read for the My portfolio page (Silver and Gold).
+"""POST /api/portfolio/overview: one bulk read for the Equity portfolio page (Silver and Gold).
 
 For up to 500 symbols it returns, per company, only the few figures the page's Overview, Ratios and Financials tabs list, taken straight from the
 stored report sections (summary, ratios, financials: jsonb paths, so no whole report leaves the database) and from the newest FinLit Prism rating
@@ -215,7 +215,7 @@ def holding(sym: str, parts: Dict[str, Any], prism: Optional[Dict[str, Any]], go
 
 async def member_ctx(request: Request, ctx: Ctx = Depends(secure_ctx)) -> Ctx:
     if ctx.role != "admin" and not has(ctx.plan, "silver"):
-        raise fail(403, "plan_required", "My portfolio scores are part of the Silver plan.", plan="silver")
+        raise fail(403, "plan_required", "Equity portfolio scores are part of the Silver plan.", plan="silver")
     return ctx
 
 

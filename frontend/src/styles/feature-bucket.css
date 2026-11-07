@@ -63,3 +63,11 @@ a.fb-chip { text-decoration: none; min-height: 24px; display: inline-flex; align
 .fb-plus-row a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 12px 4px 6px; border-radius: 999px; border: 1px solid var(--border-subtle); color: var(--text-primary); font-size: 14px; font-weight: 600; text-decoration: none; background: var(--bg-page); }
 .fb-plus-row a:hover { border-color: var(--text-primary); } .fb-plus-row a:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 @media (max-width: 600px) { .fb-plus-row a { min-height: 44px; } }
+/* Dark mode: the Hub uses the site's own dark surfaces, text and borders (the near-black palette every other page uses), not the design system's navy
+   (#172E48 cards on #0B192C). Colours only; layout, icons and the light theme are unchanged. */
+:root[data-theme="dark"] .fb, :root:not([data-theme="light"]) .fb {
+  --bg-surface: var(--s1); --bg-subtle: var(--s2); --bg-page: var(--bg);
+  --border-subtle: var(--border); --border-control: var(--border-strong);
+  --text-primary: var(--text); --text-body: var(--muted); --text-secondary: var(--muted); --text-muted: var(--faint);
+}
+:root[data-theme="dark"] .fb-card:hover, :root[data-theme="dark"] .fb-card:focus-within, :root:not([data-theme="light"]) .fb-card:hover, :root:not([data-theme="light"]) .fb-card:focus-within { box-shadow: 0 10px 28px rgba(0, 0, 0, .45); }

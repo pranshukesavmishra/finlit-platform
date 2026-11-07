@@ -20,7 +20,6 @@ import {
 import { dateIN } from "../lib/format";
 import "../styles/mf.css";
 import "../styles/mfportfolio.css";
-import { ChartZoom } from "../components/ChartZoom";
 
 const K = ["var(--k1)", "var(--k2)", "var(--k3)", "var(--k7)", "var(--k5)", "var(--k4)", "var(--k6)", "var(--k8)", "var(--k1)"];
 const errText = (e: unknown) => ((e as { body?: { detail?: string } })?.body?.detail) || (e instanceof Error ? e.message : "Something went wrong. Please try again.");
@@ -219,14 +218,12 @@ export function MfPortfolioPage() {
           {s.notes.map((n) => <p key={n} className="faint mp-note" role="note">{n}</p>)}
           <section className="card mp-cat" aria-label="Your funds by category">
             <div className="mp-cat-tabs" role="tablist">{groups.map((g) => <button key={g} role="tab" aria-selected={group === g} className={group === g ? "on" : ""} onClick={() => setGroup(g)}>{g}</button>)}</div>
-            <ChartZoom label="Your funds by category">
             <div className="mp-cat-body"><div className="mp-cat-chips">{cats.map(([c, n]) => <div key={c} className="mp-cat-chip"><span>{c}</span><em>{n}</em></div>)}</div>
             <div className="mp-cat-pie">
               {pie.slices.length ? <Donut parts={pie.slices.map((p, i) => ({ label: p.label, value: p.value, color: K[i % K.length] }))} center={String(inGroup.length)} sub={inGroup.length === 1 ? "FUND" : "FUNDS"} /> : <p className="faint mp-note">No funds to show yet.</p>}
               <p className="faint mp-note">{group === "All funds" ? "Share of your funds by type." : `Share of your ${group.toLowerCase()} funds by category.`}</p>
             </div>
             </div>
-            </ChartZoom>
           </section>
           {locked && <section className="card mp-teaser"><Icon name="lock" /><div><b>Each fund's Health Score is part of Gold</b><p className="muted">Gold shows a score from 0 to 100 for every fund you hold, with its four parts: Performance, Risk, Cost and Quality. {MF_SCORE_LINE}</p></div><button className="btn" onClick={unlock}>Unlock with Gold</button></section>}
           <section className="card pf-tabs-card">

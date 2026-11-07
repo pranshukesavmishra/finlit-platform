@@ -3,7 +3,6 @@ import { PageArt } from "../components/PageArt";
 import { Reveal } from "../components/Reveal";
 import { useDocTitle } from "../lib/title";
 import { LEAD_NOTE } from "../stock/Leadership";
-import { ChartZoom } from "../components/ChartZoom";
 
 /** "How this works": the rules of the Leader / In line / Laggard label in plain words, and the evidence from four sectors (21 years of weekly prices,
  *  a research study; the figures here are fixed results of that study, not live data). */
@@ -20,7 +19,6 @@ function Persistence() {
   const W = 760, H = 250, top = 34, bot = 196, colW = 26, gap = 10;
   const y = (v: number) => bot - (v / 100) * (bot - top);
   return (
-    <ChartZoom label={"Leaders against laggards, by period"}>
     <svg className="lx-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Pharma is the only sector where leaders beat laggards in every five-year period. IT and banks did in some periods and not others. Auto did so in two of four periods and in 46 percent of checks overall.">
       {SECTORS.map((s, si) => {
         const x0 = 18 + si * 186;
@@ -40,20 +38,17 @@ function Persistence() {
       })}
       <text x="18" y={H - 6} className="lx-t">Dashed line: 50%, a coin flip. Consistent = 55% or more overall and at least 50% in every period.</text>
     </svg>
-    </ChartZoom>
   );
 }
 
 function Overall() {
   return (
-    <ChartZoom label={"Share of checks where leaders beat laggards"} className="cz-top">
     <div className="lx-bars" role="img" aria-label="Share of checks where the top 30 percent beat the bottom 30 percent over the next six months: pharma 64, IT 60, banks 60, auto 46.">
       {SECTORS.map((s) => (
         <div key={s.name} className="lx-bar-row"><span className="n">{s.name}</span><div className="lx-bar"><i style={{ width: `${s.rate}%` }} className={s.tier} /><u style={{ left: "50%" }} /><u className="c55" style={{ left: "55%" }} /></div><b>{s.rate}%</b><span className={"ld-tier " + s.tier}>{TIER[s.tier]}</span></div>
       ))}
       <div className="lx-bar-key"><span style={{ left: "50%" }}>50% coin flip</span><span style={{ left: "55%" }} className="c55">55% shown as consistent</span></div>
     </div>
-    </ChartZoom>
   );
 }
 
@@ -65,7 +60,6 @@ function WithinSector() {
   ];
   const lo = -60, hi = 600, W = 760, rowH = 46, H = rows.length * rowH + 40, x = (v: number) => 120 + ((v - lo) / (hi - lo)) * (W - 150);
   return (
-    <ChartZoom label={"Sector returns against their best stocks"}>
     <svg className="lx-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Five-year price return of each sector index, its best stock and its worst stock. In IT the index fell 11 percent while Persistent rose 192 percent and Wipro fell 47 percent.">
       <line x1={x(0)} x2={x(0)} y1="8" y2={H - 28} className="lx-zero" />
       {rows.map((r, i) => { const yy = 22 + i * rowH; return (
@@ -79,7 +73,6 @@ function WithinSector() {
         </g>); })}
       <text x={x(0)} y={H - 8} textAnchor="middle" className="lx-t">0%</text>
     </svg>
-    </ChartZoom>
   );
 }
 

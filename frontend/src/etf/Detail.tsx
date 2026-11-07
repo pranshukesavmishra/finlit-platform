@@ -13,7 +13,6 @@ import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common
 import { EtfChart } from "./EtfChart";
 import { EtfHoldings } from "./Holdings";
 import { ReturnsBlock } from "./Returns";
-import { ChartZoom } from "../components/ChartZoom";
 
 const isRange = (v: string | null): v is RangeKey => !!v && (RANGES as readonly string[]).includes(v);
 
@@ -62,7 +61,6 @@ export function EtfDetailPage() {
 
 
       <section className="card etf-sec" aria-labelledby="h-chart">
-        <ChartZoom label={"Price chart"} className="cz-r">
         <div className="card-h"><h3 id="h-chart"><span className="ci"><Icon name="line" /></span>Price chart</h3>
           <div className="etf-ranges-btns" role="group" aria-label="Chart range">{RANGES.map((r) => {
             const a = d.ranges[r];
@@ -75,7 +73,6 @@ export function EtfDetailPage() {
             <p className="faint etf-cap">Closing prices{d.series.grain === "weekly" ? ", last close of each week" : ", one point a day"}, {day(d.series.from)} to {day(d.series.to)}. Price only: dividends are not included.</p>
           </>) : <div className="etf-state small"><p><b>No chart for {RANGE_LABEL[range]}.</b> {d.series.why}</p></div>}
         {d.breakNote && <p className="etf-warn" role="note"><Icon name="alert" /><span>{d.breakNote}</span></p>}
-        </ChartZoom>
       </section>
 
       <EtfHoldings symbol={d.symbol} />

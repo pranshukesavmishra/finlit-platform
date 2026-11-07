@@ -1,4 +1,4 @@
-"""Inputs of the My portfolio page engine (metrics.build_page) from the site's own stored data. No I/O: plain data in, pandas objects out.
+"""Inputs of the Equity portfolio page engine (metrics.build_page) from the site's own stored data. No I/O: plain data in, pandas objects out.
 
   prices      {symbol: {"t": [dates], "c": [adjusted closes]}}   the stored weekly bars (price-MAX), any weekday inside the week
   index_rows  [{"d": "YYYY-MM-DD", "c": level}]                  NIFTY 50 daily closes

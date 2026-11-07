@@ -18,7 +18,7 @@ FastAPI + MongoDB backend. This is the migration checklist: every row needs a ho
 | `/blog/admin/*` | Single env-var admin; JWT in sessionStorage; CMS editor (TipTap), portfolio PDF upload, stock dashboard | Admin area on real accounts (passkey-required admin role) |
 | — | No legal pages | Terms, Privacy, Research disclosures (new) |
 
-Global elements: NIFTY 50 market ticker (Upstox LTP, 60 s), FinLit Assistant chat (guided menu + Gemini free-text),
+Global elements: NIFTY 50 market ticker (Upstox LTP, 60 s), FinLit Assistant chat (suggested questions + Gemini free-text),
 theme toggle, footer disclaimer ("technology company, not registered with SEBI or AMFI").
 
 ## Backend features to carry over

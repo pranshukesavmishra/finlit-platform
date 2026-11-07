@@ -3,7 +3,6 @@ import { useWidth } from "../components/prism/PrismCharts";
 import { axisUnit, buildSeries, chartDomain, changeVs, chartCsv, chartSummary, fmtChange, fmtCr, labelIndices, tableRows, tooltipText, type Series } from "../lib/outlookChart";
 import { KIND_LABEL, type Kind } from "../lib/outlook";
 import { saveFile } from "../stock/derive";
-import { ChartZoom } from "../components/ChartZoom";
 
 export { buildSeries };
 
@@ -56,7 +55,6 @@ export function OutlookChart({ kind, symbol, series, who, horizonLabel }: { kind
   const tipY = tip && tip.value != null ? Y(tip.value) : pt;
 
   return (
-    <ChartZoom label={name} className="cz-r">
     <div className="ol-chart" ref={ref}>
       <div className="ol-chart-top">
         <h3 style={{ color }}>{name}</h3>
@@ -108,6 +106,5 @@ export function OutlookChart({ kind, symbol, series, who, horizonLabel }: { kind
           <thead><tr>{["Year", "Type", "Value", "Change on year before", ...(series.hasAlt ? ["FinLit model estimate"] : [])].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
           <tbody>{tableRows(series).map((r, i) => <tr key={i}>{r.map((c, j) => (j === 0 ? <th scope="row" key={j}>{c}</th> : <td key={j}>{c}</td>))}</tr>)}</tbody></table></div>)}
     </div>
-    </ChartZoom>
   );
 }

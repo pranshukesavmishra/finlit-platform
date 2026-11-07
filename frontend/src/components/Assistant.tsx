@@ -44,6 +44,7 @@ export function Assistant({ sector }: { sector?: string | null } = {}) {
   if (loc.pathname.startsWith("/admin")) return null;
 
   const cur = ASSISTANT[node];
+  const menuOptions = [...cur.options, ...(cur.additionalOptions || [])];   // empty on the main menu: no service buttons, so no empty row either
   const pageFaq = faqForPath(loc.pathname);   // suggested questions = this page's FAQ set
   const bank = bankSuggestions(loc.pathname);  // on a company page: the question bank's most used questions about that company
   const groups = bankGroups(loc.pathname, { lender: isLenderSector(sector) });   // the 40 company questions, by group
@@ -101,10 +102,10 @@ export function Assistant({ sector }: { sector?: string | null } = {}) {
             {node === "main" && pageFaq && <div className="chips" aria-label={`Questions about ${pageFaq.title}`}>
               {pageFaq.items.slice(0, 4).map((it) => <button key={it.q} onClick={() => askPage(it.q, it.a)}>{it.q}</button>)}
             </div>}
-            <div className="chips">
-              {[...cur.options, ...(cur.additionalOptions || [])].map((o) => <button key={o.label} onClick={() => run(o.action, o.label)}>{o.label}</button>)}
+            {(menuOptions.length > 0 || node !== "main") && <div className="chips">
+              {menuOptions.map((o) => <button key={o.label} onClick={() => run(o.action, o.label)}>{o.label}</button>)}
               {node !== "main" && <button className="back" onClick={() => setNode("main")}>← {cur.backLabel || "Main menu"}</button>}
-            </div>
+            </div>}
             <div ref={end} />
           </div>
           <form onSubmit={send}>

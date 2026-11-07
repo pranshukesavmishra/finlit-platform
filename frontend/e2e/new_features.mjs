@@ -162,6 +162,7 @@ if (await gap.count()) {
   await p.getByLabel(/revenue and profit move 15 or more points apart/).setChecked(before, { force: true }).catch(() => {}); await p.waitForTimeout(500);
 }
 await p.goto(B + "/alerts", { waitUntil: "networkidle" });
+await p.locator(".alx-new-btn").click(); await p.waitForTimeout(200);
 const opts = await p.locator("#alx-metric option").allInnerTexts();
 check("alerts: composer offers 'Revenue vs profit growth gap'", opts.some((o) => /^Revenue vs profit growth gap/.test(o)), String(opts.length) + " metrics");
 await p.locator("#alx-metric").selectOption({ label: opts.find((o) => /^Revenue vs profit growth gap/.test(o)) || "" }).catch(() => {});

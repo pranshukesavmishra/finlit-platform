@@ -1,5 +1,7 @@
 import { PageHeader } from "../components/PageHeader";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useFocusTrap } from "../lib/focusTrap";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { useAuth } from "../lib/auth";
@@ -25,6 +27,7 @@ const QUICK: { t: string; d: string; icon: string; p: Preset }[] = [
   { t: "Promoter holding falls", d: "Down 1 point or more in a quarter", icon: "users", p: { metric: "promoter_chg", op: "below", value: -1 } },
   { t: "Profit milestone", d: "Quarterly net profit above a level", icon: "coins", p: { metric: "q_net_profit", op: "above" } },
 ];
+const METRIC_ICON: Record<string, string> = { price: "rupee", move_abs: "activity", volume_x: "bars", rsi14: "gauge", from_high52: "growth", overall: "quality", pe: "percent", result_soon: "calendar", news_keyword: "notes", promoter_chg: "users", q_net_profit: "coins" };
 const CH: Record<Channel, [string, string]> = { app: ["bell", "In-app"], email: ["mail", "Email"], browser: ["activity", "Browser"] };
 const STATE = { active: ["Active", "ok"], paused: ["Paused", "mute"], done: ["Triggered", "gold"] } as const;
 type Tab = "mine" | "fired";
@@ -42,7 +45,7 @@ function AlertCard({ a, onPatch, onRemove }: { a: AlertRow; onPatch: (p: { statu
         <span className="alx-grow" />
         <span className="alx-chs" aria-label={"Notifies via " + a.channels.map((c) => CH[c][1]).join(", ")}>{a.channels.map((c) => <span key={c} title={CH[c][1]}><Icon name={CH[c][0]} /></span>)}</span>
       </div>
-      <h3>{describe(a)}</h3>
+      <h3><span className="alx-ci"><Icon name={METRIC_ICON[a.metric] || "bell"} /></span>{describe(a)}</h3>
       {!ev && (
         <div className="alx-prog" aria-label={pct != null ? `${pct}% of the way to the trigger` : undefined}>
           <div className="alx-bar"><i style={{ width: `${pct ?? 0}%` }} /></div>
@@ -50,8 +53,9 @@ function AlertCard({ a, onPatch, onRemove }: { a: AlertRow; onPatch: (p: { statu
         </div>
       )}
       <p className="alx-meta">
-        {a.repeat === "every" ? "Repeats" : "Once"} · {METRICS[a.metric]?.live ? "live" : "daily"} check{a.lastCheckedAt ? ` · checked ${timeAgo(a.lastCheckedAt)}` : ""}
-        {a.firedCount > 0 && a.lastFiredAt ? ` · fired ${a.firedCount}× (last ${timeAgo(a.lastFiredAt)})` : ""}
+        <span>Last checked: <b>{a.lastCheckedAt ? timeAgo(a.lastCheckedAt) : "not yet"}</b></span>
+        <span>Repeat: <b>{a.repeat === "every" ? "Every time" : "Once"}</b> ({METRICS[a.metric]?.live ? "live check" : "daily check"})</span>
+        {a.firedCount > 0 && a.lastFiredAt ? <span className="alx-fired">Fired {a.firedCount}× (last {timeAgo(a.lastFiredAt)})</span> : null}
       </p>
       {a.note && <p className="alx-note">“{a.note}”</p>}
       <div className="alx-act">
@@ -65,12 +69,36 @@ function AlertCard({ a, onPatch, onRemove }: { a: AlertRow; onPatch: (p: { statu
             {a.status === "active" && <button className="btn" onClick={() => onPatch({ status: "paused" })}><Icon name="pause" /><span>Pause</span></button>}
             {a.status === "paused" && <button className="btn" onClick={() => onPatch({ status: "active" })}><Icon name="play" /><span>Resume</span></button>}
             {a.status === "done" && <button className="btn" onClick={() => onPatch({ status: "active" })}><Icon name="play" /><span>Set again</span></button>}
-            {!ev && !fixed && <button className="btn" onClick={() => { setV(String(a.value ?? "")); setEdit(true); }}><span>Change target</span></button>}
-            {sure ? <><button className="btn danger" onClick={onRemove}>Delete</button><button className="btn" onClick={() => setSure(false)}>Keep</button></> : <button className="btn" onClick={() => setSure(true)} aria-label={`Delete the ${a.symbol} alert`}><Icon name="trash" /></button>}
+            {!ev && !fixed && <button className="btn" onClick={() => { setV(String(a.value ?? "")); setEdit(true); }}><Icon name="notes" /><span>Edit</span></button>}
+            {sure ? <><button className="btn danger" onClick={onRemove}>Delete</button><button className="btn" onClick={() => setSure(false)}>Keep</button></> : <button className="btn alx-del" onClick={() => setSure(true)} aria-label={`Delete the ${a.symbol} alert`}><Icon name="trash" /><span aria-hidden="true">Delete</span></button>}
           </>
         )}
       </div>
     </article>
+  );
+}
+
+/** The "Create alert" form, sliding in from the right. Closes with Esc, the ✕, a click outside, or shortly after an alert is saved. */
+function AlertDrawer({ open, onClose, preset }: { open: boolean; onClose: () => void; preset: Preset }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useFocusTrap(ref, open);
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    addEventListener("keydown", k); const t = setTimeout(() => ref.current?.querySelector<HTMLElement>("#alx-stock, select, input")?.focus(), 60);
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { removeEventListener("keydown", k); clearTimeout(t); document.body.style.overflow = prev; };
+  }, [open, onClose]);
+  if (!open) return null;
+  return createPortal(
+    <>
+      <div className="scrim" onClick={onClose} />
+      <div className="alx-drawer" role="dialog" aria-modal="true" aria-label="Create alert" ref={ref}>
+        <div className="alx-mh"><h2><Icon name="bell" />Create alert</h2><button className="alx-x" onClick={onClose} aria-label="Close">✕</button></div>
+        <AlertComposer preset={preset} compact onDone={() => setTimeout(onClose, 1600)} />
+      </div>
+    </>,
+    document.body,
   );
 }
 
@@ -89,6 +117,8 @@ export function AlertsPage() {
     return { symbol: sym.toUpperCase(), ...(metric && METRICS[metric] ? { metric, op: METRICS[metric].ops[0], ...(Number.isFinite(value) && params.get("value") ? { value } : {}) } : {}) };
   });
   const [tab, setTab] = useState<Tab>("mine"), [f, setF] = useState<Filter>("all"), [q, setQ] = useState("");
+  const [drawer, setDrawer] = useState(() => !!params.get("symbol")), [allQuick, setAllQuick] = useState(false);
+  const closeDrawer = useMemo(() => () => setDrawer(false), []);
 
   const counts = useMemo(() => ({ all: alerts.length, active: alerts.filter((a) => a.status === "active").length, paused: alerts.filter((a) => a.status === "paused").length, done: alerts.filter((a) => a.status === "done").length }), [alerts]);
   const week = items.filter((n) => Date.now() - new Date(n.createdAt).getTime() < 7 * 86_400_000).length;
@@ -107,52 +137,37 @@ export function AlertsPage() {
   return (
     <div className="wrap alx">
       <PageHeader plan="free" title="Alerts" art="calendar" links={["/watchlist", "/holdings", "/results"]}
-        description={<>Pick a company and a condition. When it comes true you are told in the app, and by email or in your browser if you choose. For information only, not investment advice.</>}
-        stats={[{ icon: "bell", value: counts.all > 0 ? counts.active : null, label: "Active alerts" }, { icon: "activity", value: counts.all > 0 ? week : null, label: "Fired in 7 days" }]} />
+        description={<>Get notified when a stock meets your conditions: price, technical, ratio, score or news. You are told in the app, and by email or in your browser if you choose. For information only, not investment advice.</>}
+        actions={<div className="alx-ha">
+          <span className="alx-used" title={`${plan[0].toUpperCase() + plan.slice(1)} plan`}><b>{used}</b> / {limit} alerts used{plan !== "gold" && used >= limit - 1 && <button className="alx-link" onClick={() => upgrade(plan === "basic" ? "silver" : "gold", "More alerts")}>Get more</button>}</span>
+          <button className="btn primary alx-new-btn" onClick={() => setDrawer(true)}><span aria-hidden="true">+</span> Create alert</button>
+        </div>} />
 
       <div className="alx-k">
-        <div className="card"><b>{counts.active}</b><span>Active alerts</span></div>
-        <div className="card"><b>{week}</b><span>Fired in the last 7 days</span></div>
-        <div className="card"><b className={unread ? "gold" : ""}>{unread}</b><span>Unread</span></div>
-        <div className="card"><b>{used}<small> / {limit}</small></b><span>{plan[0].toUpperCase() + plan.slice(1)} plan</span>{plan !== "gold" && used >= limit - 1 && <button className="alx-link" onClick={() => upgrade(plan === "basic" ? "silver" : "gold", "More alerts")}>Get more</button>}</div>
+        <div className="card"><span className="alx-ki"><Icon name="bell" /></span><div><b>{counts.active}</b><span>Active alerts</span></div></div>
+        <div className="card"><span className="alx-ki"><Icon name="activity" /></span><div><b>{week}</b><span>Triggered this week</span></div></div>
+        <div className="card"><span className="alx-ki"><Icon name="mail" /></span><div><b className={unread ? "gold" : ""}>{unread}</b><span>Unread</span></div></div>
       </div>
 
-      <div className="alx-grid">
-        <aside className="alx-side">
-          <section className="card acc alx-new">
-            <div className="card-h"><h3><span className="ci"><Icon name="bell" /></span>Create new alert</h3></div>
-            <AlertComposer preset={preset} />
-          </section>
-        </aside>
-
-        <div className="alx-main">
-          <section className="alx-quick" aria-label="Quick alerts">
-            <div className="alx-qh"><h2>Quick alerts</h2><span className="muted">Pick one to fill the form, then choose the stock</span></div>
-            <div className="alx-qg">
-              {QUICK.map((x) => {
-                const lock = METRICS[x.p.metric!].tier === "silver" && plan === "basic";
-                return <button key={x.t} className="alx-q" onClick={() => { setPreset({ ...x.p, symbol: preset.symbol }); document.getElementById("alx-stock")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
-                  <span className="alx-qi"><Icon name={x.icon} /></span><span><b>{x.t}</b><small>{x.d}</small></span>{lock && <em>Silver</em>}
-                </button>;
-              })}
-            </div>
-          </section>
-
+      <div className="alx-main">
           <section className="card alx-list">
-            <div className="alx-tabs" role="tablist" aria-label="Alerts">
-              <button role="tab" aria-selected={tab === "mine"} onClick={() => setTab("mine")}>My alerts <span>{alerts.length}</span></button>
-              <button role="tab" aria-selected={tab === "fired"} onClick={() => setTab("fired")}>Triggered {unread > 0 && <span className="hot">{unread} new</span>}</button>
+            <div className="alx-lh">
+              <h2>{tab === "mine" ? "My alerts" : "Triggered alerts"}</h2>
+              <div className="alx-tabs" role="tablist" aria-label="Alerts">
+                <button role="tab" aria-selected={tab === "mine"} onClick={() => setTab("mine")}>My alerts <span>{alerts.length}</span></button>
+                <button role="tab" aria-selected={tab === "fired"} onClick={() => setTab("fired")}>History {unread > 0 && <span className="hot">{unread} new</span>}</button>
+              </div>
             </div>
 
             {tab === "mine" ? (
               <>
                 <div className="alx-bar2">
-                  <div className="seg" role="group" aria-label="Status">{([["all", "All"], ["active", "Active"], ["paused", "Paused"], ["done", "Triggered"]] as const).map(([k, l]) => <button key={k} aria-pressed={f === k} onClick={() => setF(k)}>{l} {counts[k] > 0 && <small>{counts[k]}</small>}</button>)}</div>
-                  <input className="cs-in" aria-label="Search your alerts" placeholder="Search by stock or metric" value={q} onChange={(e) => setQ(e.target.value)} />
+                  <div className="alx-ft" role="group" aria-label="Status">{([["all", "All"], ["active", "Active"], ["paused", "Paused"], ["done", "Triggered"]] as const).map(([k, l]) => <button key={k} aria-pressed={f === k} onClick={() => setF(k)}>{l} {counts[k] > 0 && <small>({counts[k]})</small>}</button>)}</div>
+                  <label className="alx-search"><Icon name="search" /><input aria-label="Search your alerts" placeholder="Search by stock or metric" value={q} onChange={(e) => setQ(e.target.value)} /></label>
                 </div>
                 {error && <div className="formerr">Your alerts could not be loaded. Please try again shortly.</div>}
                 {loading && <div className="skeleton" style={{ height: 120 }} />}
-                {!loading && !error && alerts.length === 0 && <div className="dw-empty"><span className="dw-ei"><Icon name="bell" /></span><b>No alerts yet</b><p>Try a quick alert on the right, or build your own with the form. {LIVE_NOTE}</p></div>}
+                {!loading && !error && alerts.length === 0 && <div className="dw-empty"><span className="dw-ei"><Icon name="bell" /></span><b>No alerts yet</b><p>Pick a quick alert below, or press <b>Create alert</b> to build your own. {LIVE_NOTE}</p></div>}
                 <div className="alx-cards">
                   {shown.map((a) => <AlertCard key={a.id} a={a} onPatch={(p) => patch.mutate({ id: a.id, ...p }, { onError: fail })} onRemove={() => remove.mutate(a.id, { onError: fail })} />)}
                 </div>
@@ -176,6 +191,19 @@ export function AlertsPage() {
             )}
           </section>
 
+          <section className="card alx-quick" aria-label="Quick alerts">
+            <div className="alx-qh"><div><h2>Quick alerts</h2><span className="muted">Set up common alerts in a single click</span></div>
+              <button className="alx-link" aria-expanded={allQuick} onClick={() => setAllQuick((v) => !v)}>{allQuick ? "Show fewer" : `View all (${QUICK.length})`} <Icon name="arrow" /></button></div>
+            <div className="alx-qg">
+              {(allQuick ? QUICK : QUICK.slice(0, 4)).map((x) => {
+                const lock = METRICS[x.p.metric!].tier === "silver" && plan === "basic";
+                return <button key={x.t} className="alx-q" onClick={() => { setPreset({ ...x.p, symbol: preset.symbol }); setDrawer(true); }}>
+                  <span className="alx-qi"><Icon name={x.icon} /></span><span><b>{x.t}</b><small>{x.d}</small></span>{lock && <em>Silver</em>}
+                </button>;
+              })}
+            </div>
+          </section>
+
           {DEMO && (
             <section className="card alx-demo">
               <div className="card-h"><h3><span className="ci"><Icon name="spark" /></span>Demo controls</h3><span className="s">Preview only</span></div>
@@ -187,8 +215,8 @@ export function AlertsPage() {
               </div>
             </section>
           )}
-        </div>
       </div>
+      <AlertDrawer open={drawer} onClose={closeDrawer} preset={preset} />
     </div>
   );
 }

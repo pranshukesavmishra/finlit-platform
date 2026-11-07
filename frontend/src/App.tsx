@@ -128,6 +128,7 @@ export default function App() {
             <Route path="outlook" element={<OutlookIndexPage />} />
             <Route path="outlook/:symbol" element={<OutlookPage />} />
             <Route path="eps-calculator" element={<EpsCalculatorPage />} />
+            <Route path="sip-calculator" element={<SipCalculator />} />
             <Route path="holdings" element={<HoldingsPage />} />
             <Route path="mf-portfolio" element={<MfPortfolioPage />} />
             <Route path="alerts" element={<AlertsPage />} />
@@ -151,7 +152,6 @@ export default function App() {
             <Route path="console" element={<Console />} />
           </Route>
           <Route path="stocks/:symbol" element={<StockPage />} />
-          <Route path="sip-calculator" element={<SipCalculator />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="pricing" element={<Navigate to="/plans" replace />} />
           <Route path="faq" element={<FaqsPage />} />

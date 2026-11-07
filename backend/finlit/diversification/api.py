@@ -3,7 +3,7 @@
 The request carries share names only. Any other field (quantity, amount, price, date, ...) is refused with 422, so none can reach the server by accident.
 Data: the site's own stored adjusted weekly closes (price-MAX, weekly bars from January 2020) and NIFTY 50 daily closes reduced to ISO weeks.
 
-Plans: the endpoint is open, like the Compare page and the stored prices it reads (My portfolio keeps its own Silver gate on the page). The one part that
+Plans: the endpoint is open, like the Compare page and the stored prices it reads (Equity portfolio keeps its own Silver gate on the page). The one part that
 comes from a paid data set, the style tilt (FinLit Prism parts), is sent to Gold only, as the screener does; the card shows why it is blank.
 Information only, not investment advice.
 """
@@ -162,7 +162,7 @@ def _build(prices: dict, index_rows: List[dict], symbols: List[str], facts: Dict
 
 
 def _one_score(core: Dict[str, Any], prices: dict, index_rows: List[dict], symbols: List[str], facts: Dict[str, dict], spellings: Dict[str, str], week: str) -> None:
-    """One score for one list on the whole site: the score, its two parts and 'moves like N' are the ones the My portfolio page shows (the handover pack's
+    """One score for one list on the whole site: the score, its two parts and 'moves like N' are the ones the Equity portfolio page shows (the handover pack's
     engine, finlit/portfolio_page), so the card and the page never disagree. The card's own pair, group, risk and market figures keep their windows."""
     from ..portfolio_page import inputs
     meta = inputs.build_meta([s for s in symbols if s in facts], facts, spellings)

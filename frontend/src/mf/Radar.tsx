@@ -1,6 +1,5 @@
 // Spider chart of the four parts (0 to 100). One or more outlines; the first is the fund, the others (category median, other funds) are drawn behind it.
 import { PILLARS } from "../lib/mfScoreUp";
-import { ChartZoom } from "../components/ChartZoom";
 
 export type RadarSeries = { name: string; values: (number | null)[]; color: string; dashed?: boolean };
 const R = 78, C = 100;
@@ -9,7 +8,6 @@ const pt = (i: number, v: number): [number, number] => { const a = -Math.PI / 2 
 export function Radar({ series, label }: { series: RadarSeries[]; label: string }) {
   const desc = series.map((s) => `${s.name}: ${PILLARS.map(([, n], i) => `${n} ${s.values[i] == null ? "none" : Math.round(s.values[i]!)}`).join(", ")}`).join(". ");
   return (
-    <ChartZoom label={label}>
     <figure className="mfu-radar">
       <svg viewBox="-22 0 244 200" role="img" aria-label={`${label}. ${desc}`}>
         {[25, 50, 75, 100].map((g) => <polygon key={g} points={PILLARS.map((_, i) => pt(i, g).join(",")).join(" ")} fill="none" stroke="var(--border)" strokeWidth={g === 100 ? 1.2 : 0.7} />)}
@@ -21,6 +19,5 @@ export function Radar({ series, label }: { series: RadarSeries[]; label: string 
       </svg>
       <figcaption className="mfu-leg">{series.map((s) => <span key={s.name}><i style={{ background: s.dashed ? "transparent" : s.color, borderColor: s.color, borderStyle: s.dashed ? "dashed" : "solid" }} aria-hidden="true" />{s.name}</span>)}</figcaption>
     </figure>
-    </ChartZoom>
   );
 }

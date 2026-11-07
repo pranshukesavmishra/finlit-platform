@@ -3,7 +3,6 @@ import { css, drawIn, el, vgrad } from "../lib/svg";
 import { MINUS, cr, nf, num } from "../lib/format";
 import { useChart } from "./useChart";
 import type { Series, Table } from "../lib/api";
-import { ChartZoom } from "../components/ChartZoom";
 
 const get = (t: Table, k: string): Series => t.rows[k] || [];
 const v0 = (x: number | null | undefined) => (x == null ? 0 : x);
@@ -90,5 +89,5 @@ export function FinChart({ kind, pl, bs, cf, ql }: { kind: FinKind; pl: Table; b
       hoverBands(n, pl_, step, H, (i, d) => { line(d, labels[i], "faint"); line(d, `Free cash flow ₹${num(fcf[i], 0)} Cr`, "", "b"); keys.forEach(([nm, arr]) => line(d, `${nm} ₹${num(arr[i], 0)} Cr`, "muted", "div")); });
     }
   }, [kind, pl, bs, cf, ql]);
-  return <ChartZoom label="Financial statement chart"><div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label="Financial statement chart" /><div className="tip" ref={tip} hidden /></div></ChartZoom>;
+  return <div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label="Financial statement chart" /><div className="tip" ref={tip} hidden /></div>;
 }

@@ -9,7 +9,6 @@ import { Radar } from "./Radar";
 import { ScoreRing } from "./ScoreCard";
 import { dateIN } from "../lib/format";
 import "../styles/mfup.css";
-import { ChartZoom } from "../components/ChartZoom";
 
 const COLORS = ["var(--gold)", "var(--k1)", "var(--k2)", "var(--k3)"];
 const WORD = { ahead: "ahead", level: "level", behind: "behind", na: "" } as const;
@@ -26,7 +25,6 @@ function Lines({ codes, names }: { codes: number[]; names: string[] }) {
   const lo = Math.max(0, Math.floor(Math.min(...all.map((p) => p.final!)) / 10) * 10 - 5), hi = Math.min(100, Math.ceil(Math.max(...all.map((p) => p.final!)) / 10) * 10 + 5);
   const X = (d: string) => 30 + (t1 === t0 ? 280 : ((Date.parse(d) - t0) / (t1 - t0)) * 560), Y = (v: number) => 10 + (1 - (v - lo) / (hi - lo)) * 140;
   return (
-    <ChartZoom label={"Fund score over time, compared"}>
     <figure className="mfu-lines">
       <svg viewBox="0 0 600 170" role="img" aria-label={`Score over time. ${codes.map((_, i) => `${names[i]}: ${scoreText(series[i][series[i].length - 1]?.final)}`).join("; ")}`}>
         {[lo, (lo + hi) / 2, hi].map((g) => <g key={g}><line x1="30" x2="590" y1={Y(g)} y2={Y(g)} stroke="var(--border)" strokeWidth="0.6" /><text x="25" y={Y(g) + 3} textAnchor="end" className="mfu-ax">{Math.round(g)}</text></g>)}
@@ -34,7 +32,6 @@ function Lines({ codes, names }: { codes: number[]; names: string[] }) {
       </svg>
       <figcaption className="mfu-leg">{codes.map((c, i) => <span key={c}><i style={{ background: COLORS[i] }} aria-hidden="true" />{names[i]}</span>)}</figcaption>
     </figure>
-    </ChartZoom>
   );
 }
 

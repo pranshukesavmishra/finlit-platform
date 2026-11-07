@@ -30,12 +30,12 @@ import { ADD_NOTE, HEAD_DESC, MODE_LABEL, MODE_SHORT, NAV, SIZES_NOTE } from "..
 import type { Mode } from "../portfolio/types";
 import "../portfolio/pf.css";
 
-/** My portfolio: give it the names of the shares you own (typed, pasted or from a broker file) and it describes the list: how strong each share is, where the list sits by
+/** Equity portfolio: give it the names of the shares you own (typed, pasted or from a broker file) and it describes the list: how strong each share is, where the list sits by
  *  sector and size, what moves together, where the risk comes from and how the list has moved against the NIFTY 50. Names only: quantities, prices and dates are never asked for.
  *  Every figure and every sentence comes from POST /api/portfolio/page (the handover pack's engine) and POST /api/portfolio/overview (live price and the plan's scores). */
 
 export function HoldingsPage() {
-  useDocTitle("My portfolio", "Add the shares you own, by name or from a broker file, and see how strong each one is, how spread out the list is, what moves together and where the risk comes from.");
+  useDocTitle("Equity portfolio", "Add the shares you own, by name or from a broker file, and see how strong each one is, how spread out the list is, what moves together and where the risk comes from.");
   const { plan, toast } = useUI();
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
@@ -90,7 +90,7 @@ export function HoldingsPage() {
 
   return (
     <div className="wrap ipo pfx">
-      <PageHeader plan="silver" title="My portfolio" art="portfolio" links={["/mf-portfolio", "/watchlist", "/alerts"]} description={HEAD_DESC} />
+      <PageHeader plan="silver" title="Equity portfolio" art="portfolio" links={["/mf-portfolio", "/watchlist", "/alerts"]} description={HEAD_DESC} />
       <Gate tier="silver" title="Score your portfolio" points={["FinLit IQ and pillars for every share you own (Gold: FinLit Prism)", "How spread out the list is, and what moves together", "Share of risk and the NIFTY 50 comparison", "Import Excel, CSV or PDF statements"]}>
         <div className="pfx-flow">
         {model && <aside className="pf-model" aria-label="Which score model this page uses"><span className="ci"><Icon name="quality" /></span>

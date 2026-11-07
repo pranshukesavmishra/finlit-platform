@@ -12,7 +12,6 @@ import { dateIN, MINUS, nf } from "../lib/format";
 import { niceTicks } from "../lib/etf";
 import { RANGES, align, corrWords, correlation, cut, fmt, frac, heat, signed, toCsv, useMacro, type Card, type Macro, type Pt, type RangeKey, type SeriesOut } from "../lib/macro";
 import "../styles/macro.css";
-import { ChartZoom } from "../components/ChartZoom";
 
 const TONE = { up: "var(--loss)", down: "var(--gain)", flat: "var(--muted)" } as const;
 // for these a rise is a worry (prices, joblessness); for the others it is a good sign
@@ -158,7 +157,6 @@ function History({ m, openId, setOpenId }: { m: Macro; openId: string; setOpenId
   };
   return (
     <section className="mc-panel" aria-labelledby="mcHist" id="history">
-      <ChartZoom label={"India macro history"} className="cz-r">
       <div className="mc-ph"><h2 id="mcHist">History</h2>
         <div className="mc-seg" role="radiogroup" aria-label="Range">{RANGES.map(([k]) => <button key={k} type="button" role="radio" aria-checked={range === k} className={range === k ? "on" : ""} onClick={() => setRange(k)}>{k}</button>)}</div></div>
       <div className="mc-tabs" role="tablist" aria-label="Which history">{TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab.id === t.id} className={tab.id === t.id ? "on" : ""} onClick={() => setOpenId(t.id)}>{t.label}</button>)}</div>
@@ -167,7 +165,6 @@ function History({ m, openId, setOpenId }: { m: Macro; openId: string; setOpenId
       <ul className="mc-keys">{latest.map(({ l, s, last }) => <li key={l.key}><i style={{ background: l.color }} />{s.label}: <b>{fmt(last![1], s.unit)}</b> <small>latest, {last![0].slice(0, 7)}</small></li>)}</ul>
       <ul className="mc-methods">{lines.map((l) => m.series[l.key]?.note && <li key={l.key}><b>{m.series[l.key].label}.</b> {m.series[l.key].note} <a href={m.series[l.key].sourceUrl || "#"} target="_blank" rel="noopener noreferrer">{m.series[l.key].source}</a></li>)}</ul>
       <div className="mc-acts"><button type="button" className="btn" onClick={csv}>Download these series (CSV)</button></div>
-      </ChartZoom>
     </section>
   );
 }
@@ -207,11 +204,11 @@ function Heatmap({ m }: { m: Macro }) {
     <section className="mc-panel" aria-labelledby="mcHeat">
       <div className="mc-ph"><h2 id="mcHeat">What is getting dearer</h2><span className="mc-chip">CPI by division, all India, year on year</span></div>
       <p className="mc-note">Each row is one group of household spending. Blue is below 2%, green is under the 4% target, amber is above target, red is above the 6% limit. Sorted by the latest month.</p>
-      <ChartZoom label="What is getting dearer: CPI by division" className="cz-top"><div className="mc-hw" data-chart><table className="mc-heat">
+      <div className="mc-hw"><table className="mc-heat">
         <thead><tr><th>Division</th>{months.map((d) => <th key={d}>{dateIN(d, { month: "short" })}<small>{d.slice(2, 4)}</small></th>)}</tr></thead>
         <tbody>{rank.map((d) => { const mp = new Map(d.points); return (
           <tr key={d.key} className={hot === d.key ? "on" : ""} onMouseEnter={() => setHot(d.key)} onMouseLeave={() => setHot(null)}>
-            <th scope="row">{short(d.label)}</th>{months.map((mo) => { const v = mp.get(mo) ?? null, h = heat(v); return <td key={mo} style={{ background: h.bg }} className={h.strong ? "s" : ""}>{v == null ? "·" : nf(v, 1)}</td>; })}</tr>); })}</tbody></table></div></ChartZoom>
+            <th scope="row">{short(d.label)}</th>{months.map((mo) => { const v = mp.get(mo) ?? null, h = heat(v); return <td key={mo} style={{ background: h.bg }} className={h.strong ? "s" : ""}>{v == null ? "·" : nf(v, 1)}</td>; })}</tr>); })}</tbody></table></div>
       <p className="mc-foot">Source: MoSPI, CPI (base 2024 = 100), as published. Percent change over the same month a year earlier.</p>
     </section>
   );
@@ -228,14 +225,12 @@ function Compare({ m }: { m: Macro }) {
   const sel = (id: string, v: string, set: (s: string) => void, label: string) => <label htmlFor={id}>{label}<select id={id} value={v} onChange={(e) => set(e.target.value)}>{keys.map((k) => <option key={k} value={k}>{m.series[k].label}</option>)}</select></label>;
   return (
     <section className="mc-panel" aria-labelledby="mcCmp">
-      <ChartZoom label={"Build your own macro chart"} className="cz-r">
       <div className="mc-ph"><h2 id="mcCmp">Build your own chart</h2>
         <div className="mc-seg" role="radiogroup" aria-label="Range">{RANGES.map(([k]) => <button key={k} type="button" role="radio" aria-checked={range === k} className={range === k ? "on" : ""} onClick={() => setRange(k)}>{k}</button>)}</div></div>
       <p className="mc-note">Pick any two measures. Each is drawn on its own 0-100 scale between its lowest and highest value in the range, so you can see whether they move together whatever their units.</p>
       <div className="mc-pick">{sel(ida, a, setA, "First")}{sel(idb, b, setB, "Second")}</div>
       <Chart lines={[{ key: a, color: PALETTE[0], step: a === "repo" }, { key: b, color: PALETTE[1], dashed: true, step: b === "repo" }]} series={m.series} months={months} normalize height={260} />
       <div className="mc-corr"><span>Correlation over the months both have</span><b style={{ color: r == null ? "var(--muted)" : r > 0 ? "var(--gain)" : "var(--loss)" }}>{r == null ? MINUS : (r > 0 ? "+" : "") + r.toFixed(2).replace("-", "−")}</b><em>{a === b ? "Choose two different measures." : corrWords(r)}. Correlation shows moving together, not one causing the other.</em></div>
-      </ChartZoom>
     </section>
   );
 }

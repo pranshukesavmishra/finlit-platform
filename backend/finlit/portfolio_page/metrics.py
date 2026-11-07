@@ -1,4 +1,4 @@
-"""FinLit "My portfolio" page: calculations and reading rules (ported unchanged from the design handover pack, reference/portfolio_metrics.py).
+"""FinLit "Equity portfolio" page: calculations and reading rules (ported unchanged from the design handover pack, reference/portfolio_metrics.py).
 
 Every formula, threshold and reading is the pack's. The one addition is a size code "U" for a company whose market-value rank is not known (it is counted in the
 list, in no size column). Information only, not investment advice.

@@ -1,4 +1,4 @@
-"""POST /api/portfolio/overview: the My portfolio page's bulk read. Shape, plan gating (Silver: FinLit IQ and no Prism field; Gold: Prism and no FinLit
+"""POST /api/portfolio/overview: the Equity portfolio page's bulk read. Shape, plan gating (Silver: FinLit IQ and no Prism field; Gold: Prism and no FinLit
 score block; Basic and visitors refused), ratios and financials equal to what the stock page shows (Reliance fixture), the preparing and unknown
 statuses, the blank-figure reasons, and the 500 limit."""
 

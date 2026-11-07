@@ -1,10 +1,11 @@
 /* "Questions about this page" panel at the bottom of each page, and the All FAQs hub */
 /* The panel lines up with the page's content column: the same left and right edges as a .wrap (max 1260 with a 20px gutter, 14px on a phone), centred.
    On a page with the workspace sidebar the column starts after the sidebar (280px, 76px when it is collapsed), exactly like the page's own content. */
-.pfq { margin: 40px auto 0; padding: 0; max-width: 1640px; box-sizing: border-box; }
+.pfq { margin: 40px auto 64px; padding: 0; max-width: 1640px; box-sizing: border-box; }   /* clear space below: the panel never touches the footer */
 main:has(.shell:not(.is-collapsed)) > .pfq { padding-left: 280px; }
 main:has(.shell.is-collapsed) > .pfq { padding-left: 76px; }
-.pfq-in { width: min(1220px, calc(100% - 40px)); margin: 0 auto; box-sizing: border-box; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); }
+.pfq-in { width: min(1220px, calc(100% - 40px)); margin: 0 auto; box-sizing: border-box; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1);
+  box-shadow: inset 0 3px 0 var(--gold), var(--lift); }   /* clearer boundary: a thin gold top edge and a soft lift */
 .pfq-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
 .pfq-k { display: block; font: 600 12px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
 .pfq-h h2, .pfq-hub h1 { margin: 0; font: 400 24px/1.2 var(--serif); color: var(--text); }
@@ -43,7 +44,7 @@ main:has(.shell.is-collapsed) > .pfq { padding-left: 76px; }
 @media (max-width: 960px) { main:has(.shell) > .pfq { padding-left: 0 !important; } }
 @media (max-width: 760px) { .pfq-in { width: calc(100% - 28px); } }   /* the phone gutter of .wrap */
 @media (max-width: 720px) {
-  .pfq { margin-top: 28px; }
+  .pfq { margin-top: 28px; margin-bottom: 24px; }
   .pfq-in { padding: 20px 16px 16px; border-radius: 16px; }
   .pfq-h { flex-direction: column; gap: 8px; } .pfq-h h2 { font-size: var(--fs-20); }
   .pfq-h h2 small { display: block; margin: 2px 0 0; }
