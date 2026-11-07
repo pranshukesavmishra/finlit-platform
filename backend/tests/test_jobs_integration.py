@@ -353,7 +353,7 @@ async def test_status_warns_before_a_job_hits_its_time_limit(store):
 
 async def test_status_shows_a_job_too_big_for_the_server_as_disabled_never_overdue(store):
     await clean(store)
-    env = {"FUND_LOADS_ENABLED": "0", "JOBS_CAPACITY_MB": "400"}          # a container smaller than the sector job's weight (450 MB) plus the site's reserve
+    env = {"FUND_LOADS_ENABLED": "0", "JOBS_CAPACITY_MB": "400", "SECTORS_JOB": "on"}   # a container smaller than the sector job's weight (450 MB) plus the site's reserve
     await seed(store, {"sectors": dict(last_success_at=NOW - timedelta(days=5), last_status=None, state="waiting")})   # five days without a success
     body = await jobs_status.build(store, store.redis, NOW, env)
     row = {j["name"]: j for j in body["jobs"]}["sectors"]

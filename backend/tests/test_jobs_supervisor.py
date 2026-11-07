@@ -146,6 +146,40 @@ async def test_a_prerequisite_in_backoff_does_not_block_its_dependents_for_ever(
     assert sup.runner.started == ["score"]
 
 
+# A prerequisite that is due but cannot start (here: too heavy for the free memory) shows the rule on its own.
+async def test_a_due_prerequisite_does_not_block_a_dependent_that_already_has_newer_input():
+    # prism finished an hour ago (newer than presets' run 3 days ago) and is due again: presets uses that input now instead of waiting for ever
+    sup, _ = make([bulk("prism", 40, interval_min=10, weight_mb=5000), bulk("presets", 42, prerequisites=("prism",), interval_min=60, catchup=False)])
+    await sup.state.save(JobState(job="prism", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(hours=1)))
+    await sup.state.save(JobState(job="presets", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(days=3)))
+    plan = await sup.plan()
+    assert [j.name for j in plan.start] == ["presets"]
+
+
+async def test_a_due_prerequisite_without_newer_input_still_goes_first():
+    sup, _ = make([bulk("ingest", 20, interval_min=10, weight_mb=5000), bulk("score", 30, prerequisites=("ingest",), interval_min=60, catchup=False)])
+    await sup.state.save(JobState(job="ingest", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(hours=30)))
+    await sup.state.save(JobState(job="score", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(hours=2)))
+    plan = await sup.plan()
+    assert plan.start == [] and "waiting for ingest" in plan.blocked["score"]       # nothing new since score ran: it waits for ingest
+
+
+async def test_a_dependent_past_its_promise_stops_waiting_for_a_due_prerequisite():
+    sup, _ = make([bulk("portfolios", 50, interval_min=10, weight_mb=5000), bulk("score-mf", 55, prerequisites=("portfolios",), sla=Sla("hours", 26), catchup=False)])
+    await sup.state.save(JobState(job="portfolios", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(days=4)))
+    await sup.state.save(JobState(job="score-mf", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(days=3)))
+    plan = await sup.plan()
+    assert [j.name for j in plan.start] == ["score-mf"]                               # 3 days old against a 26 h promise: it runs on what is there
+
+
+async def test_a_running_prerequisite_always_blocks():
+    sup, clock = make([bulk("prism", 40, interval_min=10), bulk("presets", 42, prerequisites=("prism",), interval_min=60, catchup=False)], cfg=config(bulk_concurrency=2))
+    await sup.state.save(JobState(job="prism", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(hours=1)))
+    await sup.state.save(JobState(job="presets", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(days=3)))
+    await sup.step()
+    assert sup.runner.started == ["prism"] and "waiting for prism" in (await sup.state.load_all())["presets"].state_reason
+
+
 async def test_disabled_jobs_never_start_and_say_why():
     jobs = [light("funds-job", gate=Gate("FUND_LOADS_ENABLED", "funds are off", default="0"))]
     sup, _ = make(jobs, env={})

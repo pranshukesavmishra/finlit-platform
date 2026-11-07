@@ -11,6 +11,12 @@ JOBS = by_name(ENV)
 OLD = [l.strip() for l in (Path(__file__).parent / "fixtures/old_scheduler_commands.txt").read_text().splitlines() if l.strip() and not l.startswith("#")]
 
 
+def test_score_all_stops_by_itself_before_the_supervisor_limit():
+    j = JOBS["score"]
+    i = j.args.index("--max-minutes")
+    assert float(j.args[i + 1]) <= j.max_runtime_min - 15        # its own budget ends well before the watchdog (both were 90: every run was killed as a timeout)
+
+
 def test_names_are_unique_priorities_sane_and_prerequisites_exist():
     jobs = build_jobs(ENV)
     names = [j.name for j in jobs]
@@ -124,7 +130,7 @@ def test_the_new_morning_window_runs_the_whole_catch_up_chain_when_the_night_fai
 
 
 # ------------------------------------------------------------------------------------------------ the sector job (docs/SECTORS.md)
-SEC_ENV = {**ENV, "SECTORS_ENABLED": "1"}
+SEC_ENV = {**ENV, "SECTORS_ENABLED": "1", "SECTORS_JOB": "on"}
 
 
 def _sec_due(t, last_success_hours_ago, env=SEC_ENV, technicals_ok=True):
@@ -133,15 +139,17 @@ def _sec_due(t, last_success_hours_ago, env=SEC_ENV, technicals_ok=True):
     return evaluate(j, st, Ctx(now=t, env=env, probes={}))
 
 
-def test_the_sector_job_is_a_bulk_job_after_technicals_and_always_on():
+def test_the_sector_job_is_a_bulk_job_after_technicals_and_off_until_switched_on():
     j = JOBS["sectors"]
     assert j.cls == "bulk" and j.command == "refresh-sectors" and j.prerequisites == ("technicals",) and j.owns == ("sectors",)
     assert j.sla.kind == "session" and j.sla.hours == 14 and j.max_runtime_min == 90 and 364 <= j.weight_mb <= 600 and j.honours_pause
     assert [(w.window, w.not_before) for w in j.windows] == [("AFTER_CLOSE", (19, 0)), ("NIGHT", None), ("MORNING", None)]
     assert j.resumable                                                        # longer than one run on the server: it continues where it stopped
-    for env in ({}, {"SECTORS_ENABLED": "0"}, SEC_ENV):
-        assert disabled_reason(j, env) is None                                # always on: the environment cannot switch it off
-    assert evaluate(j, JobState(job="sectors", first_seen_at=ist(2026, 10, 1)), Ctx(now=ist(2026, 10, 30, 19, 30), env={}, probes={})).state != "disabled"
+    for env in ({}, {"SECTORS_ENABLED": "1"}, {"SECTORS_JOB": "off"}):        # switched off for now (founder, 7 Nov 2026): SECTORS_JOB=on brings it back
+        assert "switched off for now" in disabled_reason(j, env)
+    assert disabled_reason(j, SEC_ENV) is None
+    assert evaluate(j, JobState(job="sectors", first_seen_at=ist(2026, 10, 1)), Ctx(now=ist(2026, 10, 30, 19, 30), env={}, probes={})).state == "disabled"
+    assert evaluate(j, JobState(job="sectors", first_seen_at=ist(2026, 10, 1)), Ctx(now=ist(2026, 10, 30, 19, 30), env=SEC_ENV, probes={})).state != "disabled"
 
 
 def test_the_sector_job_runs_on_weekday_evenings_from_seven_and_catches_up_in_the_morning_but_not_at_weekends():

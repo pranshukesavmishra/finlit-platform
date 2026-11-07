@@ -279,8 +279,11 @@ def test_the_admin_pause_never_stops_a_night_morning_or_after_close_window_or_a_
 def test_no_environment_value_switches_off_a_scheduled_job():
     now = at(*FRI, 12, 0)
     for env in ({"FUND_LOADS_ENABLED": "0"}, {"PRISM_PRECOMPUTE_ENABLED": "0"}, {"SECTORS_ENABLED": "0"}, {}):
-        for name in ("mf", "prism", "sectors", "portfolios"):
+        for name in ("mf", "prism", "portfolios"):
             assert evaluate(JOBS[name], state(name, now, 300), Ctx(now=now, env=env)).state != "disabled", (name, env)
+    # the one exception, by the founder's own decision (7 Nov 2026): the sector job is off until SECTORS_JOB=on
+    assert evaluate(JOBS["sectors"], state("sectors", now, 300), Ctx(now=now, env={})).state == "disabled"
+    assert evaluate(JOBS["sectors"], state("sectors", now, 300), Ctx(now=now, env={"SECTORS_JOB": "on"})).state != "disabled"
     assert evaluate(JOBS["dhan-check"], state("d", now, 500), Ctx(now=now, env={})).state == "disabled"   # no credentials: cannot run at all
 
 

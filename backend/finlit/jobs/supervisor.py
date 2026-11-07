@@ -156,7 +156,11 @@ class Supervisor:
     def _blocker(self, job: Job, plan: Plan, free_mb: float, load: float, reserved: Dict[str, float], now: datetime) -> Optional[str]:
         for p in job.prerequisites:
             pj = self.jobs.get(p)
-            if pj and (p in self.running or plan.verdicts[p].due):
+            if not pj:
+                continue
+            if p in self.running or any(j.name == p for j in plan.start):
+                return f"waiting for {p} to finish first"
+            if plan.verdicts[p].due and self._waits_for_due(job, p, plan, now):
                 return f"waiting for {p} to finish first"
         if job.cls == "bulk" or job.group == "funds":
             since = (now - self.started_at).total_seconds()
@@ -182,6 +186,19 @@ class Supervisor:
         if job.cls == "bulk" and (self.running or plan.start) and load > self.cfg.max_load_per_cpu:
             return f"waiting for the CPU: load {load:.1f} per core is above {self.cfg.max_load_per_cpu:g}"
         return None
+
+    def _waits_for_due(self, job: Job, p: str, plan: Plan, now: datetime) -> bool:
+        """Should `job` wait for its prerequisite `p`, which is due but not running? Only while waiting makes sense: `p` has nothing new since `job`
+        last succeeded, and `job` is still inside its promise. A resumable prerequisite that yields at its time cap is due again two minutes later,
+        and an interval job (prism, every 10 minutes) is due almost all the time; without this rule the jobs after them waited for days
+        (7 Nov 2026: presets, score-mf and mf-screen were 3 days old behind prism, ingest and portfolios)."""
+        st = plan.states.get(job.name) or JobState(job=job.name, first_seen_at=now)
+        ps = plan.states.get(p)
+        if ps and ps.last_success_at and (st.last_success_at is None or ps.last_success_at > st.last_success_at):
+            return False          # newer input is already there: use it now; the next round of `p` is picked up next time
+        if sla_status(job, st, now).breached:
+            return False          # past its promise: run on what is there rather than wait for ever
+        return True
 
     async def plan(self) -> Plan:
         now = self.clock.now()
