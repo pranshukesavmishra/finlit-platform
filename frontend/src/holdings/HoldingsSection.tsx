@@ -6,6 +6,7 @@ import { dateIN, nf } from "../lib/format";
 import { arcPath, assetRows, classifyChanges, groupHoldings, SMALL_BELOW_PCT, sectorRows, sliceFractions, sliceList, sortHoldings, topNPct, type ChangeKind, type SortDir } from "./logic";
 import { isPortfolio, type Holding, type PortfolioResult } from "./types";
 import "./holdings.css";
+import { ChartZoom } from "../components/ChartZoom";
 
 const pct = (v: number | null | undefined, d = 2) => (v == null ? "—" : nf(v, d) + "%");
 const pp = (v: number | null | undefined) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + nf(Math.abs(v), 2) + " pp");
@@ -109,6 +110,7 @@ export function HoldingsSection({ portfolio, title = "What it invests in", unit 
         <div><dt>Small holdings</dt><dd>{g.otherCount} below {SMALL_BELOW_PCT}%, {pct(g.otherPct)} together</dd></div>
       </dl>
 
+      <ChartZoom label="Share of each major holding" className="cz-top">
       <div className="hd-grid">
         <Donut slices={slices} />
         <ol className="hd-legend" aria-label="Major holdings">
@@ -120,6 +122,7 @@ export function HoldingsSection({ portfolio, title = "What it invests in", unit 
             </li>))}
         </ol>
       </div>
+      </ChartZoom>
 
       <h4 className="hd-h4">All holdings below {SMALL_BELOW_PCT}% ({g.otherCount})</h4>
       {g.otherCount ? <SmallTable rows={g.small} /> : <p className="hd-none">Every holding is at {SMALL_BELOW_PCT}% or more, so none are grouped.</p>}

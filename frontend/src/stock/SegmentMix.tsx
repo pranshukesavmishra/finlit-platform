@@ -7,6 +7,7 @@ import {
   axisCr, axisPct, cagrText, chartModel, chartSummary, mixStatus, niceTicks, pp, sortRows, stackTop, tableRows,
   type ChartModel, type SortKey, type TableRow,
 } from "../lib/segmentMix";
+import { ChartZoom } from "../components/ChartZoom";
 
 type Mode = "revenue" | "share";
 const rs = (n: number | null | undefined) => (n == null ? "—" : "₹" + cr(n) + " Cr");
@@ -134,6 +135,7 @@ export function SegmentHistory({ seg }: { seg?: Segments }) {
   const many = model.years.length >= 2;
   return (
     <div className="mx">
+      <ChartZoom label="How the segment mix has changed" className="cz-r">
       <div className="mx-h">
         <h4>How the mix has changed</h4>
         {many && <div className="seg" role="group" aria-label="Chart values"><button type="button" aria-pressed={mode === "revenue"} onClick={() => setMode("revenue")}>Revenue (₹ Cr)</button><button type="button" aria-pressed={mode === "share"} onClick={() => setMode("share")}>Share of revenue (%)</button></div>}
@@ -150,6 +152,7 @@ export function SegmentHistory({ seg }: { seg?: Segments }) {
           </table></div>
         </>
       ) : null}
+      </ChartZoom>
 
       {many && (
         <>

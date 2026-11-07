@@ -17,6 +17,7 @@ import {
 } from "../lib/epsCalc";
 import "../styles/dcf.css";
 import "../styles/eps.css";
+import { ChartZoom } from "../components/ChartZoom";
 
 // ------------------------------------------------------------------------------------------------------------- form state
 type Form = { np: string; pd: string; sh: string; ds: string; px: string; m: "b" | "d"; g: string; pe: string; n: string; bg: string; bp: string; ug: string; up: string; tp: string; sym: string };
@@ -152,6 +153,7 @@ function Chart({ title, unitLabel, kind, pts, sel, setSel, fmt, years }: { title
     setSel(Math.min(years, Math.max(0, t)));
   };
   return (
+    <ChartZoom label={title}>
     <figure className="eps-chart">
       <figcaption><b>{title}</b> <span className="faint">{unitLabel}</span></figcaption>
       <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`${title}. Use the left and right arrow keys to read each year.`} tabIndex={0} onKeyDown={onKey} onPointerMove={onMove} onPointerDown={onMove}>
@@ -164,6 +166,7 @@ function Chart({ title, unitLabel, kind, pts, sel, setSel, fmt, years }: { title
         <text x={L + iw / 2} y={H - 0.5} textAnchor="middle" className="ax">Year</text>
       </svg>
     </figure>
+    </ChartZoom>
   );
 }
 

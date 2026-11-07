@@ -3,6 +3,7 @@ import { css, drawIn, el, niceTicks, reduced, vgrad } from "../lib/svg";
 import { dateIN, nf } from "../lib/format";
 import { useChart } from "./useChart";
 import type { PriceRange } from "../lib/api";
+import { ChartZoom } from "../components/ChartZoom";
 
 /** Close line with 50/200-day averages (computed server-side on full history) and volume bars. */
 export function PriceChart({ data, showEma50, showEma200, showVol }: { data: PriceRange; showEma50: boolean; showEma200: boolean; showVol: boolean }) {
@@ -72,6 +73,6 @@ export function PriceChart({ data, showEma50, showEma200, showVol }: { data: Pri
     };
     svgEl.onpointerleave = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); if (tip.current) tip.current.hidden = true; };
   }, [data, showEma50, showEma200, showVol]);
-  return <div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label={`Price from ₹${nf(s.c[0])} to ₹${nf(s.c[s.c.length - 1])} over ${data.range}`} /><div className="tip" ref={tip} hidden /></div>;
+  return <ChartZoom label="Price chart"><div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label={`Price from ₹${nf(s.c[0])} to ₹${nf(s.c[s.c.length - 1])} over ${data.range}`} /><div className="tip" ref={tip} hidden /></div></ChartZoom>;
 }
 void reduced;

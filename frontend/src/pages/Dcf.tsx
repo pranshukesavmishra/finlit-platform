@@ -22,6 +22,7 @@ import {
 } from "../lib/dcf";
 import { With3D } from "../charts/With3D";
 import "../styles/dcf.css";
+import { ChartZoom } from "../components/ChartZoom";
 
 
 // ------------------------------------------------------------------------------------------------------------- form state
@@ -235,6 +236,7 @@ function PvChart({ res }: { res: DcfResult }) {
   const max = Math.max(...bars.map((b) => Math.abs(b.v)), 1);
   const W = 560, Hh = 200, bw = W / bars.length;
   return (
+    <ChartZoom label={"Present value by year"}>
     <figure className="dcf-chart">
       <svg viewBox={`0 0 ${W} ${Hh + 24}`} role="img" aria-label={`Present value by year; the terminal value is ${nf(res.tvShare, 0)}% of enterprise value`}>
         {bars.map((b, k) => { const h = (Math.abs(b.v) / max) * (Hh - 10); return (
@@ -244,6 +246,7 @@ function PvChart({ res }: { res: DcfResult }) {
       </svg>
       <figcaption className="faint">Present value of each year's free cash flow, and of the terminal value (TV): {nf(res.tvShare, 1)}% of the enterprise value comes from beyond year 10.</figcaption>
     </figure>
+    </ChartZoom>
   );
 }
 
@@ -268,10 +271,12 @@ function Grid({ title, note, i, rowKey, rows, rowLabel, colKey, cols, colLabel }
   return (
     <div className="dcf-sens">
       <h4>{title}</h4>
+      <ChartZoom label={`${title}: intrinsic value per share`}>
       <With3D label={`${title}, as a 3D surface of intrinsic value per share`}
         hint={`How to read it: height is the value per share for each pair of assumptions (${colLabel.toLowerCase()} across, ${rowLabel.toLowerCase()} deep). ${i.price > 0 ? `The glass sheet is today's price, ${rs(i.price)}: where the surface rises above it the stock looks cheap on those assumptions, where it sinks below it the stock looks expensive. ` : ""}The ball is your base case. Move the pointer over the surface to read any cell, and press and drag to turn it; the same numbers are in the table below.`}
         spec={{ kind: "surface", grid, rowTicks: rows.map((r) => nf(r, 2) + "%"), colTicks: cols.map((c) => nf(c, 2) + "%"), rowTitle: rowLabel, colTitle: colLabel, valueTitle: "Value per share (₹)", fmt: (v) => rs(v), level: i.price > 0 ? i.price : undefined, levelName: "Today's price", base: bi >= 0 && bj >= 0 ? [bi, bj] : undefined }}
         flat={null} />
+      </ChartZoom>
       <div className="tw"><table><caption className="sr-only">{title}: intrinsic value per share for each {rowLabel} (rows) and {colLabel} (columns)</caption>
         <thead><tr><th scope="col">{rowLabel} ↓ · {colLabel} →</th>{cols.map((c) => <th key={c} scope="col" className={"num" + (c === i[colKey] ? " cur" : "")}>{nf(c, 2)}%</th>)}</tr></thead>
         <tbody>{rows.map((rv, a) => <tr key={rv}><th scope="row" className={rv === i[rowKey] ? "cur" : ""}>{nf(rv, 2)}%</th>

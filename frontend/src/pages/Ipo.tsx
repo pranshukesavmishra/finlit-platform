@@ -6,6 +6,7 @@ import { listingGain, minInvest, useIpos, type Ipo } from "../lib/ipo";
 import { asOf, IpoDrawer } from "./IpoDrawer";
 import { MINUS, nf } from "../lib/format";
 import { ChartHelp } from "../components/ChartHelp";
+import { ChartZoom } from "../components/ChartZoom";
 
 const DAY = 86_400_000;
 const d0 = (iso: string) => new Date(iso + "T00:00:00").getTime();
@@ -22,6 +23,7 @@ function Strip({ rows }: { rows: Ipo[] }) {
   const show = rows.filter((r) => d0(r.closeDate) >= start && d0(r.openDate) <= start + span).slice(0, 8);
   const days = Array.from({ length: 11 }, (_, i) => start + i * 5 * DAY);
   return (
+    <ChartZoom label={"Open and upcoming issues timeline"} className="cz-top">
     <div className="ipo-strip" role="img" aria-label="Timeline of open and upcoming issues">
       <div className="ipo-axis">{days.map((t) => <span key={t} style={{ left: `${x(t)}%` }}>{new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>)}</div>
       <div className="ipo-rows">
@@ -31,6 +33,7 @@ function Strip({ rows }: { rows: Ipo[] }) {
             <em style={{ left: `${Math.min(x(d0(r.closeDate) + DAY) + 1, 70)}%` }}>{r.name}</em></div>)) : <p className="muted" style={{ padding: "18px 4px" }}>No issues in this window.</p>}
       </div>
     </div>
+    </ChartZoom>
   );
 }
 

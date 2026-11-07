@@ -4,6 +4,7 @@ import { LineChart } from "../charts/LineChart";
 import { MINUS, nf } from "../lib/format";
 import { ptsChange } from "../lib/profitChange";
 import { downloadCsv } from "../lib/premium";
+import { ChartZoom } from "../components/ChartZoom";
 
 /** Profitability over the years, three ways to read the same eight years: a table coloured against each row's own median (with the unusual
  *  years marked), lines you can switch on and off, and a then-versus-now comparison of any two years. Ends with a reading in plain words. */
@@ -99,9 +100,9 @@ function Heat({ periods, rows, defs }: { periods: string[]; rows: Record<string,
       </HScroll>
       <div className="pr-sel">
         <div className="card pr-chart"><div className="pr-ch"><b>{cur.label}</b>{an.med != null && <span><i className="pr-med" />{periods.length}-year median {nf(an.med, 2)}%</span>}</div><p className="muted" style={{ margin: "2px 0 10px", fontSize: 13 }}>{cur.say}</p>
-          <div className="pr-bars" role="img" aria-label={`${cur.label} by year`}>{vals.map((x, i) => { const hi = Math.max(an.hi, 0.01), lo = Math.min(an.lo, 0), h = x == null ? 0 : Math.min(100, ((Math.max(x, 0) - 0) / (hi - lo || 1)) * 100);
+          <ChartZoom label={`${cur.label} by year`} className="cz-top"><div className="pr-bars" role="img" aria-label={`${cur.label} by year`}>{vals.map((x, i) => { const hi = Math.max(an.hi, 0.01), lo = Math.min(an.lo, 0), h = x == null ? 0 : Math.min(100, ((Math.max(x, 0) - 0) / (hi - lo || 1)) * 100);
             return <div key={i} className={"pr-bar" + (i === last ? " now" : "")} title={`${monthLabel(periods[i])}: ${x == null ? "—" : nf(x, 2) + "%"}`}><i style={{ height: `${h}%` }} /><span>{periods[i]}</span></div>; })}
-            {an.med != null && <u className="pr-line" style={{ bottom: `calc(${(Math.max(an.med, 0) / (Math.max(an.hi, 0.01) - Math.min(an.lo, 0) || 1)) * 100}% * .86 + 22px)` }} />}</div></div>
+            {an.med != null && <u className="pr-line" style={{ bottom: `calc(${(Math.max(an.med, 0) / (Math.max(an.hi, 0.01) - Math.min(an.lo, 0) || 1)) * 100}% * .86 + 22px)` }} />}</div></ChartZoom></div>
         <div className="card pr-say">
           <span className={"chip " + (now != null && an.med != null ? (Math.abs(now - an.med) < an.spread * 0.15 ? "gold" : now > an.med ? "up" : "down") : "ghost")}>
             {now == null || an.med == null ? "Not enough years" : Math.abs(now - an.med) < an.spread * 0.15 ? "Close to its usual level" : now > an.med ? "Above its usual level" : "Below its usual level"}</span>

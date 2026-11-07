@@ -10,6 +10,7 @@ import {
 import { nf } from "../lib/format";
 import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common";
 import { EtfChart } from "./EtfChart";
+import { ChartZoom } from "../components/ChartZoom";
 
 const COLORS = ["var(--k1)", "var(--k2)", "var(--k3)", "var(--k7)"];
 const DASHES = [undefined, "7 4", "2 3", "10 3 2 3"];
@@ -75,6 +76,7 @@ export function EtfComparePage() {
         ) : isError && !data ? <ErrorState what="The comparison" onRetry={() => refetch()} /> : isLoading || !data ? <Skeleton rows={6} /> : (
           <>
             <section className="card etf-sec" aria-labelledby="h-cc">
+              <ChartZoom label={"Price, rebased to 100"} className="cz-r">
               <div className="card-h"><h3 id="h-cc"><span className="ci"><Icon name="line" /></span>Price, rebased to 100</h3>
                 <div className="etf-ranges-btns" role="group" aria-label="Chart range">{RANGES.map((r) => (
                   <button key={r} className={"chip-b" + (r === range ? " on" : "")} aria-pressed={r === range} onClick={() => setSp((p) => { const n = new URLSearchParams(p); n.set("range", r); return n; }, { replace: true })}>{RANGE_LABEL[r]}</button>))}</div></div>
@@ -87,6 +89,7 @@ export function EtfComparePage() {
                   <p className="faint etf-cap">Each line starts at 100 on {day(data.start)} and shows the closing price after that, so 112 means the price is 12% higher than on the start day. Price only: dividends are not included.</p>
                 </>) : <div className="etf-state small"><p>These ETFs do not share enough price history for a chart over {RANGE_LABEL[range]}.</p></div>}
               {data.notes.map((n) => <p key={n} className="etf-info"><Icon name="info" />{n}</p>)}
+              </ChartZoom>
             </section>
 
             <section className="card etf-sec" aria-labelledby="h-ct">

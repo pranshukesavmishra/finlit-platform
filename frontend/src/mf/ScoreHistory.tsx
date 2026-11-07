@@ -5,6 +5,7 @@ import { PILLARS, ZONES, useScoreHistory, type HistPoint, type PillarKey } from 
 import { scoreText } from "../lib/mfScore";
 import { dateIN } from "../lib/format";
 import "../styles/mfup.css";
+import { ChartZoom } from "../components/ChartZoom";
 
 const W = 640, H = 240, L = 34, Rr = 12, T = 12, B = 26;
 const PCOL: Record<PillarKey, string> = { performance: "var(--k1)", risk: "var(--k2)", cost: "var(--k3)", quality: "var(--k7)" };
@@ -28,6 +29,7 @@ export function HistoryChart({ points }: { points: HistPoint[] }) {
   };
   const ticks = pts.length > 1 ? [pts[0], pts[Math.floor(pts.length / 2)], pts[pts.length - 1]] : pts;
   return (
+    <ChartZoom label={"Fund score over time"}>
     <div className="mfu-hist">
       <div className="mfu-tog" role="group" aria-label="Lines to show">
         <span className="mfu-key"><i style={{ background: "var(--text)" }} aria-hidden="true" />Score</span>
@@ -48,6 +50,7 @@ export function HistoryChart({ points }: { points: HistPoint[] }) {
           <small>{PILLARS.map(([k, n]) => `${n} ${scoreText(h.pillars[k])}`).join(" · ")}{h.rank ? ` · place ${h.rank} of ${h.rankOf}` : ""}</small>
         </div>)}
     </div>
+    </ChartZoom>
   );
 }
 
