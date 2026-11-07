@@ -3,6 +3,7 @@
 // It draws what it is given: no statistic is computed here. Geometry helpers are in lib/advanced.ts (tested).
 import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { bandPath, edgeOf, linTicks, logTicks, nearest, shapePath, viewRange, type Scale, type Shape } from "../lib/advanced";
+import { ChartZoom, useZoomWidth } from "./ChartZoom";
 
 export type ScPt = { key: string; label: string; x: number; y: number; note?: string };
 export type ScSeries = { key: string; name: string; color: string; shape: Shape; pts: ScPt[]; hollow?: boolean; join?: boolean };
@@ -25,7 +26,7 @@ type Props = {
 
 const M = { l: 68, r: 14, t: 14, b: 46 };
 
-export function AdvScatter({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, fmtY, tickX, tickY, all, w, summary, labels = true, view, marks = [] }: Props) {
+function AdvScatterBody({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, fmtY, tickX, tickY, all, w, summary, labels = true, view, marks = [] }: Props) {
   const H = w < 600 ? 300 : 400;
   const tid = useId();
   const tx = (v: number) => (sx === "log" ? Math.log10(v) : v), ty = (v: number) => (sy === "log" ? Math.log10(v) : v);
@@ -139,4 +140,10 @@ function edgeMark(x: number, y: number, e: { left: boolean; right: boolean; belo
   const n = Math.hypot(dx, dy) || 1, ux = dx / n, uy = dy / n, px = -uy, py = ux;
   const tip = [x + ux * s, y + uy * s], b1 = [x - ux * s + px * s, y - uy * s + py * s], b2 = [x - ux * s - px * s, y - uy * s - py * s];
   return `M${tip[0].toFixed(1)},${tip[1].toFixed(1)}L${b1[0].toFixed(1)},${b1[1].toFixed(1)}L${b2[0].toFixed(1)},${b2[1].toFixed(1)}Z`;
+}
+
+/** The scatter with the shared enlarge arrow; in the dialog it redraws at the dialog's width. */
+export function AdvScatter(p: Props) {
+  const [ref, w] = useZoomWidth(p.w);
+  return <ChartZoom label={`${p.yLabel} against ${p.xLabel}`}><div ref={ref} style={{ width: "100%" }}><AdvScatterBody {...p} w={w} /></div></ChartZoom>;
 }

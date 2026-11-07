@@ -13,6 +13,22 @@ const Ctx = createContext<Zoom>({ inside: false, zoomed: false });
 /** True while the chart is drawn in the enlarged dialog (charts with a fixed height can grow). */
 export const useChartZoomed = () => useContext(Ctx).zoomed;
 
+/** For a chart that is handed its pixel width by its page: put `ref` on a full-width box around the chart and draw at `width`.
+ *  In the page it is `base`; in the enlarged dialog it is the dialog's width, so the chart redraws at the big size. */
+export function useZoomWidth(base: number): [React.RefObject<HTMLDivElement | null>, number] {
+  const zoomed = useChartZoomed();
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!zoomed || !el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => { const n = Math.round(el.getBoundingClientRect().width); setW((o) => (Math.abs(o - n) > 1 ? n : o)); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [zoomed]);
+  return [ref, zoomed && w > 280 ? w : base];
+}
+
 /** The shared enlarge / restore glyph (also used by the chart builder). */
 export function ZoomGlyph({ zoomed = false }: { zoomed?: boolean }) {
   return <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{zoomed ? <path d="M6 2v4H2M10 14v-4h4M6 6 2 2M10 10l4 4" /> : <path d="M10 2h4v4M6 14H2v-4M14 2 9.5 6.5M2 14l4.5-4.5" />}</svg>;

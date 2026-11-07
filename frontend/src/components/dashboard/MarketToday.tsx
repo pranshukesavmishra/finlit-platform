@@ -10,6 +10,7 @@ import { niceTicks } from "../../lib/etf";
 import { RANGES, lastN, useLevels } from "../../lib/markets";
 import { useGold } from "../../lib/premium";
 import { Card, Seg, tone, useWidth } from "./parts";
+import { ChartZoom } from "../../components/ChartZoom";
 
 const sgn = (v: number | null | undefined, d = 2) => (v == null ? MINUS : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d) + "%");
 const pts = (v: number | null | undefined) => (v == null ? "" : ` (${v > 0 ? "+" : v < 0 ? MINUS : ""}${nf(Math.abs(v))})`);
@@ -45,6 +46,7 @@ function IndexChart({ items }: { items: { code: string; close: number | null; ch
   const key = (e: React.KeyboardEvent) => { if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); setHv((h) => Math.max(0, Math.min(rows.length - 1, (h ?? rows.length - 1) + (e.key === "ArrowRight" ? 1 : -1)))); } else if (e.key === "Escape") setHv(null); };
   return (
     <div className="dsh-chart" ref={box}>
+      <ChartZoom label={"Index closing levels"} className="cz-r">
       {controls}
       <div className="dsh-chart-s"><b>{nf(live?.close ?? last)}</b><span className={tone(day)}>{sgn(day)} today</span><em>{range} {sgn(chg(last, v[0]))} · daily closes, {label(rows[0].d)} to {label(rows[rows.length - 1].d)}</em></div>
       <div className="dsh-chart-b">
@@ -57,6 +59,7 @@ function IndexChart({ items }: { items: { code: string; close: number | null; ch
         </svg>
         {cur && hv != null && <div className="dsh-tip" style={{ left: `${Math.min(86, Math.max(14, (X(hv) / W) * 100))}%` }} role="status"><b>{`${dayMonth(cur.d, true)}`}</b><span>Close {nf(cur.c)}</span>{prev && <span className={tone(chg(cur.c, prev.c))}>Day {sgn(chg(cur.c, prev.c))}</span>}</div>}
       </div>
+      </ChartZoom>
     </div>
   );
 }
