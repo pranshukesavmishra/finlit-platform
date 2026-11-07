@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CORNER_WORD, longDate, shortName, mapGeometry, placeLabels, pts, rankMove, type RotationRow } from "../../lib/rotation";
 import { Glyph } from "./Parts";
+import { ChartZoom } from "../../components/ChartZoom";
 
 function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -31,6 +32,7 @@ export function RotationMapChart({ rows, date, onOpen, filterCorner }: { rows: R
   const picked = geo.dots.find((d) => d.slug === pick) ?? null;
   const quad = (cls: string, x1: number, y1: number, x2: number, y2: number) => <rect className={`rt-q ${cls}`} x={Math.min(x1, x2)} y={Math.min(y1, y2)} width={Math.abs(x2 - x1)} height={Math.abs(y2 - y1)} />;
   return (
+    <ChartZoom label={"Sector rotation map"} className="cz-r">
     <div className="rt-map">
       <div className="rt-mapbar">
         <p className="rt-note" style={{ margin: 0 }}>Across: 6-month return against the average industry. Up: last month against the average. Tails show the last {weeks} weekly closes.</p>
@@ -73,5 +75,6 @@ export function RotationMapChart({ rows, date, onOpen, filterCorner }: { rows: R
         </div>
       )}
     </div>
+    </ChartZoom>
   );
 }
