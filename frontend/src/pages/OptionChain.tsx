@@ -17,6 +17,7 @@ import {
   type Chain, type Expiries, type Row, type Side, type Underlyings, type Unit,
 } from "../lib/options";
 import "../styles/options.css";
+import { ChartZoom } from "../components/ChartZoom";
 
 type Pick = { key: string; name: string; kind: "index" | "stock" };
 
@@ -161,6 +162,7 @@ function OiChart({ rows, spot, atm, unit, lot }: { rows: Row[]; spot: number | n
   const table = rows.filter((r) => r.ce?.oi != null || r.pe?.oi != null);
   return (
     <section className="card oc-chart" aria-labelledby="oc-chart-h">
+      <ChartZoom label={"Open interest by strike"}>
       <h2 id="oc-chart-h">Open interest by strike <span className="faint">{unit === "lots" ? "lots" : "units"}</span></h2>
       <div className="oc-legend" aria-hidden="true"><span><i className="ce" />Calls</span><span><i className="pe" />Puts</span>
         {spot != null && <span><i className="spot" />Underlying {strikeText(spot)}</span>}</div>
@@ -195,6 +197,7 @@ function OiChart({ rows, spot, atm, unit, lot }: { rows: Row[]; spot: number | n
         <table><thead><tr><th scope="col">Strike</th><th scope="col">Calls OI</th><th scope="col">Puts OI</th></tr></thead>
           <tbody>{table.map((r) => <tr key={r.strike}><th scope="row">{strikeText(r.strike)}</th><td className="num">{fmt(r.ce?.oi ?? null)}</td><td className="num">{fmt(r.pe?.oi ?? null)}</td></tr>)}</tbody></table>
       </details>
+      </ChartZoom>
     </section>
   );
 }
