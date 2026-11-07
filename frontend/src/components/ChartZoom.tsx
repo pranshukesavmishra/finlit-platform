@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useFocusTrap } from "../lib/focusTrap";
 
@@ -31,11 +31,15 @@ export function useZoomWidth(base: number): [React.RefObject<HTMLDivElement | nu
 
 /** The shared enlarge / restore glyph (also used by the chart builder). */
 export function ZoomGlyph({ zoomed = false }: { zoomed?: boolean }) {
-  return <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{zoomed ? <path d="M6 2v4H2M10 14v-4h4M6 6 2 2M10 10l4 4" /> : <path d="M10 2h4v4M6 14H2v-4M14 2 9.5 6.5M2 14l4.5-4.5" />}</svg>;
+  return <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{zoomed
+    ? <><polyline points="6,2 6,6 2,6" /><polyline points="10,14 10,10 14,10" /><line x1="6" y1="6" x2="2" y2="2" /><line x1="10" y1="10" x2="14" y2="14" /></>
+    : <><polyline points="10,2 14,2 14,6" /><polyline points="6,14 2,14 2,10" /><line x1="14" y1="2" x2="9.5" y2="6.5" /><line x1="2" y1="14" x2="6.5" y2="9.5" /></>}</svg>;
 }
 
 /** What counts as a chart: a labelled picture (role="img"), a marked bar or heat-map list (data-chart), an SVG that is not an icon, or a canvas. */
 const DRAWN = '[role="img"], [data-chart], svg[viewBox]:not([aria-hidden="true"]), canvas';
+
+const subscribeNone = () => () => {};
 
 let locks = 0, savedOverflow = "";
 function lockScroll(): () => void {
@@ -51,7 +55,8 @@ export function ChartZoom({ label, children, className = "" }: { label: string; 
 
 function Zoomable({ label, children, className }: { label: string; children: ReactNode; className: string }) {
   const [open, setOpen] = useState(false);
-  const host = useMemo(() => { const d = document.createElement("div"); d.className = "cz-host"; return d; }, []);
+  const server = useSyncExternalStore(subscribeNone, () => false, () => true);   // true while rendering to a string: no portals there
+  const host = useMemo(() => { if (typeof document === "undefined") return null; const d = document.createElement("div"); d.className = "cz-host"; return d; }, []);
   const slot = useRef<HTMLDivElement>(null), body = useRef<HTMLDivElement>(null), dlg = useRef<HTMLDivElement>(null), btn = useRef<HTMLButtonElement>(null);
   const tid = useId();
   const close = useCallback(() => setOpen(false), []);
@@ -59,13 +64,14 @@ function Zoomable({ label, children, className }: { label: string; children: Rea
   // One live copy of the chart: its DOM moves between the card and the dialog, so its React state is never lost.
   useLayoutEffect(() => {
     const to = open ? body.current : slot.current;
-    if (to && host.parentNode !== to) to.appendChild(host);
+    if (to && host && host.parentNode !== to) to.appendChild(host);
   }, [open, host]);
-  useEffect(() => () => { host.remove(); }, [host]);
+  useEffect(() => () => { host?.remove(); }, [host]);
 
   // The arrow shows only while there is a drawn chart inside: a loading skeleton or a "not available" note has nothing to enlarge.
   const [has, setHas] = useState(false);
   useLayoutEffect(() => {
+    if (!host) return;
     const look = () => setHas(!!host.querySelector(DRAWN));
     look();
     if (typeof MutationObserver === "undefined") return;
@@ -83,6 +89,7 @@ function Zoomable({ label, children, className }: { label: string; children: Rea
   }, [open, close]);
   useFocusTrap(dlg, open);
 
+  if (server || !host) return <div className={"cz " + className}><div className="cz-slot"><div className="cz-host">{children}</div></div></div>;
   return (
     <div className={"cz " + className}>
       <Ctx.Provider value={{ inside: true, zoomed: open }}>
