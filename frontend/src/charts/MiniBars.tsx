@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { labelEvery, niceTicks } from "../lib/chartAxis";
+import { ChartZoom } from "../components/ChartZoom";
 
 export type BarSeries = { key: string; label: string; values: (number | null)[]; color: string };
 
 /** Compact bar chart in plain SVG: single, grouped or stacked series; negatives drop below the baseline; hover or focus a column to read it.
  *  Colours come from the caller (theme tokens) so every chart on the page shares one palette. */
-export function MiniBars({ labels, series, mode = "single", fmt, height = 150, highlight, dim = true, w = 300, fit = false, tag = false, summary }: {
+export function MiniBars({ labels, series, mode = "single", fmt, height = 150, highlight, dim = true, w = 300, fit = false, tag = false, summary, zoomLabel }: {
   labels: string[]; series: BarSeries[]; mode?: "single" | "group" | "stack"; fmt: (v: number) => string; height?: number; highlight?: number; dim?: boolean; w?: number;
   /** Fill the parent box at real pixel size (readable text, wide bars) instead of scaling a fixed 300 x 150 drawing. */
   fit?: boolean;
@@ -13,6 +14,8 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
   tag?: boolean;
   /** Text alternative that carries the numbers. */
   summary?: string;
+  /** Gives the chart the shared enlarge arrow. Left off for small tiles inside other cards. */
+  zoomLabel?: string;
 }) {
   const [hv, setHv] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -36,7 +39,7 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
   const bw = Math.min(fit ? 24 : 15, ((W - pl - pr) / n) * (fit ? 0.62 : 0.5)), y0 = Y(0), k = series.length;
   const ticks = nice ?? (lo < 0 ? [lo, 0, hi] : [0, hi / 2, hi]);
   const every = labelEvery(n, W - pl - pr, Math.max(...labels.map((l) => l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3").length), 1), 6.8, fit ? 12 : 10);
-  return (
+  const chart = (
     <div className={"mb" + (fit ? " fit" : "")} ref={box} onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary ?? `${series.map((s) => s.label).join(", ")} by period`}>
         {ticks.map((t, i) => <g key={i}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.2 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize={fs} fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(t)}</text></g>)}
@@ -70,4 +73,5 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
         </div>)}
     </div>
   );
+  return zoomLabel ? <ChartZoom label={zoomLabel}>{chart}</ChartZoom> : chart;
 }

@@ -9,6 +9,7 @@ import { THRESHOLDS, bandLabel, capNotes, contributionTotal, contributions, part
 import { partHint } from "../../../lib/scoreBands";
 import { parseTechnical } from "../../../lib/prismTechnical";
 import { ChartTable, ShowTable } from "../PrismCharts";
+import { ChartZoom } from "../../../components/ChartZoom";
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 /** Scroll to a part's factor section and move focus there for keyboard and screen-reader users. */
@@ -97,6 +98,7 @@ export function Waterfall({ report }: { report: PrismReport }) {
   return (
     <section className="pzr-sec" aria-labelledby="pzr-h-wf">
       <header className="pzr-sh"><h3 id="pzr-h-wf">What moved the score</h3><p>Each part adds its score times its weight. The solid bar is what it added; the outline is the share it did not earn. The four additions make the overall score.</p></header>
+      <ChartZoom label="What moved the score" className="cz-top">
       <div className="pzr-wf" role="img" aria-label={concl}>
         <div className="pzr-wf-axis" aria-hidden="true">{[0, 25, 50, 75, 100].map((t) => <span key={t} style={{ left: `${t}%` }}>{t}</span>)}</div>
         {rows.map((r, i) => {
@@ -120,6 +122,7 @@ export function Waterfall({ report }: { report: PrismReport }) {
           <b>{score1(total)}<small> of 100</small></b>
         </div>
       </div>
+      </ChartZoom>
       <ul className="pzr-capnotes">
         {notes.length ? notes.map((n) => <li key={n}>{n}</li>) : <li>No loss or valuation limit was applied to this score.</li>}
         {rows.some((r) => r.capLost > 0) && <li>The hatched part of a bar is the share a limit took away.</li>}

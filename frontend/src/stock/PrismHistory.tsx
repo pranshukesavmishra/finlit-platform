@@ -7,6 +7,7 @@ import { useGold } from "../lib/premium";
 import { OpenAccess } from "../components/Gate";
 import { changeOver, emptyReason, modelChanges, toWeekly, usePrismHistory, valueOf, withValue, type HistPoint, type Series } from "../lib/prismHistory";
 import { PRISM_PARTS } from "./prismWords";
+import { ChartZoom } from "../components/ChartZoom";
 
 const W = 640, H = 230, L = 40, R = 14, T = 12, B = 28;
 type View = "score" | "technical";
@@ -81,6 +82,7 @@ export function PrismHistoryCard({ symbol, statement }: { symbol: string; statem
   const ch = changeOver(points, main);
   return (
     <section className="card acc phx-card" id="prism-history" aria-label="FinLit Prism score over time">
+      <ChartZoom label={"FinLit Prism score over time"} className="cz-r">
       <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>FinLit Prism: score over time</h3>
         <div className="seg" role="group" aria-label="One point for each">{([["day", "Daily"], ["week", "Weekly"]] as const).map(([k, l]) => <button key={k} aria-pressed={step === k} onClick={() => setStep(k)}>{l}</button>)}</div>
         <div className="seg" role="tablist" aria-label="What to plot">{([["score", "Prism score"], ["technical", "Technical views"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>)}</div></div>
@@ -90,6 +92,7 @@ export function PrismHistoryCard({ symbol, statement }: { symbol: string; statem
           <HistoryChart points={points} view={view} />
         </>)}
       <p className="faint phx-foot">One point for each day a figure was worked out (Weekly shows the last day recorded in each week); the history starts on the day recording began and earlier days are not estimated. It describes how the score moved; it is not a forecast. Describes the company's financial health from its filings and prices; not a recommendation. Information only, not investment advice.</p>
+      </ChartZoom>
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { SectionHead } from "./Sections";
 import "../styles/macro-outlook.css";
 import { PERIODS, GROUP_ICON, arrow, driverText, insufficientText, pct, shortName, signed, useCompanyMacro, useMacroHistory, useSectorImpact,
   type CompanyMacro, type Driver, type History, type Indicator, type Item, type SectorRow, type Tone } from "../lib/macroOutlook";
+import { ChartZoom } from "../components/ChartZoom";
 
 
 export function Chip({ label, tone }: { label: string; tone: Tone }) { return <span className={"mo-chip " + tone}>{label}</span>; }
@@ -134,11 +135,13 @@ function HistoryPanel({ c }: { c: CompanyMacro }) {
   const d = c.deltas ?? {};
   return (
     <div className="mo-panel">
+      <ChartZoom label={"Macro score history"} className="cz-r">
       <div className="mo-h"><h3><Icon name="line" />Score history</h3>
         <div className="mo-seg" role="group" aria-label="Period">{PERIODS.map((p) => <button key={p} type="button" aria-pressed={period === p} className={period === p ? "on" : ""} onClick={() => setPeriod(p)}>{p}</button>)}</div></div>
       {c.mapping?.basis !== "primary" ? <p className="faint">History is shown per sector; this company is weighted across several sectors.</p> : q.data && q.data.points.length ? <Chart h={q.data} /> : <p className="faint">{q.isLoading ? "Loading…" : "No history yet."}</p>}
       <div className="mo-delta">{["1M", "3M", "6M", "1Y"].map((k) => <span key={k} className={d[k] ? (d[k]!.change > 0 ? "pos" : d[k]!.change < 0 ? "neg" : "") : ""}>{k} <b>{d[k] ? signed(d[k]!.change, 1) : "—"}</b></span>)}</div>
       {q.data?.points.some((p) => p.basis === "reconstructed") && <p className="mo-foot"><span className="mo-dot rcd" /> reconstructed from stored data; <span className="mo-dot lv" /> calculated on the day.</p>}
+      </ChartZoom>
     </div>);
 }
 

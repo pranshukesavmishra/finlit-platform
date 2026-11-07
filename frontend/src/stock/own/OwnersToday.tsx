@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChartHelp } from "../../components/ChartHelp";
 import { DONUT_R, donutArcs, pc, type GroupKey, type Slice } from "../../lib/ownView";
+import { ChartZoom } from "../../components/ChartZoom";
 
 /** The donut: hover (or focus, or tap) a slice or a name and it is read in the centre. One-line legend rows. Every label is page text. */
 export function OwnersToday({ slices, when, isLatest }: { slices: Slice[]; when: string; isLatest: boolean }) {
@@ -10,6 +11,7 @@ export function OwnersToday({ slices, when, isLatest }: { slices: Slice[]; when:
   const label = `Owners in ${when}: ${slices.map((s) => `${s.name} ${pc(s.value)}`).join(", ")}`;
   return (
     <section className="ow-card" aria-labelledby="ow-owners">
+      <ChartZoom label="Owners of the company" className="cz-r">
       <div className="ow-sec-h"><h3 id="ow-owners" className="ow-h2">Owners {isLatest ? "today" : `in ${when}`}<ChartHelp id="own-donut" /></h3><span className="ow-small ow-muted">{when} · hover a slice</span></div>
       <div className="ow-donut-wrap" onMouseLeave={() => setHover(null)}>
         <div className="ow-donut">
@@ -32,6 +34,7 @@ export function OwnersToday({ slices, when, isLatest }: { slices: Slice[]; when:
           ))}
         </ul>
       </div>
+      </ChartZoom>
     </section>
   );
 }

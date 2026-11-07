@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { labelEvery } from "../lib/chartAxis";
+import { ChartZoom } from "../components/ChartZoom";
 
 export type LSeries = { key: string; label: string; color: string; values: (number | null)[] };
 
@@ -33,7 +34,7 @@ export function LineChart({ periods, series, fmt, height = 260, area = false, av
   for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
   const onMove = (e: React.PointerEvent<SVGRectElement>) => { const r = e.currentTarget.getBoundingClientRect(); const x = ((e.clientX - r.left) / r.width) * (W - pl - pr); setHover(Math.max(0, Math.min(n - 1, Math.round((x / (W - pl - pr)) * (n - 1))))); };
   return (
-    <div className="lc">
+    <ChartZoom label={series.map((s) => s.label).join(", ")}><div className="lc">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={series.map((s) => s.label).join(", ") + " over time"}>
         <defs>{series.map((s) => <linearGradient key={s.key} id={`${id}-${s.key}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={s.color} stopOpacity=".38" /><stop offset="1" stopColor={s.color} stopOpacity="0" /></linearGradient>)}</defs>
         {[0, 1, 2, 3, 4].map((k) => { const v = lo + step * k; return <g key={k}><line x1={pl} x2={W - pr} y1={Y(v)} y2={Y(v)} stroke="var(--border)" strokeDasharray={k ? "3 5" : ""} /><text x={pl - 8} y={Y(v) + 4} textAnchor="end" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(v)}</text></g>; })}
@@ -49,6 +50,6 @@ export function LineChart({ periods, series, fmt, height = 260, area = false, av
         <rect x={pl} y={pt} width={W - pl - pr} height={H - pt - pb} fill="transparent" onPointerMove={onMove} onPointerLeave={() => setHover(null)} />
       </svg>
       {hover != null && <div className="lc-tip" style={{ left: `${Math.min(88, Math.max(12, (X(hover) / W) * 100))}%` }}><b>{periods[hover]}</b>{series.map((s) => s.values[hover] != null && <span key={s.key}><i style={{ background: s.color }} />{s.label}<em>{fmt(s.values[hover] as number)}</em></span>)}</div>}
-    </div>
+    </div></ChartZoom>
   );
 }

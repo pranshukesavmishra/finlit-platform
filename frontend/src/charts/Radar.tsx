@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { ChartZoom } from "../components/ChartZoom";
 
 export type RadarSeries = { key: string; label: string; values: (number | null)[]; cls: string };
 
@@ -13,6 +14,7 @@ export function Radar({ axes, series, size = 360 }: { axes: string[]; series: Ra
     return k === "0" ? <circle cx={x} cy={y} r="4.5" /> : k === "1" ? <rect x={x - 4} y={y - 4} width="8" height="8" /> : k === "2" ? <path d={`M${x} ${y - 5.5}L${x + 5.5} ${y}L${x} ${y + 5.5}L${x - 5.5} ${y}Z`} /> : <path d={`M${x} ${y - 5.5}L${x + 5} ${y + 4}L${x - 5} ${y + 4}Z`} />;
   };
   return (
+    <ChartZoom label={"Radar chart"}>
     <svg className="radar" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`Radar chart of ${axes.join(", ")} for ${series.map((s) => s.label).join(" and ")}`}>
       <defs><radialGradient id={`rg${id}`}><stop offset="0" stopColor="var(--gold)" stopOpacity=".16" /><stop offset="1" stopColor="var(--gold)" stopOpacity="0" /></radialGradient></defs>
       <circle cx={C} cy={C} r={R + 10} fill={`url(#rg${id})`} />
@@ -26,5 +28,6 @@ export function Radar({ axes, series, size = 360 }: { axes: string[]; series: Ra
           {s.values.map((v, i) => v != null && <g key={i} className="rs-m">{mark(s.cls, ...pt(i, v))}<title>{`${s.label}, ${axes[i]}: ${v}`}</title></g>)}
         </g>))}
     </svg>
+    </ChartZoom>
   );
 }

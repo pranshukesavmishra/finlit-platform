@@ -10,6 +10,7 @@ import {
   BAND_EDGES, DEFAULT_PRICE, PRICE_KEYS, PRICE_PRESETS, PRICE_WORD, activePricePreset, bandLabel, priceIsDefault, rangeProblem, sideOn,
   DEFAULT_GROWTH, type PriceKey, type PriceState, type PriceSide, type PriceSummary, type PriceCondSummary, type CellKey, type GrowthCond, type GrowthCondSummary, type GrowthOp, type GrowthState, type GrowthSummary, type QDistribution,
 } from "../lib/qresults";
+import { ChartZoom } from "../components/ChartZoom";
 
 export const LENDER_NOTE = "Banks and lenders do not report operating profit growth, so they never match an operating-profit filter.";
 const DEBOUNCE = 600;
@@ -203,6 +204,7 @@ export function QrDonut({ title, parts, centerLabel, empty }: { title: string; p
   });
   return (
     <figure className="card qg-chart">
+      <ChartZoom label={title} className="cz-r">
       <figcaption><h3>{title}</h3></figcaption>
       <div className="qg-dn">
         <svg viewBox="0 0 180 180" role="img" aria-label={sentence} className="qg-svg">
@@ -217,6 +219,7 @@ export function QrDonut({ title, parts, centerLabel, empty }: { title: string; p
           </ul>
         )}
       </div>
+      </ChartZoom>
     </figure>
   );
 }
