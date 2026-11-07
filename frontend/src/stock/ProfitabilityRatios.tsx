@@ -4,6 +4,7 @@ import { LineChart } from "../charts/LineChart";
 import { MINUS, nf } from "../lib/format";
 import { ptsChange } from "../lib/profitChange";
 import { downloadCsv } from "../lib/premium";
+import { ChartZoom } from "../components/ChartZoom";
 
 /** Profitability over the years, three ways to read the same eight years: a table coloured against each row's own median (with the unusual
  *  years marked), lines you can switch on and off, and a then-versus-now comparison of any two years. Ends with a reading in plain words. */
@@ -98,10 +99,10 @@ function Heat({ periods, rows, defs }: { periods: string[]; rows: Record<string,
               <td title={d.say}>{d.label}</td>{rows[d.key].map((x, i) => <td key={i} className={x == null || a.med == null ? undefined : x >= a.med ? "pr-ab" : "pr-be"} style={heat(x, a.med, a.spread)} title={x != null && a.med != null ? `${nf(Math.abs(x - a.med), 2)} pts ${x >= a.med ? "above" : "below"} the row median ${nf(a.med, 2)}%` : x == null ? "No figure reported" : undefined}>{x == null ? MINUS : <>{a.odd.has(i) && <b className="pr-odd" title="Unusual year: far from this row's other years" />}{nf(x, 2)}%</>}</td>)}{(() => { const c = chg[d.key], tone = d.key === "effective_tax_rate" || c.dir === "flat" || c.dir === "none" ? "" : c.dir; return <td className={"pr-chg " + tone} title={c.reason ?? undefined} aria-label={c.reason ?? `${d.label}, ${monthLabel(periods[0])} to ${monthLabel(periods[last])}: ${c.text.replace("pts", "percentage points")}`}>{c.dir === "up" ? "▲ " : c.dir === "down" ? "▼ " : ""}{c.text}</td>; })()}</tr>); })] : []; })}</tbody></table>
       </HScroll>
       <div className="pr-sel">
-        <div className="card pr-chart"><div className="pr-ch"><b>{cur.label}</b>{an.med != null && <span><i className="pr-med" />{periods.length}-year median {nf(an.med, 2)}%</span>}</div><p className="muted" style={{ margin: "2px 0 10px", fontSize: 13 }}>{cur.say}</p>
+        <div className="card pr-chart"><ChartZoom label={`${cur.label} by year`} className="cz-r"><div className="pr-ch"><b>{cur.label}</b>{an.med != null && <span><i className="pr-med" />{periods.length}-year median {nf(an.med, 2)}%</span>}</div><p className="muted" style={{ margin: "2px 0 10px", fontSize: 13 }}>{cur.say}</p>
           <div className="pr-bars" role="img" aria-label={`${cur.label} by year`}>{vals.map((x, i) => { const hi = Math.max(an.hi, 0.01), lo = Math.min(an.lo, 0), h = x == null ? 0 : Math.min(100, ((Math.max(x, 0) - 0) / (hi - lo || 1)) * 100);
             return <div key={i} className={"pr-bar" + (i === last ? " now" : "")} title={`${monthLabel(periods[i])}: ${x == null ? "—" : nf(x, 2) + "%"}`}><i style={{ height: `${h}%` }} /><span>{periods[i]}</span></div>; })}
-            {an.med != null && <u className="pr-line" style={{ bottom: `calc(${(Math.max(an.med, 0) / (Math.max(an.hi, 0.01) - Math.min(an.lo, 0) || 1)) * 100}% * .86 + 22px)` }} />}</div></div>
+            {an.med != null && <u className="pr-line" style={{ bottom: `calc(${(Math.max(an.med, 0) / (Math.max(an.hi, 0.01) - Math.min(an.lo, 0) || 1)) * 100}% * .86 + 22px)` }} />}</div></ChartZoom></div>
         <div className="card pr-say">
           <span className={"chip " + (now != null && an.med != null ? (Math.abs(now - an.med) < an.spread * 0.15 ? "gold" : now > an.med ? "up" : "down") : "ghost")}>
             {now == null || an.med == null ? "Not enough years" : Math.abs(now - an.med) < an.spread * 0.15 ? "Close to its usual level" : now > an.med ? "Above its usual level" : "Below its usual level"}</span>
