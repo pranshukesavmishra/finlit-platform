@@ -18,3 +18,6 @@
 .cz-body .cz-host svg[viewBox] { max-height: calc(100dvh - 150px); }
 @media (max-width: 640px) { .cz-modal { inset: 0; border-radius: 0; border-width: 0; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); } }
 @media print { .cz-btn, .cz-modal, .cz-scrim { display: none !important; } }
+/* a card whose own controls sit above the chart: the first row leaves room for the arrow */
+.cz-r > .cz-slot > .cz-host > :first-child { padding-right: 46px; }
+@media (max-width: 640px) { .cz-r > .cz-slot > .cz-host > :first-child { padding-right: 0; } .cz-r > .cz-slot { padding-top: 44px; } }

@@ -150,7 +150,7 @@ export function Waterfall({ steps, fmt, height = 280, w: W = 1000 }: { steps: St
 /* ---------- heat grid (monthly returns, growth by line) ---------- */
 export function HeatGrid({ cols, rows, fmt, cap, label }: { cols: string[]; rows: { label: string; values: N[] }[]; fmt: (x: number) => string; cap: number; label: string }) {
   return (
-    <div className="hg" role="table" aria-label={label} style={{ "--cols": cols.length } as CSSProperties}>
+    <div className="hg" data-chart role="table" aria-label={label} style={{ "--cols": cols.length } as CSSProperties}>
       <div className="hg-r hg-h" role="row"><span role="columnheader" />{cols.map((c) => <span key={c} role="columnheader">{c}</span>)}</div>
       {rows.map((r) => <div className="hg-r" role="row" key={r.label}><b role="rowheader">{r.label}</b>{cols.map((c, i) => { const v = r.values[i]; const k = v == null ? 0 : Math.min(1, Math.abs(v) / cap);
         return <span role="cell" key={c} className={"hc2 " + (v == null ? "na" : v >= 0 ? "pos" : "neg")} style={{ "--k": k } as CSSProperties} title={v == null ? "" : `${r.label} ${c}: ${fmt(v)}`}>{v == null ? "" : fmt(v)}</span>; })}</div>)}
@@ -222,7 +222,7 @@ export function Slope({ rows, aLabel, bLabel, fmt }: { rows: { label: string; a:
 /* ---------- dumbbell: two values per row ---------- */
 export function Dumbbell({ rows, aLabel, bLabel, fmt }: { rows: { label: string; a: number; b: number }[]; aLabel: string; bLabel: string; fmt: (x: number, label: string) => string }) {
   return (
-    <ul className="db2">{rows.map((r) => { const lo = Math.min(r.a, r.b), hi = Math.max(r.a, r.b), max = Math.max(hi * 1.15, 1e-9); const p = (x: number) => `${Math.max(0, Math.min(100, (x / max) * 100))}%`;
+    <ul className="db2" data-chart>{rows.map((r) => { const lo = Math.min(r.a, r.b), hi = Math.max(r.a, r.b), max = Math.max(hi * 1.15, 1e-9); const p = (x: number) => `${Math.max(0, Math.min(100, (x / max) * 100))}%`;
       return <li key={r.label}><span className="db2-l">{r.label}</span><span className="db2-t"><i className="db2-b" style={{ left: p(lo), width: `calc(${p(hi)} - ${p(lo)})` }} /><i className="db2-a" style={{ left: p(r.a) }} title={`${aLabel}: ${fmt(r.a, r.label)}`} /><i className="db2-c" style={{ left: p(r.b) }} title={`${bLabel}: ${fmt(r.b, r.label)}`} /></span>
         <span className="db2-v"><span>{fmt(r.a, r.label)}</span> → <b>{fmt(r.b, r.label)}</b></span></li>; })}
       <li className="db2-k"><span /><span><i className="db2-a" />{aLabel}<i className="db2-c" style={{ marginLeft: 14 }} />{bLabel}</span><span /></li></ul>
@@ -258,7 +258,7 @@ export function StackArea({ periods, series, w: W = 1000 }: { periods: string[];
 export function RankBars({ rows, fmt, diverging = false }: { rows: { label: string; value: number; self?: boolean }[]; fmt: (x: number) => string; diverging?: boolean }) {
   const max = Math.max(...rows.map((r) => Math.abs(r.value)), 1e-9);
   return (
-    <ul className="rk">{rows.map((r) => <li key={r.label} className={r.self ? "me" : ""}><span className="rk-l">{r.label}</span>
+    <ul className="rk" data-chart>{rows.map((r) => <li key={r.label} className={r.self ? "me" : ""}><span className="rk-l">{r.label}</span>
       <span className={"rk-t" + (diverging ? " dv" : "")}><i className={r.value < 0 ? "neg" : "pos"} style={diverging ? { width: `${(Math.abs(r.value) / max) * 50}%`, [r.value >= 0 ? "left" : "right"]: "50%" } : { width: `${(Math.abs(r.value) / max) * 100}%` }} /></span>
       <b className="rk-v">{fmt(r.value)}</b></li>)}</ul>
   );

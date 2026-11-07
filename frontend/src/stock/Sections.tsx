@@ -18,6 +18,7 @@ import { finTiles, yoy } from "./derive";
 import { PL_INFO, PL_LABEL, plCell } from "./plDefinitions";
 import { useUI, type Plan } from "../lib/ui";
 import { Plain } from "../components/Plain";
+import { ChartZoom } from "../components/ChartZoom";
 
 const css = (v: string) => `var(${v})`;
 /** Section header. A numbered section ("01 · Company overview") shows its number large, a thin rule, then the small label and the title; a section
@@ -88,6 +89,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
           <div className="stats">
             {[["52W high", s.range52.high == null ? "—" : "₹" + nf(s.range52.high)], ["52W low", s.range52.low == null ? "—" : "₹" + nf(s.range52.low)], [intra ? "Since the open" : "Range change", chg == null ? "—" : signed(chg)], ["vs 200-day average", t?.vsEma200Pct == null ? "—" : signed(t.vsEma200Pct)]].map(([k, v]) => <div className="stat" key={k}><div className="k">{k}</div><div className={"v " + (k === "Range change" || k === "Since the open" || k.startsWith("vs") ? (v.includes("▼") ? "neg" : v.includes("▲") ? "pos" : "") : "")}>{v}</div></div>)}
           </div>
+          <ChartZoom label="Price chart" className="cz-r">
           <div className="tools">
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, minWidth: 0, maxWidth: "100%" }}>
               <div className="seg" role="group" aria-label="Intraday range"><span className="faint" style={CAP}>Intraday</span>{INTRA.map(([r, tier]) => { const ok = mayIntra(tier); return <button key={r} aria-pressed={intra === r} aria-label={ok ? `${r} intraday` : `${r} intraday (${tier === "basic" ? "sign in" : "Silver plan"})`} onClick={() => pickIntra(r, tier)}>{!ok && <Icon name="lock" />}{r}</button>; })}</div>
@@ -104,6 +106,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
           {data && !data.complete && <p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>History for this company starts {data.startsAt ? dateIN(data.startsAt, { month: "short", year: "numeric" }) : "later"}, so this range is shorter than {range}.</p>}
           {data && <div className="legend"><span className={"chip " + ((chg ?? 0) >= 0 ? "up" : "down")}>{signed(chg)} over the period</span><span><i className="ln" style={{ background: "var(--line)" }} />Close</span>{e("e50", ind.e50) && <span><i className="ln" style={{ background: "var(--c2)" }} />EMA 50</span>}{e("e200", ind.e200) && <span><i className="ln" style={{ background: "var(--c3)" }} />EMA 200</span>}{e("vol", ind.vol) && <span><i style={{ background: "var(--c4)", opacity: 0.6 }} />Volume</span>}{data.provisionalLastBar && <span className="faint">Latest bar is the live quote</span>}</div>}
           </>}
+          </ChartZoom>
         </div>
         <Gate tier="gold" title="Advanced technical score" points={["RSI momentum gauge and trend signals", "Price vs 50- and 200-day averages", "Returns across every holding period"]}>
           <div className="card acc" style={{ "--ac": "var(--p-tech)", height: "100%" } as React.CSSProperties}>
@@ -189,6 +192,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
       {f.yearly.pl.periods.length > 0 && f.yearly.pl.periods.length < 5 && !wasAutomatic(sym) && <p className="faint" style={{ fontSize: 13, margin: "0 0 10px" }}>Only {f.yearly.pl.periods.length} year{f.yearly.pl.periods.length === 1 ? "" : "s"} of {basis} statements are available for this company (it may be newly listed, or have started publishing these accounts recently).</p>}
       {(kind === "bs" || kind === "cf") && tbl.periods.length > 0 && tbl.periods.length < f.yearly.pl.periods.length && <p className="faint" style={{ fontSize: 13, margin: "0 0 10px" }}>Our data sources hold {tbl.periods.length} year{tbl.periods.length === 1 ? "" : "s"} of this statement for this company, against {f.yearly.pl.periods.length} years of profit and loss.</p>}
       <div className="card acc" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
+        <ChartZoom label="Financial statements chart" className="cz-r">
         <div className="tools">
           <div className="seg" role="group" aria-label="Statement">{([["pl", "Profit & loss"], ["bs", "Balance sheet"], ["cf", "Cash flow"]] as const).map(([k, l]) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{l}</button>)}</div>
           <div className="tools-r">
@@ -200,6 +204,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
         <div className="legend">{kind === "pl" || kind === "q" ? <><span><i style={{ background: "var(--c2)" }} />Revenue</span><span><i style={{ background: "var(--c3)" }} />Net profit</span><span><i className="ln" style={{ background: "var(--c4)" }} />Net margin</span><span><i style={{ background: "var(--c1)" }} />Latest period</span></>
           : kind === "bs" ? <><span><i style={{ background: "var(--c1)" }} />Equity + reserves</span><span><i style={{ background: "var(--c2)" }} />Borrowings</span><span><i style={{ background: "var(--c4)" }} />Other liabilities</span></>
             : <><span><i style={{ background: "var(--c3)" }} />Operating</span><span><i style={{ background: "var(--c2)" }} />Investing</span><span><i style={{ background: "var(--c4)" }} />Financing</span><span><i className="ln" style={{ background: "var(--c1)" }} />Free cash flow</span></>}</div>
+        </ChartZoom>
         <div style={{ marginTop: 24 }}><HScroll className="" label="table"><table>
           <thead><tr><th>₹ Cr</th>{tbl.periods.map((p, i) => <th key={p} className={i === last ? "latest" : ""}>{p}</th>)}{kind === "q" ? <><th>vs last qtr</th><th>vs year ago</th></> : kind !== "cf" && <th>vs last year</th>}<th>Trend</th></tr></thead>
           <tbody>{rows.map(([k, label, tot]) => { const v = tbl.rows[k], y = yoy(v), y4 = kind === "q" ? yoy(v, 4) : null; const cell = (g: number | null) => <td className={g == null ? "" : g >= 0 ? "pos" : "neg"}>{g == null ? "—" : signed(g, 1)}</td>; return (

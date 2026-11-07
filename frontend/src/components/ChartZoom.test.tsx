@@ -9,7 +9,7 @@ afterEach(() => { cleanup(); document.body.style.overflow = ""; });
 function Counter() {
   const [n, setN] = useState(0);
   const z = useChartZoomed();
-  return <div data-testid="chart"><button onClick={() => setN(n + 1)}>range {n}</button><span>{z ? "big" : "small"}</span></div>;
+  return <div data-testid="chart"><svg role="img" aria-label="demo" viewBox="0 0 10 10" /><button onClick={() => setN(n + 1)}>range {n}</button><span>{z ? "big" : "small"}</span></div>;
 }
 
 describe("ChartZoom", () => {
@@ -19,6 +19,11 @@ describe("ChartZoom", () => {
     expect(b.getAttribute("aria-haspopup")).toBe("dialog");
     expect(b.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("shows no arrow while there is only a skeleton or a note, and none for a decorative icon", () => {
+    render(<ChartZoom label="Empty"><p>Not available yet.</p><svg viewBox="0 0 16 16" aria-hidden="true" /></ChartZoom>);
+    expect(screen.queryByRole("button", { name: /Enlarge chart/ })).toBeNull();
   });
 
   it("opens the same chart in a labelled modal dialog and locks page scroll", () => {

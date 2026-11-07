@@ -18,6 +18,9 @@ export function ZoomGlyph({ zoomed = false }: { zoomed?: boolean }) {
   return <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{zoomed ? <path d="M6 2v4H2M10 14v-4h4M6 6 2 2M10 10l4 4" /> : <path d="M10 2h4v4M6 14H2v-4M14 2 9.5 6.5M2 14l4.5-4.5" />}</svg>;
 }
 
+/** What counts as a chart: a labelled picture (role="img"), a marked bar or heat-map list (data-chart), an SVG that is not an icon, or a canvas. */
+const DRAWN = '[role="img"], [data-chart], svg[viewBox]:not([aria-hidden="true"]), canvas';
+
 let locks = 0, savedOverflow = "";
 function lockScroll(): () => void {
   if (locks++ === 0) { savedOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; }
@@ -44,6 +47,17 @@ function Zoomable({ label, children, className }: { label: string; children: Rea
   }, [open, host]);
   useEffect(() => () => { host.remove(); }, [host]);
 
+  // The arrow shows only while there is a drawn chart inside: a loading skeleton or a "not available" note has nothing to enlarge.
+  const [has, setHas] = useState(false);
+  useLayoutEffect(() => {
+    const look = () => setHas(!!host.querySelector(DRAWN));
+    look();
+    if (typeof MutationObserver === "undefined") return;
+    const mo = new MutationObserver(look);
+    mo.observe(host, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, [host]);
+
   useEffect(() => {
     if (!open) return;
     const unlock = lockScroll();
@@ -59,7 +73,7 @@ function Zoomable({ label, children, className }: { label: string; children: Rea
         <div className="cz-slot" ref={slot} />
         {createPortal(children, host)}
       </Ctx.Provider>
-      <button ref={btn} type="button" className="cz-btn" aria-label={`Enlarge chart: ${label}`} aria-haspopup="dialog" aria-expanded={open} title="Enlarge chart" onClick={() => setOpen(true)}><ZoomGlyph /></button>
+      {(has || open) && <button ref={btn} type="button" className="cz-btn" aria-label={`Enlarge chart: ${label}`} aria-haspopup="dialog" aria-expanded={open} title="Enlarge chart" onClick={() => setOpen(true)}><ZoomGlyph /></button>}
       {open && createPortal(
         <>
           <div className="cz-scrim" onClick={close} aria-hidden="true" />
