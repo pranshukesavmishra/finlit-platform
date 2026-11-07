@@ -6,10 +6,11 @@
   font: 400 14px/1.45 var(--font-sans, Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; color: var(--d-ink);
   padding-top: 24px; padding-bottom: 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;
 }
-:root[data-theme="dark"] .dsh {
-  --d-card: var(--bg-surface); --d-line: var(--border-subtle); --d-line2: var(--border-subtle); --d-line3: color-mix(in srgb, var(--border-subtle) 55%, transparent);
-  --d-up: var(--financial-positive); --d-down: var(--financial-negative); --d-mut: var(--text-muted); --d-mut2: var(--text-secondary); --d-acc: var(--brand-accent);
-  --d-tile: var(--bg-subtle); --d-ink: var(--text-primary); --d-field: var(--bg-elevated); --d-on: var(--action-primary); --d-on-fg: var(--action-on-primary); --d-pill-bg: var(--financial-positive-bg);
+:root[data-theme="dark"] .dsh, :root:not([data-theme="light"]) .dsh {
+  /* The site's own near-black dark palette (the same surfaces, text and borders as every other page), not the design system's navy (#172E48 cards on #0B192C). Colours only. */
+  --d-card: var(--s1); --d-line: var(--border); --d-line2: var(--border); --d-line3: color-mix(in srgb, var(--border) 60%, transparent);
+  --d-up: var(--gain); --d-down: var(--loss); --d-mut: var(--faint); --d-mut2: var(--muted); --d-acc: var(--gold);
+  --d-tile: var(--s2); --d-ink: var(--text); --d-field: var(--s2); --d-on: var(--text); --d-on-fg: var(--bg); --d-pill-bg: color-mix(in srgb, var(--gain) 16%, var(--s1));
 }
 .dsh *, .dsh *::before, .dsh *::after { box-sizing: border-box; }
 .dsh .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -78,7 +79,7 @@
 .dsh .sk-n { display: inline-block; width: 56px; height: 16px; } .dsh .sk-p { display: inline-block; width: 96px; height: 24px; border-radius: 999px; }
 .dsh-pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; background: var(--d-pill-bg); color: var(--d-up); }
 .dsh-pill.mixed { background: #F3E8C8; color: #6B4F0E; } .dsh-pill.watch { background: #F4DAD6; color: #8E2620; } .dsh-pill.none, .dsh-pill.insufficient { background: var(--d-line3); color: var(--d-mut2); }
-:root[data-theme="dark"] .dsh-pill.mixed { background: var(--status-warning-bg); color: var(--status-warning); } :root[data-theme="dark"] .dsh-pill.watch { background: var(--financial-negative-bg); color: var(--financial-negative); }
+:root[data-theme="dark"] .dsh-pill.mixed, :root:not([data-theme="light"]) .dsh-pill.mixed { background: color-mix(in srgb, var(--warn) 16%, var(--s1)); color: var(--warn); } :root[data-theme="dark"] .dsh-pill.watch, :root:not([data-theme="light"]) .dsh-pill.watch { background: color-mix(in srgb, var(--loss) 16%, var(--s1)); color: var(--loss); }
 .dsh-sl { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--d-line3); } .dsh-sl a b { color: var(--d-ink); } .dsh-sl span { color: var(--d-mut); font-size: 13px; text-align: right; }
 
 /* block 2 */
