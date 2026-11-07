@@ -150,7 +150,7 @@
 
 /* Slider UI for the assumptions: label and number box on one row, the slider under them, the range ends below it. */
 .dcf-sl { gap: 8px; }
-.dcf-sl-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dcf-sl-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; }   /* every header is the same height, so the sliders of two fields side by side sit on one line */
 .dcf-sl-h > label { font-weight: 600; font-size: var(--fs-16); display: flex; align-items: center; gap: 4px; min-width: 0; flex-wrap: wrap; }
 .dcf-sl-box { flex: none; width: 118px; }
 .dcf-sl-box input { text-align: right; padding-right: 30px; }
@@ -162,7 +162,7 @@
 .dcf-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--s1); border: 3px solid var(--gold); box-shadow: 0 4px 12px -4px rgba(0, 0, 0, .5); transition: transform .15s; }
 .dcf-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--s1); border: 3px solid var(--gold); }
 .dcf-range:hover::-webkit-slider-thumb, .dcf-range:focus-visible::-webkit-slider-thumb { transform: scale(1.15); box-shadow: 0 0 0 6px var(--gold-soft); }
-.dcf-range:focus-visible { outline: none; }
+.dcf-range:focus, .dcf-range:focus-visible { outline: none; }
 .dcf-range-ends { display: flex; justify-content: space-between; margin-top: -4px; font: 400 11px var(--mono); color: var(--faint); }
 .dcf-sl.has-err .dcf-range::-webkit-slider-thumb { border-color: var(--loss); }
 /* live result at the top of the inputs, so the effect of a slider is seen at once */
@@ -177,3 +177,7 @@
 .dcf-grp > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 @media (max-width: 640px) { .dcf-live b { font-size: 16px; } .dcf-sl-box { width: 104px; } .dcf-range { height: 32px; } }
 @media (prefers-reduced-motion: reduce) { .dcf-range::-webkit-slider-thumb { transition: none; } }
+/* Two fields side by side share the same rows (title row, slider, range ends, note): the sliders of a pair sit on one line whatever the labels do. */
+.dcf-grid > .dcf-sl { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0; align-content: stretch; }
+.dcf-grid > .dcf-sl > * { margin: 0; } .dcf-grid > .dcf-sl > .dcf-range { margin-top: 6px; } .dcf-grid > .dcf-sl > select, .dcf-grid > .dcf-sl > .dcf-chips, .dcf-grid > .dcf-sl > .dcf-hint, .dcf-grid > .dcf-sl > .dcf-err { margin-top: 10px; }
+.dcf-grid > .dcf-sl > .dcf-range-ends { margin-top: 0; }

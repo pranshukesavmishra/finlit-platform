@@ -180,10 +180,10 @@ export function SliderField({ id, label, help, value, onChange, unit, error, hin
           {unit && <span className="unit">{unit}</span>}
         </div>
       </div>
-      {children}
       <input type="range" className="dcf-range" aria-label={`${label}, slider`} min={lo} max={hi} step={st} value={pos} style={{ "--fill": `${fill}%` } as React.CSSProperties}
         aria-valuetext={`${end(pos)}${unit ? " " + unit : ""}`} onChange={(e) => onChange(String(Math.round(Number(e.target.value) * 10 ** dp) / 10 ** dp))} />
       <div className="dcf-range-ends" aria-hidden="true"><span>{end(lo)}{unit}</span><span>{end(hi)}{unit}</span></div>
+      {children}
       {error ? <p className="dcf-err" id={`dcf-${id}-err`}>{error}</p> : hint ? <p className="dcf-hint faint" id={`dcf-${id}-hint`}>{hint}</p> : null}
     </div>
   );
@@ -445,10 +445,9 @@ export function DcfPage() {
             <details className="dcf-grp" open><summary>2. Discount rate and margin of safety</summary>
               <div className="dcf-grid">
                 <SliderField id="r" label="Discount rate" help={HELP.r} value={form.r} onChange={set("r")} unit="%" error={err("r")} min={1} max={30} step={0.1} />
-                <div className="dcf-f">
-                  <SliderField id="mos" label="Margin of safety" help={HELP.mos} value={form.mos} onChange={set("mos")} unit="%" error={err("mos")} min={0} max={60} step={1} />
+                <SliderField id="mos" label="Margin of safety" help={HELP.mos} value={form.mos} onChange={set("mos")} unit="%" error={err("mos")} min={0} max={60} step={1}>
                   <div className="dcf-chips" role="group" aria-label="Margin of safety by uncertainty">{MOS_PRESETS.map((m) => <button type="button" key={m.value} className={"chip-b" + (form.mos === String(m.value) ? " on" : "")} aria-pressed={form.mos === String(m.value)} onClick={() => set("mos")(String(m.value))}>{m.label} {m.value}%</button>)}</div>
-                </div>
+                </SliderField>
               </div>
               <RateBuilder onUse={(r) => set("r")(String(r))} />
             </details>

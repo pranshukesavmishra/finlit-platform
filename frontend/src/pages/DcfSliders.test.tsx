@@ -2,6 +2,8 @@
 // The DCF calculator's slider fields: the slider and the number box are one value, the range widens for a bigger number, and nothing is lost while typing.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("../components/Info", () => ({ Info: () => null }));
 import { SliderField } from "./Dcf";
@@ -48,5 +50,14 @@ describe("DCF SliderField", () => {
     render(<Harness start="12" min={1} max={30} error="Enter a number." />);
     expect(screen.getByText("Enter a number.")).toBeTruthy();
     expect(box().getAttribute("aria-invalid")).toBe("true");
+  });
+  it("anything extra (a preset list, chips) comes after the slider, so the sliders of two fields side by side can sit on one line", () => {
+    const { container } = render(<SliderField id="g" label="Growth" value="10" onChange={() => undefined} min={0} max={50}><select aria-label="preset" /></SliderField>);
+    const kids = [...(container.firstElementChild as HTMLElement).children].map((e) => e.className || e.tagName.toLowerCase());
+    expect(kids).toEqual(["dcf-sl-h", "dcf-range", "dcf-range-ends", "select"]);
+  });
+  it("the stylesheet puts paired fields on shared rows (subgrid) so their sliders stay level at any width", () => {
+    const css = readFileSync(join(process.cwd(), "src/styles/dcf.css"), "utf8");
+    expect(css).toMatch(/\.dcf-grid > \.dcf-sl \{[^}]*grid-row: span 4;[^}]*grid-template-rows: subgrid/);
   });
 });
