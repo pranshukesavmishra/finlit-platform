@@ -74,6 +74,26 @@ def latest(rows: List[Tuple[int, str]]) -> Optional[Tuple[int, str]]:
     return max(rows, key=lambda r: (r[0], r[1])) if rows else None
 
 
+def from_feed(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """The newest annual report among the exchange announcements the site already stores (feed_items: kind 'document', 'annual report' in the title or category).
+    Needs no request to the exchanges: NSE and BSE answer the AWS server's listing requests with 403 (even through the relay), but the announcements come from the
+    data provider and the PDFs themselves download fine. Only https PDFs on the exchanges' own hosts. The year is the one the financial year ends in: a report filed
+    from April on is for the year ending that March; filed January to March, for the year before. None when no stored announcement qualifies."""
+    best: Optional[Tuple[Any, str]] = None
+    for r in rows or []:
+        when, url = r.get("item_date"), str(r.get("link") or "").strip()
+        text = f"{r.get('title') or ''} {r.get('category') or ''}".lower()
+        if when is None or "annual report" not in text or not ok_url(url):
+            continue
+        if best is None or when > best[0]:
+            best = (when, url)
+    if best is None:
+        return None
+    when, url = best
+    year = when.year if when.month >= 4 else when.year - 1
+    return {"state": "found", "url": url, "year": year, "source": "feed", "detail": f"from the stored exchange announcements of {when.isoformat()}"}
+
+
 async def discover(fetcher, symbol: str, bse_code: Optional[str] = None) -> Dict[str, Any]:
     """{'state': found|none|blocked|error, 'url', 'year', 'source', 'detail'}. NSE first, then BSE. Never raises."""
     detail: List[str] = []

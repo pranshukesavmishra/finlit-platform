@@ -321,6 +321,43 @@ async def test_discovery_finds_the_latest_nse_report_stores_it_and_the_brief_use
     assert again.get("lookups", 0) == 0
 
 
+def test_from_feed_takes_the_newest_exchange_annual_report_and_ignores_everything_else():
+    from finlit.company_brief import discovery as D
+    ok = "https://nsearchives.nseindia.com/corporate/ACME_Annual_Report_2026.pdf"
+    old = "https://nsearchives.nseindia.com/corporate/ACME_Annual_Report_2025.pdf"
+    rows = [{"link": old, "title": "Annual Report 2025", "category": "General", "item_date": date(2025, 8, 20)},
+            {"link": ok, "title": "Intimation: Annual Report", "category": "General", "item_date": date(2026, 10, 13)},
+            {"link": "https://evil.example.com/annual report.pdf", "title": "Annual Report", "category": "", "item_date": date(2026, 11, 1)},   # not an exchange host
+            {"link": "https://nsearchives.nseindia.com/corporate/a.pdf", "title": "Board meeting", "category": "General", "item_date": date(2026, 11, 2)},   # not an annual report
+            {"link": "http://nsearchives.nseindia.com/corporate/b.pdf", "title": "Annual Report", "category": "", "item_date": date(2026, 11, 3)}]        # not https
+    r = D.from_feed(rows)
+    assert r["state"] == "found" and r["url"] == ok and r["year"] == 2026 and r["source"] == "feed"
+    assert D.from_feed([{"link": ok, "title": "Annual Report", "category": "", "item_date": date(2026, 2, 5)}])["year"] == 2025      # filed January to March: the year before
+    assert D.from_feed([]) is None and D.from_feed(rows[2:]) is None
+
+
+async def test_an_annual_report_in_the_stored_announcements_is_used_without_asking_the_exchanges(store):  # noqa: F811
+    await seed(store, ar=False)
+    async with store.pool.acquire() as conn:
+        await conn.execute("INSERT INTO feed_items (kind, title, symbol, company, link, item_date, category, auto, dedupe) VALUES ('document','Intimation of Annual Report','ACME','x',$1,'2026-10-13','General',true,'ar1')", ACME_PDF)
+    asked = []
+
+    def handler(req):
+        asked.append(str(req.url))
+        if req.url.path == "/robots.txt":
+            return httpx.Response(404)
+        if req.url.path.startswith("/api/") or req.url.host in ("www.nseindia.com", "api.bseindia.com"):
+            return httpx.Response(403)                      # the exchanges' listings refuse us, as they do on the AWS server
+        return httpx.Response(200, content=make_pdf(AR_PAGES if "annual_reports" in req.url.path or "ACME_2025" in req.url.path else RES_PAGES))
+    f = S.BriefFetcher(budget=60, transport=httpx.MockTransport(handler), sleep=nosleep, pause=0)
+    out = await run(store, FakeLlm(lambda user: json.loads(json.dumps(brief_json()).replace(AR_KEY, B.doc_key("annual_report", None, set(), ACME_PDF)))), f)
+    assert out.get("from_feed") == 1 and out.get("lookups", 0) == 0 and out.get("report_blocked", 0) == 0
+    async with store.pool.acquire() as conn:
+        s = await conn.fetchrow("SELECT * FROM company_brief_sources WHERE symbol = 'ACME'")
+    assert s["ar_url"] == ACME_PDF and s["ar_source"] == "feed" and s["ar_state"] == "found"
+    assert not any("/api/annual-reports" in u or "AnnualReport_New" in u for u in asked)
+
+
 async def test_bse_is_the_fallback_when_nse_lists_nothing(store):  # noqa: F811
     await seed(store, ar=False)
     async with store.pool.acquire() as conn:

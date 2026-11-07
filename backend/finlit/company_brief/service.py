@@ -289,15 +289,23 @@ async def find_report(store, fetcher, c: dict, src: Optional[dict], report: dict
     now = datetime.now(timezone.utc)
     if not discovery_due(src, now):
         return src
-    if report.get("lookups", 0) >= C.MAX_LOOKUPS_PER_RUN:
-        return src
     async with store.pool.acquire() as conn:
-        bse = await conn.fetchval("SELECT bse_code FROM companies WHERE symbol = $1", c["symbol"])
-    res = await D.discover(fetcher, c["symbol"], bse)
-    report["lookups"] = report.get("lookups", 0) + 1
-    if res.get("budget"):
-        report["stopped"] = "request_budget"
-        return src
+        feed_rows = await conn.fetch(
+            "SELECT link, title, category, item_date FROM feed_items WHERE symbol = $1 AND kind = 'document' AND link IS NOT NULL "
+            "AND (title ILIKE '%annual report%' OR category ILIKE '%annual report%') ORDER BY item_date DESC LIMIT 20", c["symbol"])
+    res = D.from_feed([dict(r) for r in feed_rows])           # the announcements the site already stores: no request to the exchanges, so nothing to refuse
+    if res is None:
+        if report.get("lookups", 0) >= C.MAX_LOOKUPS_PER_RUN:
+            return src
+        async with store.pool.acquire() as conn:
+            bse = await conn.fetchval("SELECT bse_code FROM companies WHERE symbol = $1", c["symbol"])
+        res = await D.discover(fetcher, c["symbol"], bse)
+        report["lookups"] = report.get("lookups", 0) + 1
+        if res.get("budget"):
+            report["stopped"] = "request_budget"
+            return src
+    else:
+        report["from_feed"] = report.get("from_feed", 0) + 1
     report[f"report_{res['state']}"] = report.get(f"report_{res['state']}", 0) + 1
     keep = res["state"] == "found" or not (src or {}).get("ar_url")       # a failed lookup never erases an address already found
     async with store.pool.acquire() as conn:
