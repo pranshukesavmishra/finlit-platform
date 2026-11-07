@@ -1,5 +1,10 @@
 # Background jobs: the job supervisor
 
+> **THE FOUNDER'S RULE (7 Nov 2026). Background jobs NEVER stop. Every scheduled job runs every day and completes every day.**
+> Never switch off, pause, skip, disable or weaken a job, its schedule, its time limit or its retries, and never ship a change that leaves a job stopped or unfinished.
+> If a job cannot complete, fix the cause the same day. One job stopping, failing or being switched off never stops any other job: the others keep running on the data that is there. Only the founder can make an exception, in writing, for a named job
+> (now: the sector job, off since 7 Nov 2026 until `SECTORS_JOB=on`). The same rule is in `CLAUDE.md`, `jobs/registry.py` (`JOBS_RULE`), `GET /api/jobs/status` (`rule`) and the Admin Console.
+
 Written after the 31 Oct 2026 incident. **Goal: failures are impossible to miss, recover by themselves, and stale data is never shown as fresh.**
 No system can promise zero failures (see "What cannot be guaranteed" at the end); this one makes sure the founder is told, the box heals, and the pages say when data is old.
 
@@ -281,7 +286,9 @@ Header lock icon > System > "Heavy data loads" switch. Switching OFF pauses for 
 
 ## Scheduled jobs are never switched off (founder's rule)
 
-* The environment switches `FUND_LOADS_ENABLED`, `SECTORS_ENABLED`, `PRISM_PRECOMPUTE_ENABLED` and `BOOT_LOAD_ENABLED` can no longer disable or hold back a job (`Gate.forced` in `jobs/registry.py`). Only a missing credential (no `DHAN_CLIENT_ID`, no `GEMINI_API_KEY`) keeps a job from starting, and the status says so.
+**Background jobs NEVER stop: every scheduled job runs every day and completes every day** (see the rule at the top of this file).
+
+* The environment switches `FUND_LOADS_ENABLED`, `PRISM_PRECOMPUTE_ENABLED` and `BOOT_LOAD_ENABLED` can no longer disable or hold back a job (`Gate.forced` in `jobs/registry.py`). The one written exception: the sector job, which the founder switched off on 7 Nov 2026 (`SECTORS_JOB=on` brings it back). Only a missing credential (no `DHAN_CLIENT_ID`, no `GEMINI_API_KEY`) keeps a job from starting, and the status says so.
 * The admin pause is ignored inside the MORNING, AFTER_CLOSE and NIGHT windows and for any job already past its promise (SLA). It can only hold daytime, not-yet-late work.
 * A job that cannot start because the server lacks memory waits and says so; it is never skipped, and it does not block the other jobs.
 

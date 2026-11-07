@@ -201,6 +201,18 @@ async def test_a_job_inside_its_promise_lets_a_late_job_go_first_but_order_is_ke
     assert "waiting for score-mf" in plan.blocked["mf-screen"] and "waiting for score-mf" in plan.blocked["prism"]
 
 
+async def test_a_failed_held_or_switched_off_prerequisite_never_stops_the_jobs_after_it():
+    # the founder's rule: one job stopping never stops another
+    for pre_state, gate in ((dict(last_status="failed", consecutive_failures=5, retry_at=NOON + timedelta(hours=2), held_until=NOON + timedelta(hours=2)), None),
+                            (dict(last_status="killed", retry_at=NOON + timedelta(minutes=30)), None),
+                            ({}, Gate("OFF_SWITCH", "switched off", wants="on", default="off"))):
+        sup, _ = make([bulk("ingest", 20, interval_min=10, gate=gate), bulk("score", 30, prerequisites=("ingest",), interval_min=60, catchup=False)])
+        await sup.state.save(JobState(job="ingest", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(days=2), **pre_state))
+        await sup.state.save(JobState(job="score", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(hours=2)))
+        plan = await sup.plan()
+        assert [j.name for j in plan.start] == ["score"], pre_state
+
+
 async def test_disabled_jobs_never_start_and_say_why():
     jobs = [light("funds-job", gate=Gate("FUND_LOADS_ENABLED", "funds are off", default="0"))]
     sup, _ = make(jobs, env={})

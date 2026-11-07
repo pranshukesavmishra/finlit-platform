@@ -16,11 +16,12 @@ Report each issue in one message: cause, what changed, test results, what is sti
 
 - Live site: https://finlitventures.com, https://www.finlitventures.com and https://app.finlitventures.com (AWS EC2 Sydney, 54.253.190.17; Docker Compose + Caddy in `deploy/aws/`).
 - Source of truth: company repo `Yusra-Khan532/Financial-Portfolio`, folder `finlit-platform/` (this folder). Its `main` is deployed automatically by the server about every 5 minutes. Delivery from the founder's repo `pranshukesavmishra/finlit-platform` goes through `.github/workflows/sync-to-company.yml` as a pull request the founder merges with "Create a merge commit". Never edit the legacy root folders of the company repo.
-- Background jobs: `docs/JOBS.md` (job supervisor; scheduled jobs are never switched off). Status: `/api/jobs/status`.
+- Background jobs: `docs/JOBS.md` (job supervisor; jobs NEVER stop, see the rule below). Status: `/api/jobs/status`.
 - Handover and open items: `docs/HANDOVER-PROMPT.md`.
 
 ## Rules that never change
 
+- **Background jobs NEVER stop (the founder said so on 7 Nov 2026).** Every scheduled job runs every day and completes every day. Never switch off, pause, skip, disable or weaken a job, its schedule, its time limit or its retries, and never ship a change that leaves a job stopped or unfinished. If a job cannot complete, find and fix the cause the same day. One job stopping, failing or being switched off never stops any other job: the others keep running on the data that is there. Only the founder can make an exception, in writing, for a named job (now: the sector job, off since 7 Nov 2026 until `SECTORS_JOB=on`).
 - Accuracy first: numbers correct, current, never missing when data exists; every blank shows its reason; never guess.
 - Wording: describe, never advise. Never buy / sell / hold / reduce / avoid / accumulate / target / "best" / multibagger / top pick. Keep the disclaimer "Describes the company's financial health from its filings and prices; not a recommendation. Information only, not investment advice."
 - Everything stays free.

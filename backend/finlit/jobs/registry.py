@@ -1,5 +1,8 @@
 """The declarative list of every background job (docs/JOBS.md, "How to add a job").
 
+!!! THE FOUNDER'S RULE (7 Nov 2026), above every other line in this package: background jobs NEVER stop. Every scheduled job runs every day and
+!!! completes every day. Never switch off, pause, skip, disable or weaken a job, its schedule, its time limit or its retries. See JOBS_RULE below.
+
 One Job per thing the supervisor runs. Nothing here runs anything: due.py decides WHEN from this data, supervisor.py runs it.
 Changing a schedule, an SLA or a priority is a one-line edit here plus a test; there is no scheduling logic to touch.
 
@@ -23,6 +26,10 @@ import os
 from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Callable, Dict, List, Mapping, Optional, Tuple
+
+
+JOBS_RULE = ('Background jobs NEVER stop. Every scheduled job runs every day and completes every day. Never switch off, pause, skip, disable or weaken a job, its schedule, its time limit or its retries, and never ship a change that leaves a job stopped or unfinished. If a job cannot complete, the cause is fixed the same day. One job stopping, failing or being switched off never stops any other job: the others keep running on the data that is there. Only the founder can make an exception, in writing, for a named job (now: the sector job, off since 7 Nov 2026 until SECTORS_JOB=on).')
+"""The founder's rule for every background job, shown on GET /api/jobs/status and in the Admin Console. Do not weaken it."""
 
 
 @dataclass(frozen=True)

@@ -12,7 +12,7 @@ from fastapi.responses import Response
 
 from .due import JobState, sla_status
 from .pause import KEY as PAUSE_KEY, interpret
-from .registry import Job, build_jobs, disabled_reason
+from .registry import JOBS_RULE, Job, build_jobs, disabled_reason
 from .schedule import fmt_ist, ist
 from .signals import BEAT_KEY, CANARY_KEY, FRESH_KEY
 from .alerts import HEARTBEAT_STALE_S
@@ -74,7 +74,7 @@ async def build(store: Any, redis: Any, now: Optional[datetime] = None, env: Opt
     now = now or datetime.now(timezone.utc)
     env = os.environ if env is None else env
     jobs = build_jobs(env)
-    out: Dict[str, Any] = {"asOf": _iso(now), "asOfIST": fmt_ist(now)}
+    out: Dict[str, Any] = {"asOf": _iso(now), "asOfIST": fmt_ist(now), "rule": JOBS_RULE}
     states: Dict[str, JobState] = {}
     db_ok, pause = True, None
     try:

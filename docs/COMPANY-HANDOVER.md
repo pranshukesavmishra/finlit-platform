@@ -5,7 +5,7 @@
 | Path | Purpose |
 |---|---|
 | `frontend/` | React + TypeScript website built with Vite. |
-| `backend/finlit/` | Research API, authentication, PostgreSQL/Redis data layer and background jobs. |
+| `backend/finlit/` | Research API, authentication, PostgreSQL/Redis data layer and background jobs (**jobs NEVER stop: every scheduled job runs and completes every day; docs/JOBS.md**). |
 | `site-api/backend/` | CMS, portfolio, forms, chat and premium model service; its Python dependencies are installed separately. |
 | `Dockerfile`, `deploy/start.sh`, `deploy/scheduler.sh` | Combined AWS application image and startup. |
 | `deploy/aws/` | Production Compose, deployment, rollback, Caddy, backups and auto-deploy timer. |

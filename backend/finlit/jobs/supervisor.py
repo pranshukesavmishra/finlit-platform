@@ -1,5 +1,9 @@
 """The job supervisor: decides what is due, runs it within the machine's limits, watches it, retries it, and says so when something is wrong.
 
+!!! THE FOUNDER'S RULE (registry.JOBS_RULE): background jobs NEVER stop; every scheduled job runs every day and completes every day. Nothing in this
+!!! file may skip, drop or indefinitely postpone a due job: it may only order the queue (late jobs first) and wait for memory or a running prerequisite.
+!!! One job stopping, failing, being held or switched off never stops another job: a prerequisite that is not running never blocks for ever.
+
 Every step is a method that takes its inputs from injected objects (state store, process runner, resources, Redis signals, clock, pause source, notifier),
 so the whole thing runs under a fake clock and a fake process runner in the tests. docs/JOBS.md explains the rules in plain words.
 """
