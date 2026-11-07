@@ -44,7 +44,7 @@ export const STARTERS: { q: string; a: string }[] = [
   { q: "What is the FinLit IQ score and how is it built?",
     a: "The FinLit IQ is a score from 0 to 100 that averages five pillars: quality, growth, profitability, balance sheet and technical (the price trend). Each input is mapped to a score using fixed thresholds. The score has not been back-tested against future returns and does not predict them. Information only, not investment advice." },
   { q: "What does the FinLit Prism rating describe?",
-    a: "FinLit Prism describes a company's financial health from its filings and prices. The fundamental score weighs four parts: growth and profitability, valuation, quality and risk. Technical indicators are shown separately and are not part of that score. It describes the company; it is not a recommendation." },
+    a: "FinLit Prism describes a company's financial health from its filings and prices. Its main score weighs four parts: growth and profitability, valuation, quality and risk. Technical indicators are shown separately and are not part of that score. It describes the company; it is not a recommendation." },
   { q: "What is the difference between a mutual fund and an ETF?",
     a: "Both pool many investors' money into a basket of securities. A mutual fund's units are bought and redeemed from the fund house at the day's NAV (net asset value). An ETF trades on the stock exchange during market hours at the market price, usually follows an index, and needs a demat account. Costs, taxes and tracking differ by fund, so read each fund's factsheet." },
   { q: "How do I read a P/E ratio?",
