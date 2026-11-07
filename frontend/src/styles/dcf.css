@@ -147,3 +147,33 @@
 @media (max-width: 820px) { .dcf-intro-grid { grid-template-columns: minmax(0, 1fr); } }
 .dcf-intro > summary { display: flex; align-items: center; gap: 10px; } .dcf-intro > summary::after { display: none; }
 .dcf-hide { margin-left: auto; padding: 5px 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 13px var(--sans); cursor: pointer; } .dcf-hide:hover { border-color: var(--gold); }
+
+/* Slider UI for the assumptions: label and number box on one row, the slider under them, the range ends below it. */
+.dcf-sl { gap: 8px; }
+.dcf-sl-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dcf-sl-h > label { font-weight: 600; font-size: var(--fs-16); display: flex; align-items: center; gap: 4px; min-width: 0; flex-wrap: wrap; }
+.dcf-sl-box { flex: none; width: 118px; }
+.dcf-sl-box input { text-align: right; padding-right: 30px; }
+.dcf-sl select { width: 100%; }
+.dcf-range { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; margin: 0; cursor: pointer; --fill: 50%; touch-action: pan-y; }
+.dcf-range::-webkit-slider-runnable-track { height: 6px; border-radius: 6px; background: linear-gradient(90deg, var(--gold-deep), var(--gold) var(--fill), var(--s3) var(--fill)); }
+.dcf-range::-moz-range-track { height: 6px; border-radius: 6px; background: var(--s3); }
+.dcf-range::-moz-range-progress { height: 6px; border-radius: 6px; background: linear-gradient(90deg, var(--gold-deep), var(--gold)); }
+.dcf-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--s1); border: 3px solid var(--gold); box-shadow: 0 4px 12px -4px rgba(0, 0, 0, .5); transition: transform .15s; }
+.dcf-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--s1); border: 3px solid var(--gold); }
+.dcf-range:hover::-webkit-slider-thumb, .dcf-range:focus-visible::-webkit-slider-thumb { transform: scale(1.15); box-shadow: 0 0 0 6px var(--gold-soft); }
+.dcf-range:focus-visible { outline: none; }
+.dcf-range-ends { display: flex; justify-content: space-between; margin-top: -4px; font: 400 11px var(--mono); color: var(--faint); }
+.dcf-sl.has-err .dcf-range::-webkit-slider-thumb { border-color: var(--loss); }
+/* live result at the top of the inputs, so the effect of a slider is seen at once */
+.dcf-live { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 16px; padding: 12px 16px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--s2); text-align: center; }
+.dcf-live span { display: block; font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dcf-live b { display: block; margin-top: 2px; font: 500 20px var(--mono); color: var(--text); } .dcf-live b.up { color: var(--gain); } .dcf-live b.down { color: var(--loss); }
+/* the three groups of inputs */
+.dcf-grp { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.dcf-grp > summary { cursor: pointer; list-style: none; font: 600 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 0 12px; display: flex; justify-content: space-between; align-items: center; }
+.dcf-grp > summary::-webkit-details-marker { display: none; }
+.dcf-grp > summary::after { content: "▾"; font-size: 14px; } .dcf-grp:not([open]) > summary::after { content: "▸"; }
+.dcf-grp > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+@media (max-width: 640px) { .dcf-live b { font-size: 16px; } .dcf-sl-box { width: 104px; } .dcf-range { height: 32px; } }
+@media (prefers-reduced-motion: reduce) { .dcf-range::-webkit-slider-thumb { transition: none; } }

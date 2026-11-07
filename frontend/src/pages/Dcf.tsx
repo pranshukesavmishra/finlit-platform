@@ -156,20 +156,51 @@ function Field({ id, label, help, value, onChange, unit, error, hint, disabled, 
   );
 }
 
+/** Round up to 1, 2 or 5 times a power of ten. */
+const niceUp = (n: number) => { if (!(n > 0)) return 1; const m = 10 ** Math.floor(Math.log10(n)); return ([1, 2, 5, 10].map((k) => k * m).find((v) => v >= n) ?? n); };
+const decimalsOf = (step: number) => (step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(step))));
+
+/** An assumption you can move with a slider or type: the same text value as a plain field (so empty or half-typed numbers still get the usual message),
+ *  a slider across a sensible range that widens when a typed or loaded value lies outside it, and the number in a box beside the label. */
+export function SliderField({ id, label, help, value, onChange, unit, error, hint, min, max, step, required = true, children }: {
+  id: string; label: string; help?: Glossary; value: string; onChange: (v: string) => void; unit?: string; error?: string; hint?: string; min: number; max: number; step?: number; required?: boolean; children?: React.ReactNode;
+}) {
+  const n = parseNum(value);
+  const lo = Number.isFinite(n) && n < min ? -niceUp(-n) : min, hi = Number.isFinite(n) && n > max ? niceUp(n * 1.1) : max;
+  const st = step ?? Math.max(1, niceUp((hi - lo) / 200));
+  const dp = decimalsOf(st), pos = Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo;
+  const fill = hi > lo ? ((pos - lo) / (hi - lo)) * 100 : 0, end = (v: number) => (v < 0 ? "−" : "") + nf(Math.abs(v), dp);
+  return (
+    <div className={"dcf-f dcf-sl" + (error ? " has-err" : "")}>
+      <div className="dcf-sl-h">
+        <label htmlFor={"dcf-" + id}>{label}{required && <span className="req" aria-hidden="true">*</span>}{help && <Info g={help} />}</label>
+        <div className="dcf-in dcf-sl-box">
+          <input id={"dcf-" + id} inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} aria-invalid={!!error} aria-describedby={error ? `dcf-${id}-err` : hint ? `dcf-${id}-hint` : undefined}
+            autoComplete="off" spellCheck={false} maxLength={24} />
+          {unit && <span className="unit">{unit}</span>}
+        </div>
+      </div>
+      {children}
+      <input type="range" className="dcf-range" aria-label={`${label}, slider`} min={lo} max={hi} step={st} value={pos} style={{ "--fill": `${fill}%` } as React.CSSProperties}
+        aria-valuetext={`${end(pos)}${unit ? " " + unit : ""}`} onChange={(e) => onChange(String(Math.round(Number(e.target.value) * 10 ** dp) / 10 ** dp))} />
+      <div className="dcf-range-ends" aria-hidden="true"><span>{end(lo)}{unit}</span><span>{end(hi)}{unit}</span></div>
+      {error ? <p className="dcf-err" id={`dcf-${id}-err`}>{error}</p> : hint ? <p className="dcf-hint faint" id={`dcf-${id}-hint`}>{hint}</p> : null}
+    </div>
+  );
+}
+
 function GrowthField({ id, label, help, preset, value, onPreset, onValue, error }: {
   id: "g1" | "g2"; label: string; help: Glossary; preset: GrowthPreset; value: string; onPreset: (p: GrowthPreset) => void; onValue: (v: string) => void; error?: string;
 }) {
+  // Moving the slider or typing a number is a custom growth rate: the preset list follows it, and choosing a preset moves the slider to it.
+  const custom = (v: string) => { if (preset !== "custom") onPreset("custom"); onValue(v); };
   return (
-    <div className={"dcf-f" + (error ? " has-err" : "")}>
-      <label htmlFor={`dcf-${id}-p`}>{label}<span className="req" aria-hidden="true">*</span><Info g={help} /></label>
-      <select id={`dcf-${id}-p`} value={preset} onChange={(e) => onPreset(e.target.value as GrowthPreset)}>
+    <SliderField id={id} label={label} help={help} value={value} onChange={custom} unit="%" error={error} min={-10} max={50} step={0.5}>
+      <select id={`dcf-${id}-p`} aria-label={`${label}, choose a preset`} value={preset} onChange={(e) => onPreset(e.target.value as GrowthPreset)}>
         {Object.entries(GROWTH_PRESETS).map(([k, p]) => <option key={k} value={k}>{p.label} ({p.value}%)</option>)}
         <option value="custom">Custom</option>
       </select>
-      <div className="dcf-in"><input id={`dcf-${id}`} aria-label={`${label}, % a year`} inputMode="decimal" value={value} readOnly={preset !== "custom"} className={preset !== "custom" ? "is-ro" : ""}
-        onChange={(e) => onValue(e.target.value)} aria-invalid={!!error} autoComplete="off" maxLength={12} /><span className="unit">%</span></div>
-      {error && <p className="dcf-err">{error}</p>}
-    </div>
+    </SliderField>
   );
 }
 
@@ -395,32 +426,47 @@ export function DcfPage() {
           <CompanyLoader enabled={gold && !!user && !DEMO} onLoad={onCompany} loaded={loaded} initial={sp.get("load") === "1" && form.symbol ? form.symbol.toUpperCase() : null} />
 
           <section className="card dcf-form" aria-labelledby="dcf-in-h">
-            <h2 id="dcf-in-h">Inputs <span className="faint">₹ crore unless stated</span></h2>
-            <div className="dcf-grid">
-              <Field id="fcf0" label="Initial FCF (₹ Cr)" help={HELP.fcf0} value={form.fcf0} onChange={set("fcf0")} error={err("fcf0")} />
-              <Field id="r" label="Discount rate" help={HELP.r} value={form.r} onChange={set("r")} unit="%" error={err("r")} />
-              <GrowthField id="g1" label="Growth rate (1 to 5 years)" help={HELP.g1} preset={form.g1Preset} value={form.g1} onPreset={preset("g1")} onValue={set("g1")} error={err("g1")} />
-              <GrowthField id="g2" label="Growth rate (6 to 10 years)" help={HELP.g2} preset={form.g2Preset} value={form.g2} onPreset={preset("g2")} onValue={set("g2")} error={err("g2")} />
-              {form.tvMethod === "gordon"
-                ? <Field id="gT" label="Terminal growth rate" help={HELP.gT} value={form.gT} onChange={set("gT")} unit="%" error={err("gT")} hint={`Must be below the discount rate (${form.r || "—"}%).`} />
-                : <Field id="exitMultiple" label="Exit multiple (× year-10 FCF)" help={HELP.exitMultiple} value={form.exitMultiple} onChange={set("exitMultiple")} unit="×" error={err("exitMultiple")} />}
-              <Field id="marketCap" label="Market capitalisation (₹ Cr)" help={HELP.marketCap} value={form.marketCap} onChange={set("marketCap")} error={err("marketCap")} />
-              <Field id="price" label="Current share price (₹)" help={HELP.price} value={form.price} onChange={set("price")} error={err("price")} />
-              <Field id="netDebt" label="Net debt (₹ Cr)" help={HELP.netDebt} value={form.netDebt} onChange={set("netDebt")} error={err("netDebt")} hint="Negative for net cash." />
-              <div className="dcf-f">
-                <Field id="mos" label="Margin of safety" help={HELP.mos} value={form.mos} onChange={set("mos")} unit="%" error={err("mos")} />
-                <div className="dcf-chips" role="group" aria-label="Margin of safety by uncertainty">{MOS_PRESETS.map((m) => <button type="button" key={m.value} className={"chip-b" + (form.mos === String(m.value) ? " on" : "")} aria-pressed={form.mos === String(m.value)} onClick={() => set("mos")(String(m.value))}>{m.label} {m.value}%</button>)}</div>
-              </div>
-              <Field id="shares" label="Shares outstanding (crore)" help={HELP.shares} value={form.shares} onChange={set("shares")} error={err("shares")} required={false}
-                hint={form.shares.trim() ? "Diluted count used instead of market cap ÷ price." : "Optional: left empty, market capitalisation ÷ price."} />
+            <h2 id="dcf-in-h">Inputs <span className="faint">₹ crore unless stated · move a slider or type a number</span></h2>
+            <div className="dcf-live" role="status" aria-label="Live result">
+              <div><span>Intrinsic value</span><b className={res && res.equity > 0 ? "up" : ""}>{res && res.equity > 0 ? rs(res.iv) : "—"}</b></div>
+              <div><span>Current price</span><b>{Number.isFinite(inputs.price) ? rs(inputs.price) : "—"}</b></div>
+              <div><span>Upside / downside</span><b className={res ? (res.upside >= 0 ? "up" : "down") : ""}>{res && res.equity > 0 ? sgn(res.upside) : "—"}</b></div>
             </div>
+            <details className="dcf-grp" open><summary>1. Cash flow and growth</summary>
+              <div className="dcf-grid">
+                <SliderField id="fcf0" label="Initial FCF (₹ Cr)" help={HELP.fcf0} value={form.fcf0} onChange={set("fcf0")} error={err("fcf0")} min={0} max={1000} />
+                <GrowthField id="g1" label="Growth rate (1 to 5 years)" help={HELP.g1} preset={form.g1Preset} value={form.g1} onPreset={preset("g1")} onValue={set("g1")} error={err("g1")} />
+                <GrowthField id="g2" label="Growth rate (6 to 10 years)" help={HELP.g2} preset={form.g2Preset} value={form.g2} onPreset={preset("g2")} onValue={set("g2")} error={err("g2")} />
+                {form.tvMethod === "gordon"
+                  ? <SliderField id="gT" label="Terminal growth rate" help={HELP.gT} value={form.gT} onChange={set("gT")} unit="%" error={err("gT")} hint={`Must be below the discount rate (${form.r || "—"}%).`} min={0} max={12} step={0.1} />
+                  : <SliderField id="exitMultiple" label="Exit multiple (× year-10 FCF)" help={HELP.exitMultiple} value={form.exitMultiple} onChange={set("exitMultiple")} unit="×" error={err("exitMultiple")} min={1} max={60} step={0.5} />}
+              </div>
+            </details>
+            <details className="dcf-grp" open><summary>2. Discount rate and margin of safety</summary>
+              <div className="dcf-grid">
+                <SliderField id="r" label="Discount rate" help={HELP.r} value={form.r} onChange={set("r")} unit="%" error={err("r")} min={1} max={30} step={0.1} />
+                <div className="dcf-f">
+                  <SliderField id="mos" label="Margin of safety" help={HELP.mos} value={form.mos} onChange={set("mos")} unit="%" error={err("mos")} min={0} max={60} step={1} />
+                  <div className="dcf-chips" role="group" aria-label="Margin of safety by uncertainty">{MOS_PRESETS.map((m) => <button type="button" key={m.value} className={"chip-b" + (form.mos === String(m.value) ? " on" : "")} aria-pressed={form.mos === String(m.value)} onClick={() => set("mos")(String(m.value))}>{m.label} {m.value}%</button>)}</div>
+                </div>
+              </div>
+              <RateBuilder onUse={(r) => set("r")(String(r))} />
+            </details>
+            <details className="dcf-grp" open><summary>3. Price and balance sheet</summary>
+              <div className="dcf-grid">
+                <Field id="marketCap" label="Market capitalisation (₹ Cr)" help={HELP.marketCap} value={form.marketCap} onChange={set("marketCap")} error={err("marketCap")} />
+                <Field id="price" label="Current share price (₹)" help={HELP.price} value={form.price} onChange={set("price")} error={err("price")} />
+                <Field id="netDebt" label="Net debt (₹ Cr)" help={HELP.netDebt} value={form.netDebt} onChange={set("netDebt")} error={err("netDebt")} hint="Negative for net cash." />
+                <Field id="shares" label="Shares outstanding (crore)" help={HELP.shares} value={form.shares} onChange={set("shares")} error={err("shares")} required={false}
+                  hint={form.shares.trim() ? "Diluted count used instead of market cap ÷ price." : "Optional: left empty, market capitalisation ÷ price."} />
+              </div>
+            </details>
             <div className="dcf-opts">
               <label className="dcf-tog"><input type="checkbox" checked={form.midYear} onChange={(e) => set("midYear")(e.target.checked)} /> Mid-year convention <Info g={HELP.midYear} /></label>
               <label className="dcf-tog">Terminal value:
                 <select value={form.tvMethod} onChange={(e) => set("tvMethod")(e.target.value as Form["tvMethod"])}><option value="gordon">Growth formula (Gordon)</option><option value="exit">Exit multiple</option></select></label>
               <button className="btn sm ghost" type="button" onClick={() => { setForm(DEFAULT); setLoaded(null); }}>Reset</button>
             </div>
-            <RateBuilder onUse={(r) => set("r")(String(r))} />
           </section>
 
           {out.errors.length > 0 && (
