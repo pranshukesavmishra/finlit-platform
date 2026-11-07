@@ -6,7 +6,7 @@ import { apiGet, useQuotesFor, type Financials } from "../../lib/api";
 import { useAlerts } from "../../lib/alerts";
 import { quoteMap, BAND_LABEL } from "../../lib/globalSearch";
 import { MINUS, nf } from "../../lib/format";
-import { dayMonth, quarterEndLabel, yoyOf } from "../../lib/dashboard";
+import { dayMonth, quarterEndLabel, yoyLabel } from "../../lib/dashboard";
 import { Card, Rows, tone } from "./parts";
 
 export type Followed = { symbol: string; name: string | null };
@@ -38,7 +38,7 @@ export function MyStocks({ followed, loading }: { followed: Followed[]; loading:
           <div className="dsh-st-h" role="row"><span role="columnheader">Stock</span><span role="columnheader" className="r">Price</span><span role="columnheader" className="r">Today</span><span role="columnheader">FinLit IQ</span><span role="columnheader" className="r">Revenue YoY</span><span role="columnheader" className="r">Profit YoY</span><span role="columnheader" className="r">Alert</span></div>
           {shown.map((f, i) => {
             const q = qm.get(f.symbol), fin = fins[i], pl = fin.data?.quarterly?.pl;
-            const rev = pl ? yoyOf(pl.rows.revenue, pl.periodEnds) : null, np = pl ? yoyOf(pl.rows.net_profit, pl.periodEnds) : null;
+            const rev = pl ? yoyLabel(pl.rows.revenue, pl.periodEnds) : null, np = pl ? yoyLabel(pl.rows.net_profit, pl.periodEnds) : null;
             const mine = alerts.filter((a) => a.symbol === f.symbol && a.status !== "done");
             const reasonRev = fin.isError ? "Results not available for this company yet" : rev?.reason ?? undefined;
             const reasonNp = fin.isError ? "Results not available for this company yet" : np?.reason ?? undefined;
@@ -48,8 +48,8 @@ export function MyStocks({ followed, loading }: { followed: Followed[]; loading:
                 <div className="dsh-pr r" role="cell">{quotes.isLoading ? <i className="skeleton sk-n" /> : q?.price != null ? "₹" + nf(q.price) : <span title="No traded price held yet">—</span>}</div>
                 <div className={"ch r " + tone(q?.chg)} role="cell">{quotes.isLoading ? <i className="skeleton sk-n" /> : pct(q?.chg, 2)}</div>
                 <div className="dsh-st-x"><div className="sc" role="cell">{quotes.isLoading ? <i className="skeleton sk-p" /> : <Pill score={q?.score ?? null} band={q?.band ?? null} />}</div>
-                <div className={"yy r " + tone(rev?.pct)} role="cell" title={reasonRev}><b className="lbl">Revenue </b>{fin.isLoading ? <i className="skeleton sk-n" /> : pct(rev?.pct)}</div>
-                <div className={"yy r " + tone(np?.pct)} role="cell" title={reasonNp}><b className="lbl">Profit </b>{fin.isLoading ? <i className="skeleton sk-n" /> : pct(np?.pct)}</div>
+                <div className={"yy r " + tone(rev?.tone === "up" ? 1 : rev?.tone === "down" ? -1 : 0)} role="cell" title={reasonRev}><b className="lbl">Revenue </b>{fin.isLoading ? <i className="skeleton sk-n" /> : rev?.text ?? pct(rev?.pct)}</div>
+                <div className={"yy r " + tone(np?.tone === "up" ? 1 : np?.tone === "down" ? -1 : 0)} role="cell" title={reasonNp}><b className="lbl">Profit </b>{fin.isLoading ? <i className="skeleton sk-n" /> : np?.text ?? pct(np?.pct)}</div>
                 <div className="al r" role="cell">{mine.length ? <Link to="/alerts" title={mine.map((a) => a.label).join(", ")}>{mine.length === 1 ? (mine[0].met ? "Alert met" : "Alert set") : `${mine.length} alerts`}</Link> : <Link to="/alerts">Add alert</Link>}</div></div>
               </div>
             );

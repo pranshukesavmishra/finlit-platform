@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { TILE_COLOURS, contrast, pickIndices, scopeStocks, dedupeFilings, filingLine, filingTag, firstName, greetingWord, moveBlock, readTab, resultLines, shortDay, shorten, tileColour, tileLabel, titleCase, writeTab, yoyOf } from "./dashboard";
+import { TILE_COLOURS, contrast, pickIndices, scopeStocks, dedupeFilings, filingLine, filingTag, firstName, greetingWord, moveBlock, readTab, resultLines, shortDay, shorten, tileColour, tileLabel, titleCase, writeTab, yoyLabel, yoyOf } from "./dashboard";
 import { WIDGETS, normaliseLayout } from "./prefs";
 import type { FeedItem } from "./feed";
 import type { IndexRow } from "./indices";
@@ -30,6 +30,14 @@ describe("heat-map tile colours", () => {
 
 describe("year on year", () => {
   const ends = ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30", "2026-09-30"];
+  it("says in words what a loss against a loss means, instead of a blank", () => {
+    expect(yoyLabel([-30, 1, 1, 1, -10], ends)).toMatchObject({ text: "Loss narrowed", tone: "up" });
+    expect(yoyLabel([-10, 1, 1, 1, -30], ends)).toMatchObject({ text: "Loss widened", tone: "down" });
+    expect(yoyLabel([-10, 1, 1, 1, 5], ends)).toMatchObject({ text: "Turned profit", tone: "up" });
+    expect(yoyLabel([0, 1, 1, 1, -5], ends)).toMatchObject({ text: "Turned loss", tone: "down" });
+    expect(yoyLabel([100, 1, 1, 1, 135], ends)).toMatchObject({ text: null, tone: "up" });
+    expect(yoyLabel([1, 2], ["a", "b"])).toMatchObject({ text: null, pct: null, reason: expect.stringMatching(/Fewer than five/) });
+  });
   it("compares with the same quarter a year earlier", () => { expect(yoyOf([100, 1, 1, 1, 135], ends).pct).toBeCloseTo(35); });
   it("says why when it cannot", () => {
     expect(yoyOf([1, 2], ["a", "b"]).reason).toMatch(/Fewer than five/);

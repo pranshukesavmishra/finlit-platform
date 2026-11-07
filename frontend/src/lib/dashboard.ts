@@ -70,6 +70,22 @@ export function yoyOf(values: (number | null)[] | undefined, ends: string[] | un
   if (b <= 0) return { pct: null, reason: "Not meaningful: the year-ago figure was zero or a loss" };
   return { pct: ((a - b) / b) * 100, reason: null };
 }
+/** What to show for a quarter against the same quarter a year earlier, in words when a percentage means nothing. A percentage change needs a positive year-ago figure; when
+ *  that was a loss the figures still say something real, so they are shown as words (never a blank with the reason hidden): "Turned profit", "Turned loss",
+ *  "Loss narrowed" or "Loss widened". tone: up / down / flat for the colour. */
+export function yoyLabel(values: (number | null)[] | undefined, ends: string[] | undefined): { text: string | null; pct: number | null; tone: "up" | "down" | "flat"; reason: string | null } {
+  const y = yoyOf(values, ends);
+  if (y.pct != null) return { text: null, pct: y.pct, tone: y.pct > 0 ? "up" : y.pct < 0 ? "down" : "flat", reason: null };
+  const n = values?.length ?? 0;
+  if (!values || !ends || n < 5 || !/loss/.test(y.reason || "")) return { text: null, pct: null, tone: "flat", reason: y.reason };
+  const a = values[n - 1], b = values[n - 5];
+  if (a == null || b == null) return { text: null, pct: null, tone: "flat", reason: y.reason };
+  if (a > 0 && b <= 0) return { text: "Turned profit", pct: null, tone: "up", reason: "A profit this quarter against a loss a year earlier" };
+  if (a < 0 && b === 0) return { text: "Turned loss", pct: null, tone: "down", reason: "A loss this quarter against no profit a year earlier" };
+  if (a < 0 && b < 0) return a > b ? { text: "Loss narrowed", pct: null, tone: "up", reason: "A smaller loss than the same quarter a year earlier" }
+    : a < b ? { text: "Loss widened", pct: null, tone: "down", reason: "A bigger loss than the same quarter a year earlier" } : { text: "Loss unchanged", pct: null, tone: "flat", reason: "The same loss as a year earlier" };
+  return { text: null, pct: null, tone: "flat", reason: y.reason };
+}
 /** "Sep 2026" from a quarter-end date. */
 export const quarterEndLabel = (iso: string | undefined) => (iso ? monthYear(iso) : "");
 
