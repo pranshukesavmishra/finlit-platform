@@ -16,6 +16,7 @@ import {
   requiredMonthly, rupees, short, toInput, toQuery, type SipState, type TaxRules,
 } from "../lib/sip";
 import "../styles/sip.css";
+import { ChartZoom } from "../components/ChartZoom";
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -104,6 +105,7 @@ function Donut({ invested, gain, value }: { invested: number; gain: number; valu
   const inv = (invested / total) * c;
   const shown = useGlide(value);
   return (
+    <ChartZoom label={"Invested amount and wealth gained"}>
     <div className="sip-donut">
       <svg viewBox="0 0 180 180" role="img" aria-label={`Invested ${rupees(invested)}, gained ${rupees(gain)}`}>
         <defs><linearGradient id="sipGain" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--gold-2)" /><stop offset="1" stopColor="var(--gold-deep)" /></linearGradient></defs>
@@ -113,6 +115,7 @@ function Donut({ invested, gain, value }: { invested: number; gain: number; valu
       </svg>
       <div className="sip-d-c"><span>Expected amount</span><b>{short(shown)}</b><small>{(invested ? value / invested : 0).toFixed(2)}× what you put in</small></div>
     </div>
+    </ChartZoom>
   );
 }
 
@@ -158,6 +161,7 @@ function GrowthChart({ s, band }: { s: SipState; band: Band }) {
     if (e.key === "Escape") setHover(null);
   };
   return (
+    <ChartZoom label={"SIP growth over time"}>
     <div className="sip-chart" ref={box}>
       <svg ref={svg} viewBox={`0 0 ${W} ${H}`} role="img" tabIndex={0} aria-label={`Value grows to ${rupees(r.value)} over ${duration(n)} against ${rupees(r.invested)} put in. Use the left and right arrow keys to read each year.`}
         onPointerMove={move} onPointerLeave={() => setHover(null)} onKeyDown={key}>
@@ -190,6 +194,7 @@ function GrowthChart({ s, band }: { s: SipState; band: Band }) {
         </div>
       )}
     </div>
+    </ChartZoom>
   );
 }
 
