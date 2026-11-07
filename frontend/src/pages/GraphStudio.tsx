@@ -2,6 +2,7 @@ import { PageHeader } from "../components/PageHeader";
 import { DrawLayer } from "../components/DrawLayer";
 import { ChartInference } from "../components/ChartInference";
 import { ChartReading } from "../components/ChartReading";
+import { topicOfChart } from "../lib/chartSays";
 import { readBars, readBreakdown, readCandles, readCorrelationMatrix, readTimeSeries } from "../lib/chartReading";
 import { chartInference, pFromR } from "../lib/chartInference";
 import { viewId } from "../lib/drawings";
@@ -158,7 +159,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, onRe
       <div ref={ref} className="gx-body"><DrawLayer id={"gx:" + viewId(JSON.stringify([cell.chart, tf, cell.x, cell.y, cell.mode, view.range, view.from, view.basis, cell.series.map((x) => [x.s, x.m, x.as])]))} enabled={w > 0 && ok.length > 0 && chk.ok && (ps.length > 0 || !!align || comp || cell.chart === "candlestick" || cell.chart === "bar")}>{body}</DrawLayer></div>
       {dualNote && <p className="gx-r">Two units, so two axes: {[...new Set(ps.map((p) => p.unit))].map((u, n) => `${n ? "right" : "left"} ${UNITS[u].label}`).join(", ")}. Compare shapes, not heights.</p>}
       {csvOnly && ps.some((p) => p.pts.filter((x) => x.v != null).length < 3) && !["scatter", "heatmap"].includes(cell.chart) && <p className="gx-r faint">Few points in this window; widen the range or switch to Quarterly.</p>}
-      <ChartReading id={"gx-rd-" + i} reading={reading} />
+      <ChartReading id={"gx-rd-" + i} reading={reading} topic={topicOfChart(cell.chart, { matrix: (cell.mode ?? (ok.length > 1 ? "corr" : "grid")) === "corr" })} />
     </section>
   );
 }

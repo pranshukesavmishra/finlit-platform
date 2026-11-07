@@ -22,7 +22,7 @@ function Tiles({ b }: { b: Board }) {
     <ul className="sx-tiles" aria-label="How many groups are in each state" style={{ listStyle: "none", padding: 0 }}>
       {STATES.map((s) => {
         const n = b.counts?.[s.name] ?? 0;
-        return <li key={s.code} className={"sx-tile" + (n === 0 ? " zero" : "")}><div className="top"><span className="n">{count(n)}</span><span className={`sx-chip st-${s.code}`}>{s.name}</span></div><p>{b.state_meanings?.[s.name]}</p></li>;
+        return <li key={s.code} className={"sx-tile" + (n === 0 ? " zero" : "")}><div className="sx-top"><span className="n">{count(n)}</span><span className={`sx-chip st-${s.code}`}>{s.name}</span></div><p>{b.state_meanings?.[s.name]}</p></li>;
       })}
     </ul>
   );

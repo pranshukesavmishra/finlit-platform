@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { HScroll } from "../components/HScroll";
 import { RoeLines } from "../charts/RoeLines";
 import { Waterfall } from "../charts/Waterfall";
+import { ChartSays } from "../components/ChartSays";
+import { dupontSays } from "../lib/chartSays";
 import { Icon } from "../lib/icons";
 import type { Table } from "../lib/api";
 import { DUPONT_LIMITS as LIM } from "../lib/dupontRules";
@@ -167,6 +169,7 @@ export function DecodeRoe({ symbol, pl, bs, lender, said = NONE }: { symbol: str
             bars={[{ key: "s", label: [wf.from.replace("Mar ", "Mar "), "ROE"], value: wf.start, kind: "total" },
               ...wf.steps.map((s) => ({ key: s.key, label: SHORT[s.key][0], narrow: SHORT[s.key][1], value: s.pp, kind: "delta" as const })),
               { key: "e", label: [wf.to, "ROE"], value: wf.end, kind: "total" }]} />
+          <ChartSays topic="dupont" id={uid + "-says"}><ul className="csay-lines">{dupontSays(wf).map((t) => <li key={t}>{t}</li>)}</ul></ChartSays>
           <HScroll className="" label="ROE bridge table">
             <table className="dp-t">
               <caption className="sr-only">Contribution of each factor to the change in ROE from {wf.from} to {wf.to}</caption>

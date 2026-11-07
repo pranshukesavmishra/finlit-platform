@@ -64,7 +64,7 @@
 /* the six state tiles */
 .sx-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
 .sx-tile { background: var(--s1); border: 1px solid var(--border-strong); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
-.sx-tile .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sx-tile .sx-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .sx-tile .n { font: 700 32px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--text); }
 .sx-tile.zero .n { color: var(--faint); font-weight: 600; }
 .sx-tile p { margin: 0; font-size: var(--fs-13); line-height: 1.45; color: var(--muted); }

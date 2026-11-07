@@ -33,7 +33,7 @@ function Tiles({ m, filter, setFilter }: { m: RotationMap; filter: CornerFilter;
         return (
           <li key={c}>
             <button type="button" className={`rt-tile c-${c}${on ? " on" : ""}`} aria-pressed={on} onClick={() => setFilter(on ? "all" : c)} data-testid={`tile-${c}`}>
-              <span className="top"><CornerBadge corner={c} name={name} /><b className="n">{n}</b></span>
+              <span className="rt-top"><CornerBadge corner={c} name={name} /><b className="n">{n}</b></span>
               <span className="mean">{m.corner_meanings?.[name]}</span>
               <span className="study">{tileStudyLine(m.study, c)}{c === "ahead_gaining" && m.study?.breadth?.ahead_gaining ? ` Broad breadth ${pts(m.study.breadth.ahead_gaining.broad.mean)}, narrow ${pts(m.study.breadth.ahead_gaining.narrow.mean)}.` : ""}</span>
             </button>
