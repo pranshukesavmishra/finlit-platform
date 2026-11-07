@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MINUS, nf } from "../lib/format";
 import { niceTicks, useWidth } from "./RoeLines";
+import { ChartZoom } from "../components/ChartZoom";
 
 export type WfBar = { key: string; label: [string, string]; narrow?: [string, string]; value: number; kind: "total" | "delta" };
 
@@ -16,6 +17,7 @@ export function Waterfall({ bars, ariaLabel, height = 250 }: { bars: WfBar[]; ar
   const tight = step < 72;   // narrow screens: shorter labels so neighbours never overlap
   const text = (b: WfBar) => (tight && b.kind === "delta" ? `${b.value > 0 ? "▲" : b.value < 0 ? "▼" : ""}${nf(b.value, 1)}` : b.kind === "total" ? `${b.value < 0 ? MINUS : ""}${nf(b.value, 1)}%` : `${b.value > 0 ? "▲ +" : b.value < 0 ? `▼ ${MINUS}` : ""}${nf(b.value, 1)} pp`);
   return (
+    <ChartZoom label={"Bridge chart"}>
     <div className="mb dp-chart" ref={wrap} onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={ariaLabel}>
         {ticks.map((t) => <g key={t}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.4 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{(t < 0 ? MINUS : "") + nf(t, 0)}</text></g>)}
@@ -34,5 +36,6 @@ export function Waterfall({ bars, ariaLabel, height = 250 }: { bars: WfBar[]; ar
         })}
       </svg>
     </div>
+    </ChartZoom>
   );
 }
