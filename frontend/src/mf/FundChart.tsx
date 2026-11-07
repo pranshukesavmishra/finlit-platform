@@ -4,6 +4,7 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { buildLines, nearestIndex, type LineSeries } from "../lib/mf";
 import { dateIN } from "../lib/format";
+import { ChartZoom } from "../components/ChartZoom";
 
 export const SERIES_STYLE = [
   { color: "var(--k1)", dash: "" }, { color: "var(--k2)", dash: "7 4" }, { color: "var(--k3)", dash: "2 4" }, { color: "var(--k7)", dash: "11 4 2 4" },
@@ -34,6 +35,7 @@ export function FundChart({ series, format, label, base }: { series: LineSeries[
   const first = series[0], lo = Math.min(...series.flatMap((s) => s.v)), hi = Math.max(...series.flatMap((s) => s.v));
   const summary = `${label}. ` + series.map((s) => `${s.label}: ${format(s.v[0])} on ${dateIN(s.t[0])} to ${format(s.v[s.v.length - 1])} on ${dateIN(s.t[s.t.length - 1])}`).join("; ") + `. Lowest ${format(lo)}, highest ${format(hi)}.`;
   return (
+    <ChartZoom label={"Fund NAV chart"}>
     <div className="mf-chart" tabIndex={0} role="group" aria-label={`${label}. Use the left and right arrow keys to read values.`} onKeyDown={key} onBlur={() => setCursor(null)}>
       <svg ref={box} viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={`${id}-t`} preserveAspectRatio="xMidYMid meet">
         <title id={`${id}-t`}>{summary}</title>
@@ -50,5 +52,6 @@ export function FundChart({ series, format, label, base }: { series: LineSeries[
           : <span className="faint">{first.t.length} points from {dateIN(first.t[0])} to {dateIN(first.t[first.t.length - 1])}. Point at the chart, or focus it and use the arrow keys, to read values.</span>}
       </div>
     </div>
+    </ChartZoom>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type P
 import { buildLines, nearestIndex } from "../lib/mf";
 import { dateIN } from "../lib/format";
 import { smoothPath, type RollStats, type Side } from "../lib/mfCompare";
+import { ChartZoom } from "../components/ChartZoom";
 
 export const SIDE_COLOR: Record<Side, string> = { a: "var(--k1)", b: "var(--k2)", cat: "var(--k3)" };
 export const SIDE_DASH: Record<Side, string> = { a: "", b: "", cat: "2 5" };
@@ -61,6 +62,7 @@ export function H2HChart({ series, format, label, base, tipFormat }: { series: S
   const flip = cursor != null && cursor > W * 0.6;
 
   return (
+    <ChartZoom label={"Fund comparison chart"}>
     <div className="h2h-chart" ref={wrap} tabIndex={0} role="group" aria-label={`${label}. Use the left and right arrow keys to read values.`} onKeyDown={key} onBlur={() => setCursor(null)}>
       <svg ref={box} width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={`${uid}-t`}>
         <title id={`${uid}-t`}>{summary}</title>
@@ -96,6 +98,7 @@ export function H2HChart({ series, format, label, base, tipFormat }: { series: S
           : <span className="faint">{series[0].t.length} points from {dateIN(series[0].t[0])} to {dateIN(series[0].t[series[0].t.length - 1])}. Point at the chart, or focus it and use the arrow keys, to read values.</span>}
       </div>
     </div>
+    </ChartZoom>
   );
 }
 
