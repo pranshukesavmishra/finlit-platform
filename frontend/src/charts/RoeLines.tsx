@@ -23,6 +23,15 @@ export function niceTicks(lo: number, hi: number, count = 4): number[] {
   return out;
 }
 
+/** Ticks whose last one is never below the highest value: niceTicks stops at hi + half a step, so a tall bar or point could stand above the top gridline and its number was cut off. */
+export function coverTicks(lo: number, hi: number, count = 4): number[] {
+  const t = niceTicks(lo, hi, count);
+  if (t.length < 2) return t;
+  const step = t[1] - t[0];
+  while (t[t.length - 1] < hi - 1e-9) t.push(Math.round((t[t.length - 1] + step) * 1e6) / 1e6);
+  return t;
+}
+
 export type LineSeries = { key: string; label: string; values: (number | null)[]; color: string; dotted?: boolean; marker: "circle" | "square" };
 
 /** Lines in plain SVG: one point per period, a gap wherever a value is missing, a dotted line for the secondary series, and different marker shapes so colour is never the only signal.
@@ -34,7 +43,7 @@ export function RoeLines({ labels, series, fmt, flags, notes, height = 230, aria
   const [hv, setHv] = useState<number | null>(null);
   const n = labels.length, H = height, pl = 46, pr = 10, pt = 14, pb = 26;
   const vals = series.flatMap((s) => s.values.filter((v): v is number => v != null));
-  const lo = Math.min(0, ...vals), hi = Math.max(...vals, 1), ticks = niceTicks(lo, hi), top = ticks[ticks.length - 1], bot = Math.min(lo, ticks[0]);
+  const lo = Math.min(0, ...vals), hi = Math.max(...vals, 1), ticks = coverTicks(lo, hi), top = ticks[ticks.length - 1], bot = Math.min(lo, ticks[0]);
   const X = (i: number) => pl + (i + 0.5) * ((W - pl - pr) / n), Y = (v: number) => pt + (1 - (v - bot) / (top - bot || 1)) * (H - pt - pb);
   const every = labelEvery(n, W - pl - pr, Math.max(...labels.map((l) => l.length), 1));
   const runs = (s: LineSeries) => { const out: [number, number][][] = []; let cur: [number, number][] = []; s.values.forEach((v, i) => { if (v == null) { if (cur.length) out.push(cur); cur = []; } else cur.push([X(i), Y(v)]); }); if (cur.length) out.push(cur); return out; };

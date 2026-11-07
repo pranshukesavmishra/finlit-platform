@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MINUS, nf } from "../lib/format";
-import { niceTicks, useWidth } from "./RoeLines";
+import { coverTicks, useWidth } from "./RoeLines";
 import { ChartZoom } from "../components/ChartZoom";
 
 export type WfBar = { key: string; label: [string, string]; narrow?: [string, string]; value: number; kind: "total" | "delta" };
@@ -12,7 +12,7 @@ export function Waterfall({ bars, ariaLabel, height = 250 }: { bars: WfBar[]; ar
   const n = bars.length, H = height, pl = 42, pr = 8, pt = 32, pb = 40;   // pt leaves room above the tallest bar for its number (it used to be clamped onto the bar)
   let run = 0;
   const geo = bars.map((b) => { const from = b.kind === "total" ? 0 : run, to = b.kind === "total" ? b.value : run + b.value; run = to; return { from, to }; });
-  const all = geo.flatMap((g) => [g.from, g.to]), lo = Math.min(0, ...all), hi = Math.max(...all, 1), ticks = niceTicks(lo, hi), top = ticks[ticks.length - 1], bot = Math.min(lo, ticks[0]);
+  const all = geo.flatMap((g) => [g.from, g.to]), lo = Math.min(0, ...all), hi = Math.max(...all, 1), ticks = coverTicks(lo, hi), top = ticks[ticks.length - 1], bot = Math.min(lo, ticks[0]);
   const Y = (v: number) => pt + (1 - (v - bot) / (top - bot || 1)) * (H - pt - pb), step = (W - pl - pr) / n, X = (i: number) => pl + (i + 0.5) * step, bw = Math.min(46, step * 0.62);
   const tight = step < 72;   // narrow screens: shorter labels so neighbours never overlap
   const text = (b: WfBar) => (tight && b.kind === "delta" ? `${b.value > 0 ? "▲" : b.value < 0 ? "▼" : ""}${nf(b.value, 1)}` : b.kind === "total" ? `${b.value < 0 ? MINUS : ""}${nf(b.value, 1)}%` : `${b.value > 0 ? "▲ +" : b.value < 0 ? `▼ ${MINUS}` : ""}${nf(b.value, 1)} pp`);

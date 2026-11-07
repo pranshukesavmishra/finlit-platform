@@ -86,3 +86,30 @@ describe("ChartZoom", () => {
     expect(screen.getByRole("button", { name: "Enlarge chart: Card" })).toBeTruthy();
   });
 });
+
+describe("ChartZoom arrow placement", () => {
+  const card = { border: "1px solid #444", borderRadius: 12 } as const;
+  it("anchors the arrow to the card that holds only this chart, and keeps the title row clear of it", () => {
+    render(<div style={card} data-testid="card"><div data-testid="head">Title</div><ChartZoom label="Revenue"><Counter /></ChartZoom></div>);
+    const btn = screen.getByRole("button", { name: "Enlarge chart: Revenue" });
+    expect(btn.className).toContain("cz-at-box");
+    expect(btn.parentElement?.className).toContain("cz-boxed");
+    expect(screen.getByTestId("head").hasAttribute("data-cz-head")).toBe(true);
+  });
+  it("gives the arrow a strip of its own when the card has no title row above the chart", () => {
+    render(<div style={card}><ChartZoom label="Revenue"><Counter /></ChartZoom></div>);
+    expect(screen.getByRole("button", { name: "Enlarge chart: Revenue" }).parentElement?.className).toContain("cz-strip");
+  });
+  it("leaves the arrow at the chart's own corner when the card holds several charts", () => {
+    render(<div style={card}><ChartZoom label="One"><Counter /></ChartZoom><ChartZoom label="Two"><Counter /></ChartZoom></div>);
+    const btn = screen.getByRole("button", { name: "Enlarge chart: One" });
+    expect(btn.className).not.toContain("cz-at-box");
+    expect(btn.parentElement?.className).not.toContain("cz-boxed");
+  });
+  it("removes the title-row mark when the chart goes away", () => {
+    const { unmount } = render(<div style={card}><div data-testid="head">Title</div><ChartZoom label="Revenue"><Counter /></ChartZoom></div>);
+    const head = screen.getByTestId("head");
+    unmount();
+    expect(head.hasAttribute("data-cz-head")).toBe(false);
+  });
+});
