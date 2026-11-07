@@ -180,6 +180,27 @@ async def test_a_running_prerequisite_always_blocks():
     assert sup.runner.started == ["prism"] and "waiting for prism" in (await sup.state.load_all())["presets"].state_reason
 
 
+async def test_late_jobs_go_before_a_job_that_is_only_continuing():
+    # portfolios reached its time cap and is back two minutes later; backfill-history (lower priority) is 10 days late: the late one goes first
+    sup, _ = make([bulk("portfolios", 50, resumable=True, sla=Sla("hours", 26)), bulk("backfill", 65, sla=Sla("hours", 192), catchup=False, interval_min=60)])
+    await sup.state.save(JobState(job="portfolios", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(hours=30), last_attempt_at=NOON - timedelta(minutes=5),
+                                  last_status="timeout", retry_at=NOON - timedelta(minutes=1)))
+    await sup.state.save(JobState(job="backfill", first_seen_at=NOON - timedelta(days=20), last_success_at=NOON - timedelta(days=10)))
+    plan = await sup.plan()
+    assert [j.name for j in plan.start] == ["backfill"] and "waiting for backfill" in plan.blocked["portfolios"]
+
+
+async def test_a_job_inside_its_promise_lets_a_late_job_go_first_but_order_is_kept_among_equals():
+    sup, _ = make([bulk("prism", 40, interval_min=10, sla=Sla("hours", 26)), bulk("score-mf", 55, sla=Sla("hours", 26), interval_min=60, catchup=False),
+                   bulk("mf-screen", 57, sla=Sla("hours", 30), interval_min=60, catchup=False)])
+    await sup.state.save(JobState(job="prism", first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(hours=1)))
+    for n in ("score-mf", "mf-screen"):
+        await sup.state.save(JobState(job=n, first_seen_at=NOON - timedelta(days=5), last_success_at=NOON - timedelta(days=3)))
+    plan = await sup.plan()
+    assert [j.name for j in plan.start] == ["score-mf"]                     # late, and the better priority of the two late ones
+    assert "waiting for score-mf" in plan.blocked["mf-screen"] and "waiting for score-mf" in plan.blocked["prism"]
+
+
 async def test_disabled_jobs_never_start_and_say_why():
     jobs = [light("funds-job", gate=Gate("FUND_LOADS_ENABLED", "funds are off", default="0"))]
     sup, _ = make(jobs, env={})

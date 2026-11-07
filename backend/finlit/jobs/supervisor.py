@@ -187,6 +187,15 @@ class Supervisor:
             return f"waiting for the CPU: load {load:.1f} per core is above {self.cfg.max_load_per_cpu:g}"
         return None
 
+    def _goes_last(self, job: Job, st: Optional[JobState], now: datetime) -> bool:
+        """True for a bulk job that should let late jobs go first: it is continuing a run it already started (it reached its time cap, or was stopped
+        by a restart) or it is still inside its SLA. Light, audit and on-demand jobs keep their place."""
+        if job.cls != "bulk" or st is None:
+            return False
+        if job.resumable and st.last_status in ("timeout", "killed"):
+            return True
+        return not sla_status(job, st, now).breached
+
     def _waits_for_due(self, job: Job, p: str, plan: Plan, now: datetime) -> bool:
         """Should `job` wait for its prerequisite `p`, which is due but not running? Only while waiting makes sense: `p` has nothing new since `job`
         last succeeded, and `job` is still inside its promise. A resumable prerequisite that yields at its time cap is due again two minutes later,
@@ -217,7 +226,11 @@ class Supervisor:
             else:
                 self._due_since.pop(n, None)
         # priority first, then first come first served among equals
-        for job in sorted(self.order, key=lambda j: (j.priority, self._due_since.get(j.name, 0.0), j.name)):
+        # Late jobs first, then the rest by priority. A bulk job that is only continuing (a resumable job back after its time cap or a restart) or is
+        # still inside its promise goes to the back of the queue, so a long or repeating job (ingest, portfolios, prism) never holds up the jobs that
+        # are already late (founder, 7 Nov 2026: "jisske karan job ruke usko last me kardo, baki job continue rakho").
+        last = {n: self._goes_last(j, states.get(n), now) for n, j in self.jobs.items()}
+        for job in sorted(self.order, key=lambda j: (last[j.name], j.priority, self._due_since.get(j.name, 0.0), j.name)):
             if not verdicts[job.name].due:
                 continue
             why = self._blocker(job, plan, snap.free_mb, snap.load_per_cpu, reserved, now)
