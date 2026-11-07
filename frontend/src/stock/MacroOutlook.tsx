@@ -5,8 +5,8 @@ import { Icon } from "../lib/icons";
 import { dateIN } from "../lib/format";
 import { SectionHead } from "./Sections";
 import "../styles/macro-outlook.css";
-import { PERIODS, GROUP_ICON, arrow, driverText, insufficientText, pct, shortName, signed, useCompanyMacro, useMacroHistory, useSectorImpact,
-  type CompanyMacro, type Driver, type History, type Indicator, type Item, type SectorRow, type Tone } from "../lib/macroOutlook";
+import { PERIODS, GROUP_ICON, arrow, companyRows, driverText, indicatorsForReasons, insufficientText, pct, reasonsOf, shortName, signed, useCompanyMacro, useMacroHistory, useSectorImpact,
+  type CompanyMacro, type Driver, type History, type Indicator, type Item, type Reason, type SectorRow, type Tone } from "../lib/macroOutlook";
 import { ChartZoom } from "../components/ChartZoom";
 
 
@@ -35,26 +35,20 @@ function Backdrop({ c }: { c: CompanyMacro }) {
   );
 }
 
-/* B: sector impact */
-export function SectorTable({ rows, current, all, setAll }: { rows: SectorRow[]; current: string; all: boolean; setAll: (v: boolean) => void }) {
-  const idx = rows.findIndex((r) => r.sector.code === current);
-  const shown = all ? rows : rows.filter((r, i) => i < 6 || r.sector.code === current);
+/* B: sector impact: only the rows marked "This company" (its own sector, or each segment sector of a revenue-weighted company) */
+export function SectorTable({ rows }: { rows: SectorRow[] }) {
   return (
     <div className="mo-panel">
-      <div className="mo-h"><h3><Icon name="bars" />Sector impact</h3><span className="faint">50 is neutral · sorted by score</span></div>
+      <div className="mo-h"><h3><Icon name="bars" />Sector impact</h3><span className="faint">{rows.length > 1 ? "50 is neutral · sorted by score" : "50 is neutral"}</span></div>
       <table className="mo-t"><thead><tr><th scope="col">Sector</th><th scope="col">Score <span className="faint">(line at 50)</span></th><th scope="col" className="num">Score</th><th scope="col">Sentiment</th><th scope="col">Top reasons</th></tr></thead>
-        <tbody>{shown.map((r) => {
-          const me = r.sector.code === current;
-          return (
-            <tr key={r.sector.code} className={me ? "me" : ""} aria-current={me ? "true" : undefined}>
-              <th scope="row">{r.sector.name}{me && <span className="mo-you">This company</span>}</th>
-              <td data-l="Score"><Bar score={r.score} tone={r.tone} /></td>
-              <td className="num" data-l="Score">{r.score == null ? "—" : Math.round(r.score)}</td>
-              <td data-l="Sentiment"><Chip label={r.label} tone={r.tone} /></td>
-              <td data-l="Reasons">{r.status === "ok" ? (r.drivers.length ? r.drivers.map((d) => <Pill key={d.code} d={d} />) : <span className="faint">No dominant driver</span>) : <span className="faint">{(r.reason?.split(";")[0].replace(/^missing critical: /, "missing ") ?? "Insufficient Data")}</span>}</td>
-            </tr>);
-        })}</tbody></table>
-      {rows.length > 7 && <button type="button" className="mo-more" onClick={() => setAll(!all)} aria-expanded={all}>{all ? "Show fewer sectors" : `Show all ${rows.length} sectors`}{!all && idx >= 6 ? "" : ""}</button>}
+        <tbody>{rows.map((r) => (
+          <tr key={r.sector.code} className="me" aria-current="true">
+            <th scope="row">{r.sector.name}<span className="mo-you">This company</span></th>
+            <td data-l="Score"><Bar score={r.score} tone={r.tone} /></td>
+            <td className="num" data-l="Score">{r.score == null ? "—" : Math.round(r.score)}</td>
+            <td data-l="Sentiment"><Chip label={r.label} tone={r.tone} /></td>
+            <td data-l="Reasons">{r.status === "ok" ? (r.drivers.length ? r.drivers.map((d) => <Pill key={d.code} d={d} />) : <span className="faint">No dominant driver</span>) : <span className="faint">{(r.reason?.split(";")[0].replace(/^missing critical: /, "missing ") ?? "Insufficient Data")}</span>}</td>
+          </tr>))}</tbody></table>
     </div>
   );
 }
@@ -64,12 +58,12 @@ function SignalBar({ v }: { v: number | null }) {
   if (v == null) return <span className="mo-sig none">no signal</span>;
   return <span className="mo-sig" title={`Normalised signal ${signed(v)} (−1 low or falling, +1 high or rising)`}><i style={{ left: `${(v + 1) * 50}%` }} className={v > 0.05 ? "hi" : v < -0.05 ? "lo" : ""} /><em>{signed(v)}</em></span>;
 }
-function Tile({ i }: { i: Indicator }) {
+function Tile({ i, why }: { i: Indicator; why: Reason }) {
   const bad = i.status === "Missing" || i.status === "Stale" || i.status === "Invalid";
-  const s = i.sensitivity;
+  const d = why.driver;   // the reason in Sector impact this tile belongs to: its effect on the score is the one the "Top reasons" pill shows
   return (
-    <li className={"mo-tile" + (bad ? " bad" : "")}>
-      <div className="mo-tn"><b>{i.name}</b>{s && s.counted && s.contribution != null && Math.abs(s.contribution) > 0 && <span className={"mo-eff " + (s.contribution > 0 ? "pos" : "neg")} title="Effect on this sector's score">{s.contribution > 0 ? "supports" : "weighs"} {signed(s.contribution)}</span>}</div>
+    <li className={"mo-tile" + (bad ? " bad" : "")} data-reason={i.code}>
+      <div className="mo-tn"><b>{i.name}</b>{d && Math.abs(d.contribution) > 0 && <span className={"mo-eff " + (d.contribution > 0 ? "pos" : "neg")} title={`Top reason in Sector impact${why.sector ? ` (${why.sector})` : ""}: ${d.contribution > 0 ? "supports" : "weighs on"} the score`}>{d.contribution > 0 ? "supports" : "weighs"} {signed(d.contribution)}</span>}</div>
       {bad ? <p className="mo-miss"><Icon name="alert" />{i.status}: {i.detail || "no reading"}</p> : (
         <>
           <div className="mo-val"><b>{i.valueText}</b>{i.direction !== "none" && <span className={"mo-ch " + i.direction}>{arrow(i.direction)} <small>vs {i.prevText}</small></span>}</div>
@@ -78,13 +72,16 @@ function Tile({ i }: { i: Indicator }) {
       <p className="mo-src">{i.observationDate ? `${dateIN(i.observationDate)} · ` : ""}{i.source}{i.status === "Revised" ? " · revised" : ""}</p>
     </li>);
 }
-function Indicators({ c }: { c: CompanyMacro }) {
-  const by = (g: string) => (c.indicators ?? []).filter((i) => i.group === g);
+/** Only the indicators behind the reasons Sector impact gives, each under its group and tied to its reason. */
+function Indicators({ c, reasons }: { c: CompanyMacro; reasons: Reason[] }) {
+  const tiles = indicatorsForReasons(c.indicators, reasons);
   return (
     <div className="mo-panel">
       <div className="mo-h"><h3><Icon name="activity" />Indicator signals</h3><span className="faint">signal: −1 low or falling, +1 high or rising</span></div>
-      {(c.groups ?? []).map((g) => by(g.code).length > 0 && (
-        <section key={g.code} className="mo-grp" aria-label={g.name}><h4><Icon name={GROUP_ICON[g.code] ?? "info"} />{g.name}</h4><ul>{by(g.code).map((i) => <Tile key={i.code} i={i} />)}</ul></section>))}
+      {tiles.length > 0 && <p className="mo-why">Only the indicators behind the reasons above: {tiles.map((t) => shortName(t.indicator.code, t.indicator.name)).join(", ")}.</p>}
+      {tiles.length === 0 && <p className="faint">{c.status === "ok" ? "Sector impact names no dominant driver for this sector right now, so there is no indicator to show." : "Sector impact shows no reading to explain right now."}</p>}
+      {(c.groups ?? []).map((g) => { const t = tiles.filter((x) => x.indicator.group === g.code); return t.length > 0 && (
+        <section key={g.code} className="mo-grp" aria-label={g.name}><h4><Icon name={GROUP_ICON[g.code] ?? "info"} />{g.name}</h4><ul>{t.map((x) => <Tile key={x.indicator.code} i={x.indicator} why={x.reason} />)}</ul></section>); })}
     </div>);
 }
 
@@ -149,14 +146,15 @@ export function MacroOutlookSection({ symbol }: { symbol: string }) {
   const q = useCompanyMacro(symbol);
   const c = q.data;
   const showImpact = !!c && (c.status === "ok" || c.status === "insufficient_data");
-  const imp = useSectorImpact(showImpact);
-  const [all, setAll] = useState(false);
+  const imp = useSectorImpact(showImpact && c?.mapping?.basis === "revenue_weighted");   // the full sector table is read only for a company that spans several sectors
+
   const head = <SectionHead id="macro" no="Macro" icon="globe" title="MACRO & SECTOR OUTLOOK" sub="How the economy is moving for this company's sector." color="--p-growth" />;
   let body: React.ReactNode;
   if (q.isLoading) body = <div className="mo-skel" aria-busy="true">Loading the macro outlook…</div>;
   else if (q.isError || !c) body = <p className="mo-note" role="status"><Icon name="alert" />The macro outlook is unavailable right now ({q.error?.status ?? "no answer"}). It reads stored results only; please try again shortly.</p>;
   else if (c.status === "not_mapped" || c.status === "pending") body = <p className="mo-note" role="status"><Icon name="info" />Macro outlook not available for this company: {c.reason ?? "its sector has not been assigned yet."}</p>;
   else {
+    const rows = companyRows(c, imp.data?.sectors), reasons = reasonsOf(rows, c);
     body = (
       <>
         {c.stale.isStale && <p className="mo-stale" role="alert"><Icon name="alert" /><span><b>Stale data.</b> {c.stale.message}</span></p>}
@@ -164,8 +162,8 @@ export function MacroOutlookSection({ symbol }: { symbol: string }) {
         <Meta c={c} />
         {c.mapping && <p className="mo-map"><Icon name="layers" />{c.mapping.note} {c.segments && <span>{c.segments.map((s) => `${s.name} ${Math.round(s.weight * 100)}%`).join(" · ")}</span>}</p>}
         {c.status === "insufficient_data" && <p className="mo-note" role="status"><Icon name="info" />{insufficientText(c)}. No score is shown rather than a guess.</p>}
-        {imp.data && c.mapping && <SectorTable rows={imp.data.sectors} current={c.mapping.sector} all={all} setAll={setAll} />}
-        <Indicators c={c} />
+        {rows.length > 0 && <SectorTable rows={rows} />}
+        <Indicators c={c} reasons={reasons} />
         <div className="mo-two"><Interpretation c={c} /><HistoryPanel c={c} /></div>
         <p className="mo-disc">{c.disclaimer}</p>
       </>);

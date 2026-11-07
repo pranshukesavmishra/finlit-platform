@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ok from "../../public/demo/macro/company-ok.json";
@@ -29,25 +29,56 @@ describe("Macro & Sector Outlook section", () => {
     expect(within(bar).getByText("Credit +")).toBeTruthy(); expect(within(bar).getByText("Deposits +")).toBeTruthy(); expect(screen.queryByText("How it works")).toBeNull(); expect(screen.queryByRole("button", { name: "How it works" })).toBeNull();
     expect(screen.getByText("MACRO & SECTOR OUTLOOK")).toBeTruthy();
   });
-  it("highlights the viewed company's sector, marks 50 on every bar and expands to all sectors", async () => {
+  it("Sector impact keeps only the row marked This company: no other sector, no show-all button, 50 marked on the bar", async () => {
     const { container } = wrap();
     await screen.findByText("Sector impact");
     await screen.findByText("This company");
+    const rows = container.querySelectorAll(".mo-t tbody tr");
+    expect(rows.length).toBe(1);
     expect(container.querySelector("tr.me th")?.textContent).toContain("Private banks");
-    expect(container.querySelectorAll(".mo-t .mo-bar u").length).toBeGreaterThanOrEqual(6);
-    const rows = () => container.querySelectorAll(".mo-t tbody tr").length;
-    const before = rows(); fireEvent.click(screen.getByRole("button", { name: /Show all 35 sectors/ }));
-    expect(rows()).toBe(35); expect(before).toBeLessThan(35);
-    const scores = [...container.querySelectorAll(".mo-t td.num")].map((n) => Number(n.textContent)).filter((n) => !Number.isNaN(n));
-    expect(scores).toEqual([...scores].sort((a, b) => b - a));                         // sorted by score, highest first
+    expect(container.querySelector(".mo-t .mo-bar u")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Show all|Show fewer/ })).toBeNull();
+    expect(container.textContent).not.toContain("PSU banks");
+    expect(container.querySelector(".mo-t")?.textContent).toContain("Credit +");
+    expect(st.calls.some((c) => c.includes("sector-impact"))).toBe(false);          // the 35-sector table is not even requested for a one-sector company
   });
-  it("groups the indicator tiles and states a missing indicator's reason instead of a number", async () => {
+  it("Indicator signals show only the indicators that are a reason in Sector impact, each tied to its reason", async () => {
     const { container } = wrap();
     await screen.findByText("Indicator signals");
-    for (const g of ["Inflation", "Monetary Policy", "Credit & Banking", "Economic Growth", "Currency", "Commodities"]) expect(container.querySelector(`section[aria-label="${g}"]`)).toBeTruthy();
-    expect(screen.getAllByText(/Missing: no price history stored/).length).toBe(4);
-    expect(screen.getByText(/Stale: \d+ days since the observation date/)).toBeTruthy();
-    expect(screen.getAllByText(/MoSPI/).length).toBeGreaterThan(3);
+    const tiles = [...container.querySelectorAll(".mo-tile")].map((t) => t.getAttribute("data-reason"));
+    expect(tiles).toEqual(["BANK_CREDIT", "DEPOSIT_GROWTH"]);                       // the two "Top reasons" pills, in their order, nothing generic
+    expect(container.querySelectorAll('section.mo-grp').length).toBe(1);
+    expect(container.querySelector('section[aria-label="Credit & Banking"]')).toBeTruthy();
+    for (const g of ["Inflation", "Monetary Policy", "Economic Growth", "Currency", "Commodities"]) expect(container.querySelector(`section[aria-label="${g}"]`)).toBeNull();
+    expect(container.querySelector(".mo-why")?.textContent).toContain("Credit, Deposits");
+    expect(container.querySelector('[data-reason="BANK_CREDIT"] .mo-eff')?.textContent).toMatch(/^supports \+1\.45/);   // the effect the pill stands for
+  });
+  it("a revenue-weighted company shows each of its segment sectors as This company, and the indicators behind their reasons", async () => {
+    const seg = (code: string, name: string, w: number) => ({ sector: code, name, weight: w, score: 60, label: "Tailwind", tone: "up", segments: name });
+    st.company = { ...ok, mapping: { ...(ok as { mapping: object }).mapping, basis: "revenue_weighted", sector: "private_banks" }, segments: [seg("private_banks", "Private banks", 0.6), seg("psu_banks", "PSU banks", 0.4)] };
+    const { container } = wrap();
+    await screen.findByText("Sector impact");
+    await screen.findAllByText("This company");
+    expect([...container.querySelectorAll(".mo-t tbody th")].map((t) => t.textContent?.replace("This company", ""))).toEqual(expect.arrayContaining(["Private banks", "PSU banks"]));
+    expect(container.querySelectorAll(".mo-t tbody tr").length).toBe(2);
+    expect(st.calls.some((c) => c.includes("sector-impact"))).toBe(true);
+    expect(container.querySelector(".mo-t")?.textContent).not.toContain("Capital goods");
+  });
+  it("with nothing named as a reason, Indicator signals says so instead of showing generic tiles", async () => {
+    st.company = { ...ok, drivers: [] };
+    const { container } = wrap();
+    await screen.findByText("Indicator signals");
+    expect(container.querySelectorAll(".mo-tile").length).toBe(0);
+    expect(screen.getByText(/names no dominant driver for this sector right now/)).toBeTruthy();
+  });
+  it("an Insufficient Data company shows the missing readings that are the stated reason, with why they are missing", async () => {
+    st.company = insufficient;
+    const { container } = wrap();
+    await screen.findByText("Indicator signals");
+    const codes = [...container.querySelectorAll(".mo-tile")].map((t) => t.getAttribute("data-reason"));
+    expect(codes).toContain("BRENT");
+    expect(container.querySelector('[data-reason="BRENT"] .mo-miss')?.textContent).toMatch(/Missing/);
+    expect(codes.length).toBeLessThan(8);
   });
   it("Insufficient Data says why and never shows a score", async () => {
     st.company = insufficient;

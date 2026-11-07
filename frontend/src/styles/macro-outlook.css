@@ -70,3 +70,4 @@
 @media (max-width: 400px) { .mo-grp ul { grid-template-columns: 1fr; } }
 
 .mo-t td { overflow-wrap: anywhere; min-width: 0; }
+.mo-why { margin: 0 0 10px; font-size: var(--fs-13); color: var(--muted); }

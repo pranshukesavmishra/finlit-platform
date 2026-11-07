@@ -47,6 +47,35 @@ export const shortName = (code: string, fallback = code) => SHORT[code] ?? fallb
 export const PERIODS = ["1M", "3M", "6M", "1Y", "ALL"] as const;
 export const GROUP_ICON: Record<string, string> = { inflation: "percent", monetary: "gauge", credit: "wallet", growth: "growth", currency: "rupee", commodities: "coins" };
 
+/** The "This company" rows of Sector impact: the company's own sector, or each reported segment sector for a revenue-weighted company.
+ *  A single-sector company reads its row from its own outlook (the same stored snapshot), so the row never depends on the 35-sector table. */
+export function companyRows(c: CompanyMacro, table: SectorRow[] | undefined): SectorRow[] {
+  const m = c.mapping;
+  if (!m) return [];
+  if (m.basis === "revenue_weighted" && c.segments?.length) {
+    const codes = new Set(c.segments.map((x) => x.sector));
+    return (table ?? []).filter((r) => codes.has(r.sector.code)).sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  }
+  return [{ sector: { code: m.sector, name: m.sectorName }, status: c.status, score: c.score ?? null, label: c.label ?? "Insufficient Data", tone: c.tone ?? "none", coverage: c.coverage ?? 0,
+    drivers: c.drivers ?? [], snapshotDate: c.snapshotDate ?? "", reason: c.reason ?? null }];
+}
+
+/** One reason shown in Sector impact, and the indicator it is about. `driver` is the "Top reasons" pill; a reason without a driver is a missing reading that kept the score from being shown. */
+export type Reason = { code: string; driver?: Driver; sector?: string };
+/** The reasons Sector impact gives for the rows it shows, in the order it shows them, one per indicator. */
+export function reasonsOf(rows: SectorRow[], c: Pick<CompanyMacro, "status" | "criticalMissing" | "missing">): Reason[] {
+  const out: Reason[] = [], seen = new Set<string>();
+  const add = (r: Reason) => { if (!seen.has(r.code)) { seen.add(r.code); out.push(r); } };
+  for (const r of rows) for (const d of r.drivers) add({ code: d.code, driver: d, sector: rows.length > 1 ? r.sector.name : undefined });
+  if (c.status === "insufficient_data") for (const code of [...(c.criticalMissing ?? []), ...(c.missing ?? [])]) add({ code });
+  return out;
+}
+/** Only the indicators that are a reason in Sector impact, in the order of the reasons. */
+export function indicatorsForReasons(indicators: Indicator[] | undefined, reasons: Reason[]): { indicator: Indicator; reason: Reason }[] {
+  const by = new Map((indicators ?? []).map((i) => [i.code, i]));
+  return reasons.flatMap((reason) => { const indicator = by.get(reason.code); return indicator ? [{ indicator, reason }] : []; });
+}
+
 /** "+0.42" / "−0.42" with a real minus sign. */
 export const signed = (v: number | null | undefined, dp = 2): string => v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(dp);
 /** "Credit +" / "Rate change −" for a driver pill. */
