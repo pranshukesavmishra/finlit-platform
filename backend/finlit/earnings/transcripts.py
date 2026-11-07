@@ -14,6 +14,7 @@ import asyncio
 import hashlib
 import io
 import logging
+import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -240,10 +241,20 @@ class FetchFailed(Exception):
     pass
 
 
+def relay_settings(env: Optional[Dict[str, str]] = None) -> Optional[Tuple[str, str]]:
+    """(address, key) of the free Cloudflare relay that fetches exchange pages for this server, or None. NSE and BSE answer the AWS server's address with 403, so the
+    company brief reads them through the relay (deploy/amfi-relay). EXCHANGE_RELAY_URL / EXCHANGE_RELAY_KEY, else the same AMFI_RELAY_URL / AMFI_RELAY_KEY (one worker serves both)."""
+    env = os.environ if env is None else env
+    url = (env.get("EXCHANGE_RELAY_URL") or env.get("AMFI_RELAY_URL") or "").strip().rstrip("/")
+    key = (env.get("EXCHANGE_RELAY_KEY") or env.get("AMFI_RELAY_KEY") or "").strip()
+    return (url, key) if url.startswith("https://") and key else None
+
+
 class Fetcher:
     def __init__(self, budget: int = C.REQUEST_BUDGET_PER_RUN, transport: Optional[httpx.AsyncBaseTransport] = None,
-                 sleep: Callable[[float], Any] = asyncio.sleep, pause: float = PAUSE):
+                 sleep: Callable[[float], Any] = asyncio.sleep, pause: float = PAUSE, relay: Optional[Tuple[str, str]] = None):
         self.budget, self.requests, self.pause, self._sleep = budget, 0, pause, sleep
+        self.relay = relay if relay is not None else relay_settings()
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(45.0, connect=10.0), transport=transport, follow_redirects=False, headers={"User-Agent": USER_AGENT})
         self._robots: Dict[str, Optional[RobotFileParser]] = {}
         self.blocked: Dict[str, str] = {}
@@ -251,6 +262,23 @@ class Fetcher:
 
     async def aclose(self) -> None:
         await self._client.aclose()
+
+    async def _get_once(self, url: str, headers: dict) -> httpx.Response:
+        """One GET: straight to the host, or, for an exchange host when a relay is set, through the relay (which the exchange cannot tell from a browser)."""
+        host = urlsplit(url).hostname or ""
+        if not (self.relay and HOST_OK.match(host)):
+            return await self._client.get(url, headers=headers)
+        base, key = self.relay
+        fwd = {"X-Relay-Key": key}
+        for name in ("User-Agent", "Accept", "Referer"):
+            if headers.get(name):
+                fwd["X-Fwd-" + name] = headers[name]
+        r = await self._client.get(base + "/fetch", params={"u": url}, headers=fwd)
+        if r.headers.get("x-relay-error"):
+            raise FetchFailed("relay: " + r.headers["x-relay-error"][:80])
+        if not r.headers.get("x-relay"):    # an answer the relay did not write (a wrong key, a Cloudflare error page): never read as the exchange's answer
+            raise FetchFailed(f"relay answered HTTP {r.status_code}")
+        return r
 
     # -- one request: budget, pause, back-off on 429 / 503
     async def _send(self, url: str, headers: Optional[dict] = None, stream_cap: Optional[int] = None) -> httpx.Response:
@@ -260,7 +288,7 @@ class Fetcher:
             self.requests += 1
             await self._sleep(self.pause)
             try:
-                r = await self._client.get(url, headers=headers or {})
+                r = await self._get_once(url, headers or {})
             except httpx.TransportError as exc:
                 if attempt == 2:
                     raise FetchFailed(f"network: {type(exc).__name__}") from None
