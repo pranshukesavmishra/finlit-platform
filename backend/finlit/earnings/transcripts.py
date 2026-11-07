@@ -264,21 +264,25 @@ class Fetcher:
         await self._client.aclose()
 
     async def _get_once(self, url: str, headers: dict) -> httpx.Response:
-        """One GET: straight to the host, or, for an exchange host when a relay is set, through the relay (which the exchange cannot tell from a browser)."""
+        """One GET. Straight to the host first: the exchanges' archive hosts (nsearchives.nseindia.com) answer the AWS server directly. Only when an exchange host
+        answers 403 and a relay is set is it asked again through the relay (a browser-like request from another address). If the relay cannot help, the host's own
+        403 stands, so a real refusal is still a refusal (Blocked)."""
+        r = await self._client.get(url, headers=headers)
         host = urlsplit(url).hostname or ""
-        if not (self.relay and HOST_OK.match(host)):
-            return await self._client.get(url, headers=headers)
+        if r.status_code != 403 or not (self.relay and HOST_OK.match(host)):
+            return r
         base, key = self.relay
         fwd = {"X-Relay-Key": key}
         for name in ("User-Agent", "Accept", "Referer"):
             if headers.get(name):
                 fwd["X-Fwd-" + name] = headers[name]
-        r = await self._client.get(base + "/fetch", params={"u": url}, headers=fwd)
-        if r.headers.get("x-relay-error"):
-            raise FetchFailed("relay: " + r.headers["x-relay-error"][:80])
-        if not r.headers.get("x-relay"):    # an answer the relay did not write (a wrong key, a Cloudflare error page): never read as the exchange's answer
-            raise FetchFailed(f"relay answered HTTP {r.status_code}")
-        return r
+        try:
+            via = await self._client.get(base + "/fetch", params={"u": url}, headers=fwd)
+        except httpx.TransportError:
+            return r
+        if via.headers.get("x-relay-error") or not via.headers.get("x-relay"):    # the relay's own failure, or an answer it did not write: not the exchange's word
+            return r
+        return via
 
     # -- one request: budget, pause, back-off on 429 / 503
     async def _send(self, url: str, headers: Optional[dict] = None, stream_cap: Optional[int] = None) -> httpx.Response:
