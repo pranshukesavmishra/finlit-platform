@@ -36,3 +36,14 @@ export function bankGroups(pathname: string, opts: { lender?: boolean } = {}): B
 
 /** The stand-in the user replaces when a question needs a second company. */
 export const SECOND = "XYZ";
+
+/** Starter questions for pages that have no company question list and no page FAQ (the home page, for one), so the assistant never opens empty.
+ *  They describe how things work; none asks for or offers advice. A tap sends the question like typed text. */
+export const STARTER_QUESTIONS: string[] = [
+  "What is the FinLit IQ score and how is it built?",
+  "What does the FinLit Prism rating describe?",
+  "What is the difference between a mutual fund and an ETF?",
+  "How do I read a P/E ratio?",
+  "What is an expense ratio in a mutual fund?",
+  "Which FinLit tools help me look at a company's financial health?",
+];

@@ -78,3 +78,16 @@ describe("Assistant more questions", () => {
     expect(screen.queryByRole("button", { name: /More questions/ })).toBeNull();
   });
 });
+
+describe("Assistant starter questions", () => {
+  it("offers starter questions on a page with no company list and no FAQ, and a tap sends the question", async () => {
+    open("/nowhere-in-particular");
+    const chip = screen.getByRole("button", { name: "What is the difference between a mutual fund and an ETF?" });
+    await act(async () => { fireEvent.click(chip); });
+    expect(ask).toHaveBeenCalledWith("What is the difference between a mutual fund and an ETF?", expect.anything());
+  });
+  it("starter questions never use advice wording", () => {
+    const { container } = open("/nowhere-in-particular");
+    expect(container.textContent).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target|best|multibagger|top pick)\b/i);
+  });
+});
