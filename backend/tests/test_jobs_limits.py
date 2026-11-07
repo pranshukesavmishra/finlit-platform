@@ -8,7 +8,7 @@ from finlit import worker
 from finlit.jobs.registry import LIMIT_POLICY, Job, build_jobs, limit_policy
 from finlit.jobs.status import NEAR_LIMIT_SHARE, near_limit
 
-ENV = {"FUND_LOADS_ENABLED": "1", "DHAN_CLIENT_ID": "x", "SECTORS_ENABLED": "1"}
+ENV = {"FUND_LOADS_ENABLED": "1", "DHAN_CLIENT_ID": "x", "SECTORS_ENABLED": "1", "SECTORS_JOB": "on"}   # the sector job is off by default since 7 Nov 2026; these tests judge it as if on
 JOBS = [j for j in build_jobs(ENV)]
 TIMED = [j for j in JOBS if j.cls != "ondemand"]
 
