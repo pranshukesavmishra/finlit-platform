@@ -39,7 +39,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         # Runs only once the Cloudflare secrets exist (see docs/LAUNCH-RUNBOOK.md).
         if: ${{ env.CF_TOKEN != '' }}
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         env: {CF_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}"}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
