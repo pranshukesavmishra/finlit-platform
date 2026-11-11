@@ -33,4 +33,22 @@ describe("outlook page, Set your own model", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Revenue estimate" }));
     expect(assume.querySelectorAll('input[type="range"]').length).toBe(6);                    // revenue has six inputs, profit seven
   });
+  it("marks the chart the sliders drive, lets the other be picked with one click, and says nothing of the kind with Our model", () => {
+    open();
+    expect(screen.queryByText("The sliders change this chart")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Adjust this chart with the sliders/ })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: /Set your own model/ }));
+    const rev = screen.getByRole("heading", { name: /Revenue: reported and estimate/ }).closest("section")!, prof = screen.getByRole("heading", { name: /Profit: reported and estimate/ }).closest("section")!;
+    expect(prof.className).toContain("is-adjusting"); expect(rev.className).not.toContain("is-adjusting");          // Profit is the one the sliders drive at first
+    expect(screen.getAllByText("The sliders change this chart").length).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: /Adjust this chart with the sliders/ }));
+    expect(rev.className).toContain("is-adjusting"); expect(prof.className).not.toContain("is-adjusting");
+    expect(screen.getByRole("radio", { name: "Revenue estimate", checked: true })).toBeTruthy();                     // the sliders now belong to Revenue
+  });
+  it("the Revenue chart comes before the Profit chart, one above the other, in the same column", () => {
+    open();
+    fireEvent.click(screen.getByRole("radio", { name: /Set your own model/ }));
+    const charts = [...document.querySelectorAll(".ol-charts > section")].map((x) => x.querySelector("h2")?.textContent ?? "");
+    expect(charts[0]).toMatch(/^Revenue/); expect(charts[1]).toMatch(/^Profit/);
+  });
 });

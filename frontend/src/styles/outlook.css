@@ -135,7 +135,7 @@
 
 /* Profit and revenue outlook, new layout (task #55): charts beside the assumptions, the year table beside the key takeaways, three folded notes at the bottom */
 .ol-top { display: grid; gap: 16px; }
-.ol-top.side { grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }
+.ol-top.side { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }   /* display again here: a site-wide .side rule must not turn this into a flex row */
 .ol-top.side > .ol-assume { grid-column: 2; grid-row: 1; position: sticky; top: 90px; } .ol-top.side > .ol-charts { grid-column: 1; grid-row: 1; }
 .ol-pair { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; } .ol-pair > * { min-width: 0; }
 .ol-fold3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
@@ -143,3 +143,12 @@
 .ol-fold3 details[open] { grid-column: 1 / -1; }
 @media (max-width: 1100px) { .ol-top.side { grid-template-columns: minmax(0, 1fr); } .ol-top.side > .ol-assume { grid-column: 1; grid-row: 1; position: static; } .ol-top.side > .ol-charts { grid-column: 1; grid-row: 2; } .ol-pair, .ol-fold3 { grid-template-columns: minmax(0, 1fr); } }
 .sl-nc { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+
+/* Task #55 (again): with "Set your own model" the Revenue chart sits above the Profit chart, both on the left, and the sliders stand on the right beside the two,
+   so a slider is moved with the charts in view. The chart the sliders drive is marked, and the other can be picked with one click. */
+.ol-top.side > .ol-charts { grid-template-columns: minmax(0, 1fr); }
+.ol-chartcard.is-adjusting { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.ol .ol-adj { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--muted); font: 600 var(--fs-12)/1.3 var(--sans); }
+.ol .ol-adj svg { width: 14px; height: 14px; flex: none; }
+.ol .ol-adj:not(.pick) { border-color: var(--gold); background: var(--gold-soft); color: var(--text); }
+.ol .ol-adj.pick { cursor: pointer; } .ol .ol-adj.pick:hover { border-color: var(--gold); color: var(--text); } .ol .ol-adj.pick:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

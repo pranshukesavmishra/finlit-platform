@@ -58,7 +58,7 @@ function Skeleton() {
 }
 
 /** One metric's chart. Its estimate is the user's own weights when they differ from the model's, else the model's; the model's is then drawn as a second dashed line. */
-function ChartCard({ sym, kind, horizon, own, gold }: { sym: string; kind: Kind; horizon: Horizon; own: Weights | null; gold: boolean }) {
+function ChartCard({ sym, kind, horizon, own, gold, adjusting, onPick }: { sym: string; kind: Kind; horizon: Horizon; own: Weights | null; gold: boolean; adjusting?: boolean; onPick?: () => void }) {
   const mine = useOutlook(sym, kind, horizon, own, gold);
   const model = useOutlook(sym, kind, horizon, null, gold && !!own);
   const last = useRef<Outlook | null>(null);
@@ -68,8 +68,12 @@ function ChartCard({ sym, kind, horizon, own, gold }: { sym: string; kind: Kind;
   const series = useMemo(() => (d ? buildSeries(d.history.points, d.forecast.available ? d.forecast.years : null, alt) : null), [d, alt]);
   const who = own ? "Your weights" : "FinLit model";
   return (
-    <section className={"card ol-chartcard" + (mine.isFetching ? " is-busy" : "")} aria-labelledby={`ol-ch-${kind}`} aria-busy={mine.isFetching}>
-      <h2 id={`ol-ch-${kind}`}>{KIND_LABEL[kind]}: reported and estimate</h2>
+    <section className={"card ol-chartcard" + (mine.isFetching ? " is-busy" : "") + (adjusting ? " is-adjusting" : "")} aria-labelledby={`ol-ch-${kind}`} aria-busy={mine.isFetching}>
+      <h2 id={`ol-ch-${kind}`}>{KIND_LABEL[kind]}: reported and estimate
+        {onPick && (adjusting
+          ? <span className="ol-adj" role="status"><Icon name="gauge" />The sliders change this chart</span>
+          : <button type="button" className="ol-adj pick" onClick={onPick}><Icon name="gauge" />Adjust this chart with the sliders</button>)}
+      </h2>
       {mine.isLoading && !d ? <Skeleton /> : mine.error && !d ? <p className="formerr" role="alert">{(mine.error.body?.detail as string) || "Could not load this chart."}</p> : d && series ? (
         <>
           <OutlookChart kind={kind} symbol={sym} series={series} who={who} horizonLabel={d.horizon.label.toLowerCase()} />
@@ -208,15 +212,15 @@ export function OutlookPage() {
                   {TABS.map((t) => <button key={t.kind} type="button" role="radio" aria-checked={kind === t.kind} className={kind === t.kind ? "on" : ""} onClick={() => setKind(t.kind)}>{t.label} estimate</button>)}
                 </div>
               </div>
-              <p className="faint ol-assume-p">Move a slider to change how much each input counts. The other weights move with it so the total stays 100%, and the charts and tables below update as you go.</p>
+              <p className="faint ol-assume-p">Move a slider to change how much each input counts. The other weights move with it so the total stays 100%, and the charts beside it update as you go.</p>
               <Sliders kind={kind} horizon={horizon} names={names} weights={getW(kind, horizon)} onChange={(l, v) => setCustom((c) => ({ ...c, [wkey(kind, horizon)]: rebalance(c[wkey(kind, horizon)] ?? DEFAULT_WEIGHTS[kind][horizon], l, v) }))}
               onReset={() => setCustom((c) => ({ ...c, [wkey(kind, horizon)]: { ...DEFAULT_WEIGHTS[kind][horizon] } }))} />
             </section>)}
 
           {!gold ? null : (
             <div className="ol-charts">
-              <ChartCard sym={sym} kind="revenue" horizon={horizon} own={own("revenue")} gold={gold} />
-              <ChartCard sym={sym} kind="profit" horizon={horizon} own={own("profit")} gold={gold} />
+              <ChartCard sym={sym} kind="revenue" horizon={horizon} own={own("revenue")} gold={gold} adjusting={mode === "custom" && kind === "revenue"} onPick={mode === "custom" ? () => setKind("revenue") : undefined} />
+              <ChartCard sym={sym} kind="profit" horizon={horizon} own={own("profit")} gold={gold} adjusting={mode === "custom" && kind === "profit"} onPick={mode === "custom" ? () => setKind("profit") : undefined} />
             </div>)}
           </div>
 
