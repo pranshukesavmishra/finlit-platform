@@ -38,7 +38,7 @@ function DotsLegend({ gold = false }: { gold?: boolean }) {
       <div id={id} className="hs-leg-p" role="group" aria-label="What the dots mean" hidden={!open}>
         {gold ? <>
           <p><b>Six dots from FinLit Prism:</b> four financial-health, then (after the gap) two technical.</p>
-          <ul className="hs-leg-g">{GOLD_DOTS.map((d) => <li key={d.key}><span className="hs-dot band-na" aria-hidden="true">{d.letter}</span><span><b>{d.name}</b>{": "}{d.what}</span></li>)}</ul>
+          <ul className="hs-leg-g">{GOLD_DOTS.map((d) => <li key={d.key}><span className="hs-dot band-na" data-wide={d.letter.length > 1 || undefined} aria-hidden="true">{d.letter}</span><span><b>{d.name}</b>{": "}{d.what}</span></li>)}</ul>
           <p><b>Financial-health dots (0 to 100):</b></p>
           <ul className="hs-leg-c">{LEGEND.map((l) => <li key={l.band}><span className={"hs-sw band-" + l.band} aria-hidden="true" /><b>{BAND_NAME[l.band][0].toUpperCase() + BAND_NAME[l.band].slice(1)}</b>{": "}{l.rule}</li>)}</ul>
           <p><b>Technical dots (−100 to +100):</b> green is a positive trend, orange neutral, red negative, grey not available. {bandLegend()}</p>
@@ -46,7 +46,7 @@ function DotsLegend({ gold = false }: { gold?: boolean }) {
           <p className="hs-leg-n">Research summary, not a recommendation.</p>
         </> : <>
         <p><b>One dot for each part of the FinLit IQ.</b> Colour follows the score of that part, out of 100.</p>
-        <ul className="hs-leg-d">{DOT_ORDER.map((d) => <li key={d.key}><span className="hs-dot band-na" aria-hidden="true">{d.letter}</span>{d.name}</li>)}</ul>
+        <ul className="hs-leg-d">{DOT_ORDER.map((d) => <li key={d.key}><span className="hs-dot band-na" data-wide={d.letter.length > 1 || undefined} aria-hidden="true">{d.letter}</span>{d.name}</li>)}</ul>
         <ul className="hs-leg-c">{LEGEND.map((l) => <li key={l.band}><span className={"hs-sw band-" + l.band} aria-hidden="true" /><b>{BAND_NAME[l.band][0].toUpperCase() + BAND_NAME[l.band].slice(1)}</b>{": "}{l.rule}</li>)}</ul>
         <p>In FinLit Prism, Growth & Profitability, Valuation, Quality and Risk are all higher-is-better (a high Risk score means lower risk); its Technical view is separate, from −100 to +100.</p>
         <p className="hs-leg-n">Research summary, not a recommendation. The word beside each score (Strong, Healthy, Mixed, Weak) is the model's own.</p>
@@ -59,7 +59,7 @@ function DotsLegend({ gold = false }: { gold?: boolean }) {
 export function FundamentalDots({ pillars }: { pillars: PillarSummary[] }) {
   return (
     <div className="hs-dots" role="group" aria-label="Financial-health dots: one per FinLit pillar">
-      <ul>{dotsOf(pillars).map((d) => <li key={d.key}><span className={"hs-dot band-" + d.band} role="img" title={d.label} aria-label={d.label}>{d.letter}</span></li>)}</ul>
+      <ul>{dotsOf(pillars).map((d) => <li key={d.key}><span className={"hs-dot band-" + d.band} role="img" data-wide={d.letter.length > 1 || undefined} title={d.label} aria-label={d.label}>{d.letter}</span></li>)}</ul>
       <DotsLegend />
     </div>
   );
@@ -71,7 +71,7 @@ export function PrismDots({ prism }: { prism: PrismInput }) {
   if (!dots) return null;
   return (
     <div className="hs-dots hs-gold" role="group" aria-label="FinLit Prism dots: four financial-health and two technical">
-      <ul>{dots.map((d, i) => <li key={d.key} className={i > 0 && d.group !== dots[i - 1].group ? "hs-gap" : undefined}><span className={"hs-dot band-" + d.band} role="img" title={d.label} aria-label={d.label}>{d.letter}</span></li>)}</ul>
+      <ul>{dots.map((d, i) => <li key={d.key} className={i > 0 && d.group !== dots[i - 1].group ? "hs-gap" : undefined}><span className={"hs-dot band-" + d.band} role="img" data-wide={d.letter.length > 1 || undefined} title={d.label} aria-label={d.label}>{d.letter}</span></li>)}</ul>
       <DotsLegend gold />
     </div>
   );

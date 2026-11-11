@@ -54,3 +54,17 @@ describe("header", () => {
     expect(renderToStaticMarkup(<NameDots score={sc} plan="basic" admin={true} prism={rep} />)).toContain("Valuation 42");
   });
 });
+
+describe("the Growth & Profitability dot is marked G&P", () => {
+  it("shows G&P (not F) in the header dots, the legend and the tooltip, as a pill; the other five stay single letters", async () => {
+    const { PrismDots } = await import("./HeaderScore");
+    const prism = { kind: "report", final: 60, word: "Healthy", status: "RATED", parts: { fundamental: 70, valuation: 50, quality: 80, risk: 60 }, short: { score: 31, rating: "Buy" }, long: { score: -12, rating: "Hold" } } as never;
+    const h = renderToStaticMarkup(<PrismDots prism={prism} />);
+    const marks = [...h.matchAll(/<span class="hs-dot[^"]*"[^>]*>([^<]+)<\/span>/g)].map((m) => m[1]);
+    const six = ["G&amp;P", "V", "Q", "R", "S", "L"];
+    expect(marks).toEqual([...six, ...six]);                              // the six dots, then the same six marks in the legend
+    expect(h.match(/data-wide/g)?.length).toBe(2);                       // only the G&P dot is a pill, in the header and in the legend
+    expect(h).toContain("Growth &amp; Profitability 70");                // the tooltip names it in full
+    expect(h).not.toMatch(/>F</);
+  });
+});

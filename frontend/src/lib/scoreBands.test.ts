@@ -46,9 +46,9 @@ describe("header facts", () => {
 describe("Gold header dots (FinLit Prism)", () => {
   const rep = (over: Record<string, unknown> = {}): PrismInput => ({ kind: "report", final: 61, word: "Average", status: "RATED", parts: { fundamental: 68.8, valuation: 42.4, quality: 73.2, risk: 49.9 },
     short: { score: 1, rating: "Hold" }, long: { score: 63, rating: "Strong Buy" }, ...over } as PrismInput);
-  it("six dots: four fundamental then two technical, letters F V Q R S L", () => {
+  it("six dots: four fundamental then two technical, marks G&P V Q R S L", () => {
     const d = goldDots(rep())!;
-    expect(d.map((x) => x.letter).join("")).toBe("FVQRSL");
+    expect(d.map((x) => x.letter).join("")).toBe("G&PVQRSL");
     expect(d.map((x) => x.group)).toEqual(["fund", "fund", "fund", "fund", "tech", "tech"]);
   });
   it("0-100 dots use the shared band rule and the Prism words", () => {

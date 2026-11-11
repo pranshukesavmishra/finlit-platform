@@ -75,9 +75,9 @@ export const BAND_RULE = "Strong 80 and above, Healthy 65 to 79, Average 50 to 6
 
 /* ---- Gold header dots: the six FinLit Prism parameters (4 financial-health, 2 technical) ---- */
 export type GoldDot = { key: string; name: string; letter: string; group: "fund" | "tech"; value: number | null; band: ScoreBand; label: string };
-/** Financial-health parts in the Prism order, then the two technical horizons. Letter F V Q R S L. */
+/** Financial-health parts in the Prism order, then the two technical horizons. Marks G&P V Q R S L (Growth & Profitability is the only one with more than one letter). */
 export const GOLD_DOTS: { key: string; name: string; letter: string; group: "fund" | "tech"; what: string }[] = [
-  { key: "fundamental", name: FUND_PART_NAME, letter: "F", group: "fund", what: "how steadily sales and profit grow" },
+  { key: "fundamental", name: FUND_PART_NAME, letter: "G&P", group: "fund", what: "how steadily sales and profit grow" },
   { key: "valuation", name: "Valuation", letter: "V", group: "fund", what: "the share price against earnings, book value and its own history" },
   { key: "quality", name: "Quality", letter: "Q", group: "fund", what: "financial strength: borrowing, interest cover, returns, cash backing" },
   { key: "risk", name: "Risk", letter: "R", group: "fund", what: "price swings, largest fall, trading activity, pledged shares" },
