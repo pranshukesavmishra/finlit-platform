@@ -60,7 +60,7 @@ export function FeedbackDialog({ kind, pathname, plan, onClose }: { kind: Kind; 
   const isQ = kind === "query", left = MESSAGE_MAX - message.length;
   return createPortal(
     <>
-      <div className="pf-scrim" onClick={onClose} aria-hidden="true" />
+      <div className="scrim pf-scrim" onClick={onClose} aria-hidden="true" />
       <div className="pf-modal" role="dialog" aria-modal="true" aria-labelledby={tid} ref={ref} tabIndex={-1}>
         <div className="pf-h">
           <h2 id={tid}>{isQ ? "Raise a query" : "Share feedback"}</h2>

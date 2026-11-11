@@ -49,7 +49,7 @@
 :root:root :is(.alx-modal, .alx-drawer, .modal, .ec-dlg, .palette, .dl-menu, .nt-p, .ddm, .ai, .qb-drawer, .plf-note, .pop, .ld-tip, .chh-p, .sf-panel, .etf-pop, .mf-cols-pop) { box-shadow: var(--ov-shadow); }
 
 /* ---- backdrops: dim enough that the page behind is clearly secondary ---- */
-:root:root :is(.scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim, .gx-backdrop, .qr-backdrop, .cz-scrim, .pf-scrim) { background: var(--ov-backdrop); z-index: var(--z-backdrop); }
+:root:root :is(.scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim, .gx-backdrop, .qr-backdrop, .cz-scrim) { background: var(--ov-backdrop); z-index: var(--z-backdrop); }
 :root:root .gs-scrim { background: var(--ov-backdrop); z-index: calc(var(--z-backdrop) + 20); }
 
 /* ---- stacking ---- */
