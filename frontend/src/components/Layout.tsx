@@ -18,6 +18,7 @@ import { DEMO } from "../lib/demo";
 import { useAuth } from "../lib/auth";
 import { MORE, PRICING, SECTIONS, isHere, sectionHere, type NavSection } from "../lib/nav";
 import { versionLine } from "../lib/version";
+import { PageFeedbackDock } from "./PageFeedback";
 import "../styles/ai-top.css";
 
 /** One header dropdown, built from lib/nav.ts. */
@@ -205,6 +206,7 @@ export function Layout() {
         <SearchPalette open={search} onClose={() => setSearch(false)} />
         <AlertToasts />
         {!onAuth && <Assistant />}
+        {!bare && <PageFeedbackDock />}
         {!bare && <MobileTabs onSearch={() => setSearch(true)} />}
       </EnquiryProvider>
     </InfoProvider>

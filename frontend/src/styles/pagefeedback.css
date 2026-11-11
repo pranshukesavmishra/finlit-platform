@@ -1,0 +1,64 @@
+/* "Raise a Query" button (in the page banner) and "Share feedback" (bottom right of every page), with their one dialog. Site tokens only. */
+.pf-dock { position: fixed; z-index: 66; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: center; }
+.pf-fab { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1.5px solid var(--gold); background: var(--s1); color: var(--text); font: 600 var(--fs-14)/1.2 var(--sans); cursor: pointer; box-shadow: 0 10px 26px -12px rgba(0, 0, 0, .55); transition: background .15s, transform .15s; }
+.pf-fab:hover { background: var(--s2); transform: translateY(-1px); }
+.pf-fab:focus-visible, .pf-chips button:focus-visible, .pf-stars button:focus-visible, .pf-x:focus-visible { outline: 2px solid var(--focus, var(--gold)); outline-offset: 2px; }
+.pf-fab svg { width: 16px; height: 16px; flex: none; }
+/* trays that sit along the bottom of some pages: the dock stands above them */
+body:has(.etf-tray, .mf-tray, .mf-compare-tray) .pf-dock { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 900px) {
+  .pf-dock { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); right: 12px; }   /* above the phone's bottom tab bar */
+  .pf-fab { min-height: 44px; padding: 0 14px; }
+  .pf-dock[data-no-banner] .pf-fab span { display: none; } .pf-dock[data-no-banner] .pf-fab { padding: 0 13px; }   /* two buttons on a phone: icons only (each button carries its name for screen readers) */
+  body:has(.etf-tray, .mf-tray, .mf-compare-tray) .pf-dock { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+}
+.pf-scrim { position: fixed; inset: 0; }   /* the dimmer and the layers come from overlay.css */
+.pf-modal { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 18px 20px 20px; border-radius: 18px; border: 1px solid var(--border-strong); background: var(--ov-surface, var(--s1)); color: var(--text); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7); }
+.pf-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pf-h h2 { margin: 0; font: 500 var(--fs-24)/1.2 var(--serif); }
+.pf-x { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: var(--fs-24); line-height: 1; cursor: pointer; }
+.pf-x:hover { color: var(--text); border-color: var(--border-strong); }
+.pf-about { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; margin: 10px 0 14px; padding: 8px 12px; border-radius: 10px; background: var(--s2); font-size: var(--fs-13); color: var(--muted); }
+.pf-about svg { width: 15px; height: 15px; flex: none; } .pf-about b { color: var(--text); }
+.pf-modal form { display: grid; gap: 10px; }
+.pf-modal label { font: 600 var(--fs-14) var(--sans); display: grid; gap: 6px; }
+.pf-modal textarea, .pf-modal input[type="email"] { width: 100%; font: 400 var(--fs-16)/1.5 var(--sans); padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--s1); color: var(--text); resize: vertical; }
+.pf-modal textarea:focus-visible, .pf-modal input:focus-visible { outline: 2px solid var(--focus, var(--gold)); outline-offset: 1px; }
+.pf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-chips button { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 var(--fs-13) var(--sans); cursor: pointer; }
+.pf-chips button.on { background: var(--gold); border-color: var(--gold); color: var(--ph-on, #1A1405); }
+.pf-stars { display: flex; align-items: center; gap: 4px; }
+.pf-stars button { width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: transparent; color: var(--faint); cursor: pointer; border-radius: 10px; }
+.pf-stars button svg { width: 26px; height: 26px; } .pf-stars button.on { color: var(--gold); } .pf-stars button.on svg { fill: currentColor; }
+.pf-rw { margin-left: 8px; font-size: var(--fs-13); color: var(--muted); }
+.pf-meta { display: flex; justify-content: space-between; font-size: var(--fs-12); color: var(--faint); margin-top: -4px; } .pf-meta .warn { color: var(--warn); }
+.pf-who { margin: 0; font-size: var(--fs-12); }
+.pf-err { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--loss); color: var(--loss); font-size: var(--fs-13); }
+.pf-act { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.pf-done { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 14px 4px 4px; }
+.pf-done h3 { margin: 0; font: 500 var(--fs-24)/1.2 var(--serif); } .pf-done p { margin: 0; color: var(--muted); }
+.pf-ok { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--gain); color: #0B0C0F; } .pf-ok svg { width: 22px; height: 22px; }
+@media (max-width: 640px) {
+  .pf-modal { left: 0; right: 0; bottom: 0; top: auto; transform: none; width: auto; max-height: 92dvh; border-radius: 18px 18px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { .pf-fab { transition: none; } }
+@media print { .pf-dock, .pf-modal, .pf-scrim { display: none !important; } }
+
+/* the team's inbox (/admin/feedback) */
+.pfi { max-width: 880px; } .pfi h1 { margin: 4px 0 6px; }
+.pfi-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0; }
+.pfi-sum { margin: 0 0 16px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; background: var(--s1); }
+.pfi-sum > summary { cursor: pointer; font-weight: 600; } .pfi-sum table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: var(--fs-14); }
+.pfi-sum th, .pfi-sum td { padding: 6px 8px; border-top: 1px solid var(--border); text-align: left; } .pfi-sum .num { text-align: right; font-variant-numeric: tabular-nums; }
+.pfi-link { background: none; border: 0; padding: 0; color: var(--gold); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.pfi-item { border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin: 0 0 12px; background: var(--s1); }
+.pfi-item.new { border-left: 3px solid var(--gold); } .pfi-item.resolved { opacity: .75; }
+.pfi-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: var(--fs-13); }
+.pfi-st { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border-strong); text-transform: capitalize; } .pfi-st.new { border-color: var(--gold); color: var(--gold); } .pfi-st.resolved { color: var(--gain); }
+.pfi-page { margin: 8px 0 4px; font-size: var(--fs-14); } .pfi-msg { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pfi-from, .pfi-note { margin: 4px 0; font-size: var(--fs-13); } .pfi-act { justify-content: flex-start; }
+.pfi-pager { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 16px 0; }
+
+/* the alert pop-ups stack above the feedback button instead of covering it */
+:root .alx-toasts { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 900px) { :root .alx-toasts { bottom: calc(142px + env(safe-area-inset-bottom, 0px)); } }

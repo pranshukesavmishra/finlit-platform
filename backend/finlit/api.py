@@ -44,6 +44,7 @@ from .mfscore import upgrade_api as mf_score_upgrade
 from .mfscore import admin as mf_score_admin
 from . import graphviews as graphviews_api
 from . import forum as forum_api
+from . import page_feedback as page_feedback_api
 from . import dcf as dcf_api
 from . import logos as logos_api
 from . import amfi_import as amfi_import_api
@@ -699,6 +700,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(__import__("finlit.etf_vs_index", fromlist=["router"]).router)   # ETF vs index fund on one index, /api/etf-vs-index
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
+    app.include_router(page_feedback_api.router)
     app.include_router(dcf_api.router)
     app.include_router(options_api.router)
     app.include_router(results_api.router)

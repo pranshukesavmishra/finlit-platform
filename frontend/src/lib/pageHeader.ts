@@ -43,3 +43,18 @@ export function realValue(v: unknown): boolean {
   if (typeof v === "string") { const t = v.trim(); return t !== "" && !/^[-–—?]+$/.test(t) && !/^(nan|null|undefined|n\/a)$/i.test(t); }
   return true;
 }
+
+/** What a page is called when a member writes about it: its menu name, a name from the short list, or a name for a company / fund page. "" when the site does not know the address. */
+export function pageNameFor(pathname: string): string {
+  const b = base(pathname) || "/";
+  if (b === "/") return "Home";
+  const exact = ALL.find((x) => x.to === b);
+  if (exact) return exact.label;
+  if (b in EXTRA) return EXTRA[b];
+  const dyn: [RegExp, string][] = [[/^\/stocks\/[^/]+$/, "Company report"], [/^\/prism\/[^/]+$/, "Prism report"], [/^\/outlook\/[^/]+$/, "Outlook"], [/^\/funds\/[^/]+$/, "Fund page"],
+    [/^\/etfs\/[^/]+$/, "ETF page"], [/^\/premium\/report\/[^/]+$/, "Premium report"], [/^\/sectors\/[^/]+$/, "Sector page"], [/^\/blog\/[^/]+$/, "Blog article"], [/^\/forum(\/.*)?$/, "Discussion forum"],
+    [/^\/graphs\/advanced\/[^/]+$/, "Correlation charts"], [/^\/account(\/.*)?$/, "Account"], [/^\/legal\/[^/]+$/, "Legal"]];
+  for (const [re, name] of dyn) if (re.test(b)) return name;
+  const parent = ALL.filter((x) => b.startsWith(x.to + "/")).sort((a, c) => c.to.length - a.to.length)[0];
+  return parent ? parent.label : "";
+}

@@ -15,6 +15,7 @@ import { Icon } from "../lib/icons";
 import { faqForPath } from "../lib/pageFaqs";
 import { realValue, resolveLinks, type PhLink } from "../lib/pageHeader";
 import { PageArt, type PhArtKind } from "./PageHeaderArt";
+import { RaiseQueryButton } from "./PageFeedback";
 import "../styles/page-header.css";
 
 export type PhPlan = "free" | "basic" | "silver" | "gold";
@@ -62,13 +63,12 @@ export function PageHeader({ plan, title, description, eyebrow, stats, links, le
         <h1 className="ph-title" id={tid}>{title}</h1>
         {description ? <p className="ph-desc">{description}</p> : null}
         {meta ? <p className="ph-meta">{meta}</p> : null}
-        {(btns.length > 0 || learnEl || actions) ? (
-          <div className="ph-row">
-            {btns.length > 0 ? <nav className="ph-links" aria-label="Related pages" style={{ display: "contents" }}>
-              {btns.map((l) => <HLink key={l.to} to={l.to} className={"ph-lk" + (l.primary ? " primary" : "")}>{l.label}<span aria-hidden="true">→</span></HLink>)}
-            </nav> : null}
-            {actions}{learnEl}
-          </div>) : null}
+        <div className="ph-row">
+          {btns.length > 0 ? <nav className="ph-links" aria-label="Related pages" style={{ display: "contents" }}>
+            {btns.map((l) => <HLink key={l.to} to={l.to} className={"ph-lk" + (l.primary ? " primary" : "")}>{l.label}<span aria-hidden="true">→</span></HLink>)}
+          </nav> : null}
+          {actions}{learnEl}<RaiseQueryButton />
+        </div>
       </div>
       {sided ? (
         <div className="ph-side">

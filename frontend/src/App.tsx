@@ -79,6 +79,7 @@ const FundComparePage = lazy(() => import("./pages/Funds").then((m) => ({ defaul
 const FundInsightsPage = lazy(() => import("./pages/FundInsights").then((m) => ({ default: m.FundInsightsPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
+const FeedbackInbox = lazy(() => import("./pages/FeedbackInbox").then((m) => ({ default: m.FeedbackInbox })));
 
 const Fallback = () => <PageLoading label="Loading the page" />;
 
@@ -171,6 +172,7 @@ export default function App() {
           <Route path="reset-password" element={<ResetPassword />} />
           <Route path="admin" element={<Admin />} />
           <Route path="admin/login" element={<AdminLogin />} />
+          <Route path="admin/feedback" element={<FeedbackInbox />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
