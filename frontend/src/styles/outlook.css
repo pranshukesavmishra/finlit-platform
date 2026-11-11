@@ -89,3 +89,57 @@
 @media (prefers-reduced-motion: reduce) { .ol-chartcard { transition: none; } }
 .ol-ctable th { background: none; }
 @media (max-width: 640px) { .ol-build th[scope=row] { min-width: 0; width: 42%; } .ol-ctable tbody th small { max-width: 20ch; } .ol-ctable .num { padding-left: 4px; padding-right: 4px; } .ol-ctable thead th { font-size: var(--fs-11); letter-spacing: .02em; white-space: normal; } }
+
+/* ---- landing / company picker (components/OutlookPicker.tsx) */
+.olp { display: grid; gap: 14px; }
+.olp h2 { margin: 0; }
+.olp-intro { margin: 0; color: var(--muted); font-size: var(--fs-14); line-height: 1.6; max-width: 80ch; }
+.olp-snap { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.olp-snap > div { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--s1); min-width: 0; }
+.olp-snap dt { font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
+.olp-snap dd { margin: 2px 0 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.olp .up { color: var(--gain); } .olp .dn { color: var(--loss); }
+.olp-row { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; }
+.olp-l { font: 600 12px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); min-width: 92px; }
+.olp-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.olp-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 14px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--s1); color: var(--text); text-decoration: none; font-size: var(--fs-14); }
+.olp-chip small { font-size: 12px; } .olp-chip:hover { border-color: var(--gold); } .olp-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.olp-chip.on { background: var(--gold-soft); border-color: var(--gold); }
+@media (max-width: 760px) { .olp-snap { grid-template-columns: repeat(2, minmax(0, 1fr)); } .olp-l { min-width: 0; width: 100%; } }
+
+/* ---- the two model cards */
+.ol-models { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 1; min-width: 0; }
+.ol-models-row { align-items: stretch; }
+.ol-mcard { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 14px 16px; border: 1.5px solid var(--border-strong); border-radius: 14px; background: var(--s1); color: var(--text); cursor: pointer; font: inherit; min-width: 0; }
+.ol-mcard:hover { border-color: var(--gold); } .ol-mcard:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ol-mcard.on { border-color: var(--gold); background: var(--gold-soft); box-shadow: 0 0 0 1px var(--gold) inset; }
+.ol-mdot { flex: none; width: 18px; height: 18px; margin-top: 2px; border: 2px solid var(--border-strong); border-radius: 50%; } .ol-mcard.on .ol-mdot { border-color: var(--gold); background: radial-gradient(circle, var(--gold) 0 45%, transparent 50%); }
+.ol-mt { display: grid; gap: 4px; min-width: 0; } .ol-mt b { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px; }
+.ol-mt small { font-size: var(--fs-13); color: var(--muted); line-height: 1.45; }
+.ol-usp { font: 700 11px var(--sans); font-style: normal; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--gold); color: var(--on-gold); }
+@media (max-width: 760px) { .ol-models { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- key takeaways */
+.ol-take-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ol-take-l li { display: flex; gap: 10px; align-items: flex-start; font-size: var(--fs-14); line-height: 1.5; }
+.ol-take-l svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--gain); }
+.olp-cap { margin: 0 0 -6px; font-size: var(--fs-13); }
+
+/* ---- "Set your own model": the sliders come first, right under the model cards, then the charts */
+.ol-assume { display: grid; gap: 12px; border-color: var(--gold); }
+.ol-assume-h { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.ol-assume-h h2 { margin: 0; } .ol-assume-p { margin: 0; font-size: var(--fs-14); }
+.ol-assume .ol-sliders { background: none; border: 0; padding: 0; }
+@media (max-width: 640px) { .ol-assume-h .ol-mode { width: 100%; } .ol-assume-h .ol-mode button { flex: 1; } }
+.ol-hn { display: inline-flex; align-items: center; }
+
+/* Profit and revenue outlook, new layout (task #55): charts beside the assumptions, the year table beside the key takeaways, three folded notes at the bottom */
+.ol-top { display: grid; gap: 16px; }
+.ol-top.side { grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }
+.ol-top.side > .ol-assume { grid-column: 2; grid-row: 1; position: sticky; top: 90px; } .ol-top.side > .ol-charts { grid-column: 1; grid-row: 1; }
+.ol-pair { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; } .ol-pair > * { min-width: 0; }
+.ol-fold3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.ol-fold3 details { padding: 12px 16px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--s1); } .ol-fold3 summary { cursor: pointer; font-weight: 600; font-size: var(--fs-14); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .ol-fold3 summary em { font-style: normal; padding: 1px 10px; border-radius: 999px; border: 1px solid var(--border-strong); font-size: var(--fs-12); color: var(--muted); }
+.ol-fold3 details[open] { grid-column: 1 / -1; }
+@media (max-width: 1100px) { .ol-top.side { grid-template-columns: minmax(0, 1fr); } .ol-top.side > .ol-assume { grid-column: 1; grid-row: 1; position: static; } .ol-top.side > .ol-charts { grid-column: 1; grid-row: 2; } .ol-pair, .ol-fold3 { grid-template-columns: minmax(0, 1fr); } }
+.sl-nc { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }

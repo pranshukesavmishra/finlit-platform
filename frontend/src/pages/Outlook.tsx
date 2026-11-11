@@ -3,7 +3,7 @@
 // server; what stays here is the weight balancing (lib/outlook.ts) and the chart series (lib/outlookChart.ts), both tested. Information only, not advice.
 import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useParams } from "react-router";
 import { useAuth } from "../lib/auth";
 import { DEMO } from "../lib/demo";
 import { Icon } from "../lib/icons";
@@ -14,7 +14,8 @@ import { DEFAULT_WEIGHTS, HORIZONS, KIND_LABEL, PARAM_LABELS, isDefault, rebalan
 import { fmtCr } from "../lib/outlookChart";
 import { OutlookChart, buildSeries } from "../charts/OutlookChart";
 import { Gate } from "../components/Gate";
-import { useIndexFilter } from "../components/SearchFilters";
+import { OutlookPicker } from "../components/OutlookPicker";
+import { pushRecent, takeaways } from "../lib/outlookPick";
 import "../styles/outlook.css";
 
 const TABS: { kind: Kind; label: string }[] = [{ kind: "profit", label: "Profit" }, { kind: "revenue", label: "Revenue" }];
@@ -24,26 +25,11 @@ const GATE_POINTS = ["Revenue and net profit estimates for the next 1, 3 or 5 ye
 // ---------------------------------------------------------------------------------------------------------- /outlook (search)
 export function OutlookIndexPage() {
   useDocTitle("Profit and revenue outlook", "Revenue and net profit estimates for a listed company over the next 1, 3 or 5 years, from its own reported history and its sector's.");
-  const nav = useNavigate();
-  const [q, setQ] = useState("");
-  const sf = useIndexFilter(true);
-  const hits = useMemo(() => (q.trim() ? sf.search(q, 8) : []), [sf.search, q]);   // name, symbol, BSE/NSE code or ISIN that pass the filter
-
   return (
     <>
       <PageHeader wrap plan="gold" title="Profit and revenue outlook" art="chart" links={["/research", "/compare", "/dcf"]}
         description={<>Pick a listed company to see its <b>reported revenue and net profit by year</b>, and an estimate for the next 1, 3 or 5 years worked out from its own growth and its sector's. Estimates from past results, not a prediction or advice.</>} />
-      <div className="wrap ol">
-        <section className="card ol-find" aria-labelledby="ol-find-h">
-          <h2 id="ol-find-h">Choose a company</h2>
-          <label className="ol-search"><Icon name="search" /><span className="sr-only">Search a company</span>
-            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Company name or NSE symbol" autoComplete="off" spellCheck={false} maxLength={60}
-              onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) { e.preventDefault(); nav(`/outlook/${encodeURIComponent(hits[0][0])}`); } }} /></label>
-          {hits.length > 0 && <ul className="ol-hits" aria-label="Matching companies">{hits.map((h) => <li key={h[0]}><Link to={`/outlook/${encodeURIComponent(h[0])}`}><b>{h[1]}</b><span className="mono faint">{h[0]}</span></Link></li>)}</ul>}
-          {q.trim() && sf.idx.data && hits.length === 0 && <p className="faint">No listed company matches “{q.trim()}”.</p>}
-          <p className="ol-disc faint">Estimates from past results, not a prediction or advice.</p>
-        </section>
-      </div>
+      <div className="wrap ol"><OutlookPicker intro /></div>
     </>
   );
 }
@@ -142,6 +128,17 @@ export function YearTable({ d }: { d: Outlook }) {
   );
 }
 
+export function Takeaways({ d, model }: { d: Outlook; model: Outlook | null }) {
+  const lines = takeaways(d, model);
+  if (!lines.length) return null;
+  return (
+    <section className="card ol-take" aria-labelledby={`ol-take-${d.kind}`}>
+      <h2 id={`ol-take-${d.kind}`}>Key takeaways, {KIND_LABEL[d.kind].toLowerCase()} <span className="tier gold">{d.mode === "custom" ? "Your weights" : "FinLit model"}</span></h2>
+      <ul className="ol-take-l">{lines.map((l) => <li key={l}><Icon name="check" />{l}</li>)}</ul>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------------------------------------- /outlook/:symbol
 export function OutlookPage() {
   const { symbol = "" } = useParams();
@@ -159,6 +156,8 @@ export function OutlookPage() {
   useEffect(() => { const h = window.setTimeout(() => setSent(custom), 400); return () => window.clearTimeout(h); }, [custom]);
   const own = (k: Kind): Weights | null => { const w = sent[wkey(k, horizon)] ?? DEFAULT_WEIGHTS[k][horizon]; return mode === "custom" && !isDefault(k, horizon, w) ? w : null; };
   const q = useOutlook(sym, kind, horizon, own(kind), gold);
+  const modelQ = useOutlook(sym, kind, horizon, null, gold && own(kind) != null);   // the FinLit model's answer, for "how your weights differ"
+  useEffect(() => { if (q.data?.name) pushRecent(sym); }, [q.data?.name, sym]);       // "Last searched": only a company that really has an estimate
   const last = useRef<Outlook | null>(null);
   if (q.data) last.current = q.data;
   const d = q.data ?? (q.isFetching ? last.current : null);
@@ -176,6 +175,7 @@ export function OutlookPage() {
       <PageHeader wrap plan="gold" title="Profit and revenue outlook" art="chart" links={[{ to: `/stocks/${encodeURIComponent(sym)}`, label: "Company report" }, "/outlook", "/dcf"]}
         description={<>{d?.name ? <><b>{d.name}</b> <span className="mono faint">{sym}</span> · </> : <><span className="mono">{sym}</span> · </>}Estimates from the company's own history and its sector.</>} />
       <div className="wrap ol">
+        <OutlookPicker current={sym} />
         <Gate tier="gold" title="Profit and revenue outlook" points={GATE_POINTS}>
           <div className="ol-ctl card">
             <div className="ol-ctl-row">
@@ -184,11 +184,13 @@ export function OutlookPage() {
                 {HORIZONS.map((h) => <button key={h.key} type="button" role="radio" aria-checked={horizon === h.key} className={horizon === h.key ? "on" : ""} onClick={() => setHorizon(h.key)}>{h.label}<small>{h.span}</small></button>)}
               </div>
             </div>
-            <div className="ol-ctl-row">
-              <span className="ol-ctl-l" id="ol-md-l">Weights</span>
-              <div className="ol-mode" role="radiogroup" aria-labelledby="ol-md-l">
-                {([["model", "Our model"], ["custom", "Set your own"]] as const).map(([m, label]) => (
-                  <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? "on" : ""} onClick={() => setMode(m)}>{label}</button>))}
+            <div className="ol-ctl-row ol-models-row">
+              <span className="ol-ctl-l" id="ol-md-l">Estimation model</span>
+              <div className="ol-models" role="radiogroup" aria-labelledby="ol-md-l">
+                {([["model", "Our model", "FinLit's data-driven weights from the company's own growth and its sector's. Recommended for a quick, reliable estimate.", "bars", false],
+                   ["custom", "Set your own model", "Customise the weight of each input and test your own growth assumptions to see different profit and revenue outcomes.", "gauge", true]] as const).map(([m, label, text, icon, usp]) => (
+                  <button key={m} type="button" role="radio" aria-checked={mode === m} className={"ol-mcard" + (mode === m ? " on" : "")} onClick={() => setMode(m)}>
+                    <span className="ol-mdot" aria-hidden="true" /><Icon name={icon} /><span className="ol-mt"><b>{label}{usp && <em className="ol-usp">FinLit USP</em>}</b><small>{text}</small></span></button>))}
               </div>
             </div>
             <p className="ol-disc">{NOTE}</p>
@@ -197,11 +199,26 @@ export function OutlookPage() {
               <p>The weights are the team's starting values and have not yet been validated against later results. Reported figures come from the company's own results.</p></details>
           </div>
 
+          <div className={"ol-top" + (mode === "custom" ? " side" : "")}>
+          {mode === "custom" && (
+            <section className="card ol-assume" aria-labelledby="ol-as-h">
+              <div className="ol-assume-h">
+                <h2 id="ol-as-h">Set your own model: assumptions</h2>
+                <div className="ol-mode" role="radiogroup" aria-label="Which estimate to adjust">
+                  {TABS.map((t) => <button key={t.kind} type="button" role="radio" aria-checked={kind === t.kind} className={kind === t.kind ? "on" : ""} onClick={() => setKind(t.kind)}>{t.label} estimate</button>)}
+                </div>
+              </div>
+              <p className="faint ol-assume-p">Move a slider to change how much each input counts. The other weights move with it so the total stays 100%, and the charts and tables below update as you go.</p>
+              <Sliders kind={kind} horizon={horizon} names={names} weights={getW(kind, horizon)} onChange={(l, v) => setCustom((c) => ({ ...c, [wkey(kind, horizon)]: rebalance(c[wkey(kind, horizon)] ?? DEFAULT_WEIGHTS[kind][horizon], l, v) }))}
+              onReset={() => setCustom((c) => ({ ...c, [wkey(kind, horizon)]: { ...DEFAULT_WEIGHTS[kind][horizon] } }))} />
+            </section>)}
+
           {!gold ? null : (
             <div className="ol-charts">
               <ChartCard sym={sym} kind="revenue" horizon={horizon} own={own("revenue")} gold={gold} />
               <ChartCard sym={sym} kind="profit" horizon={horizon} own={own("profit")} gold={gold} />
             </div>)}
+          </div>
 
           <div className="ol-tabs" role="tablist" aria-label="Details of the estimate">
             {TABS.map((t, i) => (
@@ -209,17 +226,17 @@ export function OutlookPage() {
                 className={kind === t.kind ? "on" : ""} onClick={() => setKind(t.kind)} onKeyDown={(e) => onTabKey(e, i)}>{t.label} estimate</button>))}
           </div>
           <div id="ol-panel" role="tabpanel" aria-labelledby={`ol-tab-${kind}`} className="ol-panel">
-            {mode === "custom" && <Sliders kind={kind} horizon={horizon} names={names} weights={getW(kind, horizon)} onChange={(l, v) => setCustom((c) => ({ ...c, [wkey(kind, horizon)]: rebalance(c[wkey(kind, horizon)] ?? DEFAULT_WEIGHTS[kind][horizon], l, v) }))}
-              onReset={() => setCustom((c) => ({ ...c, [wkey(kind, horizon)]: { ...DEFAULT_WEIGHTS[kind][horizon] } }))} />}
             {!gold ? null : q.isLoading && !d ? <Skeleton /> : err && !d ? (
               <p className="formerr" role="alert">{err.status === 404 ? "This company's report is not stored yet. Open its page once, then come back." : (err.body?.detail as string) || "Could not load the estimate."}</p>
             ) : d ? (
               <div className={"ol-out" + (q.isFetching ? " is-busy" : "")} aria-busy={q.isFetching}>
-                <BuildTable d={d} />
-                <YearTable d={d} />
+                <div className="ol-pair"><YearTable d={d} /><Takeaways d={d} model={d.mode === "custom" ? modelQ.data ?? null : null} /></div>
+                <div className="ol-fold3">
+                  <details><summary>How this estimate is built <em>{d.mode === "custom" ? "Your weights" : "FinLit model"}</em></summary><BuildTable d={d} /></details>
+                  <details><summary>Why these inputs and weights</summary><p className="ol-disc">Each year's figure is the year before, grown by one weighted yearly growth rate, made from the company's own growth and its sector's. The weights are the team's starting values and have not yet been validated against later results.</p></details>
+                  <details><summary>Important notes</summary><p className="ol-disc">{d.disclaimer} Information only, not investment advice.</p>{d.isLender && <p className="ol-note" role="note"><Icon name="info" />This is a bank or lender: total income is used as its revenue.</p>}</details>
+                </div>
                 <p className="faint">Latest reported year {d.asOf.yearly ?? "—"} · {d.statement} statements · {d.mode === "custom" ? "your weights" : "FinLit model"}.</p>
-                {d.isLender && <p className="ol-note" role="note"><Icon name="info" />This is a bank or lender: total income is used as its revenue.</p>}
-                <p className="ol-disc">{d.disclaimer} Information only, not investment advice.</p>
               </div>
             ) : null}
           </div>
