@@ -130,13 +130,14 @@ async def send(request: Request, body: SendIn):
 
 
 async def notify_team(request: Request, row_id: int, kind: str, page: str, name: str, category: str, rating: Optional[int], message: str, email: Optional[str], ctx) -> None:
-    """A short email to the team, best effort: the message is already stored, so a mail problem never fails the member's request."""
+    """A query is emailed to the team (feedback is only stored and read in the inbox, so the mailbox is for questions that wait for an answer).
+    Best effort: the message is already stored, so a mail problem never fails the member's request."""
     to = getattr(request.app.state.settings, "feedback_notify_email", "") or ""
-    if not to:
+    if kind != "query" or not to:
         return
     who = (email or "a signed-in member") + (f" ({ctx.plan} plan)" if ctx.authed else "")
-    subject = f"FinLit {'query' if kind == 'query' else 'feedback'} on {name}"
-    lines = [f"{'Query' if kind == 'query' else 'Feedback'} #{row_id} about: {name} ({page})", f"Type: {category}" + (f", rating {rating}/5" if rating else ""), f"From: {who}", "", message or "(rating only)",
+    subject = f"FinLit query on {name}"
+    lines = [f"Query #{row_id} about: {name} ({page})", f"Type: {category}", f"From: {who}" + (f" - reply to {email}" if email else " - answer by email from the account (see the inbox)"), "", message,
              "", f"Open it: {request.app.state.settings.public_site_url}/admin/feedback"]
     try:
         await request.app.state.mailer.send(to, subject, "\n".join(lines))

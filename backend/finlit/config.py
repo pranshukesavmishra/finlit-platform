@@ -99,8 +99,9 @@ class Settings:
     mail_mode: str = field(default_factory=lambda: os.getenv("MAIL_MODE", "console"))
     resend_api_key: str = field(default_factory=lambda: os.getenv("RESEND_API_KEY", ""))
     mail_from: str = field(default_factory=lambda: os.getenv("MAIL_FROM", "FinLit <hello@finlitventures.com>"))
-    # Where a short note goes when a member raises a query or shares feedback on a page (finlit/page_feedback.py). Empty = nothing is emailed; the messages are still stored and read at /admin/feedback.
-    feedback_notify_email: str = field(default_factory=lambda: (os.getenv("FEEDBACK_NOTIFY_EMAIL") or os.getenv("ADMIN_EMAIL") or "").strip())
+    # Where each query raised on a page is emailed (finlit/page_feedback.py): the team's mailbox, chosen by the founder. FEEDBACK_NOTIFY_EMAIL changes it; set it to "-" to switch the email off.
+    # Every query and every piece of feedback is stored either way and read at /admin/feedback.
+    feedback_notify_email: str = field(default_factory=lambda: (lambda v: "" if v == "-" else v)((os.getenv("FEEDBACK_NOTIFY_EMAIL") or "finlit.start@gmail.com").strip()))
     # Earnings-call summaries (finlit/earnings, docs/EARNINGS-CALLS.md). Empty key = the nightly job reports "not configured" and the site says the summaries are not available yet.
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", "").strip())
     gemini_model: str = field(default_factory=lambda: os.getenv("EARNINGS_LLM_MODEL", "").strip() or os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.8-flash")

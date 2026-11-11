@@ -129,19 +129,37 @@ async def test_the_limits_are_per_address_and_enforced_on_the_server(papp):
     assert codes[:20] == [201] * 20 and 429 in codes[20:]
 
 
-async def test_the_team_gets_a_short_note_when_an_address_is_configured_and_never_fails_the_member_without_one(papp, monkeypatch):
-    from dataclasses import replace
-    papp.state.settings = replace(papp.state.settings, feedback_notify_email="team@example.com")
+async def test_a_query_is_emailed_to_the_team_mailbox_by_default(papp):
+    assert papp.state.settings.feedback_notify_email == "finlit.start@gmail.com"
     async with new_client(papp) as anon:
         assert (await anon.post("/api/page-feedback", json=query(), headers=ORIGIN)).status_code == 201
-    mail = await last_mail(papp, "team@example.com")
+    mail = await last_mail(papp, "finlit.start@gmail.com")
     assert mail and "Basic score screener" in mail["subject"] and "/score-screener" in mail["body"] and Q in mail["body"] and "visitor@example.com" in mail["body"]
 
+
+async def test_feedback_is_stored_but_not_emailed_and_the_email_can_be_switched_off_or_moved(papp, monkeypatch):
+    from dataclasses import replace
+    async with new_client(papp) as anon:
+        r = await anon.post("/api/page-feedback", json={"kind": "feedback", "page": "/dcf", "pageName": "DCF calculator", "rating": 5, "email": "v@example.com"}, headers=ORIGIN)
+        assert r.status_code == 201
+    assert await last_mail(papp, "finlit.start@gmail.com") is None
+    papp.state.settings = replace(papp.state.settings, feedback_notify_email="other@example.com")
+    async with new_client(papp) as anon:
+        assert (await anon.post("/api/page-feedback", json=query(message=Q + " Sent to another mailbox."), headers=ORIGIN)).status_code == 201
+    assert await last_mail(papp, "other@example.com")
+    papp.state.settings = replace(papp.state.settings, feedback_notify_email="")
+    async with new_client(papp) as anon:
+        assert (await anon.post("/api/page-feedback", json=query(message=Q + " Nothing is emailed now."), headers=ORIGIN)).status_code == 201
+    assert len(await rows(papp)) == 3
+
+
+async def test_a_mail_problem_never_fails_the_members_request(papp, monkeypatch):
     async def broken(*a, **k):
         raise RuntimeError("mail down")
     monkeypatch.setattr(papp.state.mailer, "send", broken)
     async with new_client(papp) as anon:
         assert (await anon.post("/api/page-feedback", json=query(message=Q + " A second, different question."), headers=ORIGIN)).status_code == 201   # stored; the mail problem is not the member's
+    assert len(await rows(papp)) == 1
 
 
 async def test_only_an_administrator_with_the_two_step_sign_in_reads_the_inbox(papp):
