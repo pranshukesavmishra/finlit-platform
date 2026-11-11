@@ -4,7 +4,7 @@
 
 **What is captured.** The page address (no query string or fragment), the name the page gives itself (`pageNameFor` in `lib/pageHeader.ts`, else its heading or title), and a few short facts: company symbol, title, heading, plan, screen size. The server keeps only those whitelisted keys, cut to length (`finlit/page_feedback.py`).
 
-**Where it goes.** Table `page_feedback` (migration 095). `POST /api/page-feedback` needs our own Origin, the CSRF token for a signed-in member, and is limited per address (20 an hour) and per member (12 an hour, 40 a day); an identical message from the same sender on the same page within a day is stored once.
+**Where it goes.** Table `page_feedback` (migration 097). `POST /api/page-feedback` needs our own Origin, the CSRF token for a signed-in member, and is limited per address (20 an hour) and per member (12 an hour, 40 a day); an identical message from the same sender on the same page within a day is stored once.
 
 **The team's side.** `/admin/feedback` (administrators with the two-step sign-in): filter by kind, status and page, see which pages people write about most with the average rating, mark read, resolve with a note.
 

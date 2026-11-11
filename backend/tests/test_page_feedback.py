@@ -19,7 +19,7 @@ async def papp(app):  # noqa: F811
     """The shared fixtures drop users but not this table: rebuild it so the foreign keys are real."""
     async with app.state.store.pool.acquire() as conn:
         await conn.execute("DROP TABLE IF EXISTS page_feedback CASCADE")
-        await conn.execute((MIGRATIONS / "095_page_feedback.sql").read_text())
+        await conn.execute((MIGRATIONS / "097_page_feedback.sql").read_text())
     return app
 
 
