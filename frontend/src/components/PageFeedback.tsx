@@ -17,7 +17,7 @@ const bannerCount = () => useSyncExternalStore(banner.sub, banner.get, () => 0);
 /** The button in the page banner, after the page's own buttons. Counting it tells the dock the page already has one. */
 export function RaiseQueryButton() {
   useEffect(() => banner.add(), []);
-  return <button type="button" className="ph-qbtn" onClick={() => panel.set("query")} aria-haspopup="dialog"><Icon name="chat" />Raise a Query</button>;
+  return <button type="button" className="ph-qbtn" onClick={() => panel.set("query")} aria-haspopup="dialog"><Icon name="bubble" />Raise a Query</button>;
 }
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.body.detail || e.body.status || "We could not send that." : "Could not reach the server. Please try again.");
@@ -107,7 +107,7 @@ export function PageFeedbackDock() {
   return (
     <>
       <div className="pf-dock" data-no-banner={banners === 0 || undefined}>
-        {banners === 0 && <button type="button" className="pf-fab pf-fab-q" aria-label="Raise a Query" onClick={() => panel.set("query")} aria-haspopup="dialog"><Icon name="chat" /><span>Raise a Query</span></button>}
+        {banners === 0 && <button type="button" className="pf-fab pf-fab-q" aria-label="Raise a Query" onClick={() => panel.set("query")} aria-haspopup="dialog"><Icon name="bubble" /><span>Raise a Query</span></button>}
         <button type="button" className="pf-fab" aria-label="Share feedback" onClick={() => panel.set("feedback")} aria-haspopup="dialog"><Icon name="pencil" /><span>Share feedback</span></button>
       </div>
       {open && <FeedbackDialog key={open + pathname} kind={open} pathname={pathname} plan={user ? plan : null} onClose={() => panel.set(null)} />}
